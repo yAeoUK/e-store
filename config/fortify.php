@@ -129,7 +129,7 @@ return [
     |
     */
 
-    'views' => true,
+    'views' => env('PUBLIC_AUTH_ENABLED', true),
 
     /*
     |--------------------------------------------------------------------------
@@ -142,9 +142,14 @@ return [
     |
     */
 
-    'features' => [
-        Features::registration(),
-        Features::resetPasswords(),
+    'public_auth' => [
+        'enabled' => env('PUBLIC_AUTH_ENABLED', true),
+        'allow_registration' => env('PUBLIC_REGISTRATION_ENABLED', true),
     ],
+
+    'features' => array_filter([
+        env('PUBLIC_REGISTRATION_ENABLED', true) ? Features::registration() : null,
+        env('RESET_PASSWORDS_ENABLED', true) ? Features::resetPasswords() : null,
+    ]),
 
 ];

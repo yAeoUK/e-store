@@ -40,7 +40,9 @@ class FortifyServiceProvider extends ServiceProvider
     private function configureActions(): void
     {
         Fortify::resetUserPasswordsUsing(ResetUserPassword::class);
-        Fortify::createUsersUsing(CreateNewUser::class);
+        if (config('fortify.public_auth.allow_registration', true)) {
+            Fortify::createUsersUsing(CreateNewUser::class);
+        }
     }
 
     /**
@@ -48,6 +50,10 @@ class FortifyServiceProvider extends ServiceProvider
      */
     private function configureViews(): void
     {
+        if (! config('fortify.views', true)) {
+            return;
+        }
+
         Fortify::loginView(fn (Request $request) => Inertia::render('auth/Login', [
             'canResetPassword' => Features::enabled(Features::resetPasswords()),
             'status' => $request->session()->get('status'),
@@ -63,9 +69,11 @@ class FortifyServiceProvider extends ServiceProvider
             'status' => $request->session()->get('status'),
         ]));
 
-        Fortify::registerView(fn () => Inertia::render('auth/Register', [
-            'passwordRules' => Password::defaults()->toPasswordRulesString(),
-        ]));
+        if (config('fortify.public_auth.allow_registration', true)) {
+            Fortify::registerView(fn () => Inertia::render('auth/Register', [
+                'passwordRules' => Password::defaults()->toPasswordRulesString(),
+            ]));
+        }
 
         Fortify::confirmPasswordView(fn () => Inertia::render('auth/ConfirmPassword'));
     }
