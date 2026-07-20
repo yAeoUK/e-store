@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Head, router } from '@inertiajs/vue3';
+import { t } from '@/i18n';
 import ProductCard from '@/components/shop/ProductCard.vue';
 import ProductFilters from '@/components/shop/ProductFilters.vue';
 import CategoryNavigation from '@/components/shop/CategoryNavigation.vue';
@@ -49,7 +50,7 @@ function applyFilters(filters: Record<string, string | number | null>): void {
         }
     });
 
-    router.get(`/categories/${props.category?.slug ?? ''}`, query, {
+    router.get(`/categories/${props.category?.slug ?? ''}`, Object.fromEntries(query.entries()), {
         preserveState: true,
         replace: true,
     });
@@ -57,11 +58,11 @@ function applyFilters(filters: Record<string, string | number | null>): void {
 </script>
 
 <template>
-    <Head :title="category?.name || 'Categories'" />
+    <Head :title="category?.name || t('shop.categories.pageTitle')" />
 
     <div class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         <div class="mb-8">
-            <h1 class="text-3xl font-semibold text-slate-900 dark:text-slate-100">{{ category?.name || 'Categories' }}</h1>
+            <h1 class="text-3xl font-semibold text-slate-900 dark:text-slate-100">{{ category?.name || t('shop.categories.pageTitle') }}</h1>
             <p v-if="category?.description" class="mt-2 text-sm text-slate-600 dark:text-slate-400">{{ category.description }}</p>
         </div>
 
@@ -78,7 +79,7 @@ function applyFilters(filters: Record<string, string | number | null>): void {
                 </div>
 
                 <div v-else class="rounded-xl border border-dashed border-slate-300 bg-white p-8 text-center text-slate-600 dark:border-slate-700 dark:bg-slate-900/80 dark:text-slate-300">
-                    No products found in this category.
+                    {{ t('shop.products.categoryEmpty') }}
                 </div>
 
                 <nav v-if="products.links?.length" class="flex flex-wrap items-center gap-2">

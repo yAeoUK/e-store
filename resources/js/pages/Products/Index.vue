@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Head, router } from '@inertiajs/vue3';
+import { t } from '@/i18n';
 import ProductCard from '@/components/shop/ProductCard.vue';
 import ProductFilters from '@/components/shop/ProductFilters.vue';
 import CategoryNavigation from '@/components/shop/CategoryNavigation.vue';
@@ -48,13 +49,13 @@ function applyFilters(filters: Record<string, string | number | null>): void {
 </script>
 
 <template>
-    <Head title="Products" />
+    <Head :title="t('shop.products.pageTitle')" />
 
     <div class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         <div class="mb-8 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div>
-                <h1 class="text-3xl font-semibold text-slate-900 dark:text-slate-100">Shop products</h1>
-                <p class="mt-2 text-sm text-slate-600 dark:text-slate-400">Browse our catalog with simple search and filtering.</p>
+                <h1 class="text-3xl font-semibold text-slate-900 dark:text-slate-100">{{ t('shop.products.heading') }}</h1>
+                <p class="mt-2 text-sm text-slate-600 dark:text-slate-400">{{ t('shop.products.description') }}</p>
             </div>
         </div>
 
@@ -71,7 +72,7 @@ function applyFilters(filters: Record<string, string | number | null>): void {
                 </div>
 
                 <div v-else class="rounded-xl border border-dashed border-slate-300 bg-white p-8 text-center text-slate-600 dark:border-slate-700 dark:bg-slate-900/80 dark:text-slate-300">
-                    No products matched your search.
+                    {{ t('shop.products.empty') }}
                 </div>
 
                 <nav v-if="products.links?.length" class="flex flex-wrap items-center gap-2">

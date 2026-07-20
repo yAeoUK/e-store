@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3';
+import { t } from '@/i18n';
 
 interface ProductImage {
     url: string;
@@ -51,7 +52,7 @@ const imageAlt = props.product.images?.[0]?.alt_text ?? props.product.name;
             </p>
 
             <Link :href="`/products/${product.slug}`" class="inline-flex items-center text-sm font-medium text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300">
-                View product
+                {{ t('common.viewProduct') }}
             </Link>
         </div>
     </article>

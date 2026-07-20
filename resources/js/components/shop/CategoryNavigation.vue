@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { t } from '@/i18n';
+
 interface Category {
     id: number;
     name: string;
@@ -13,7 +15,7 @@ const props = defineProps<{
 
 <template>
     <nav class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900/90 dark:shadow-none">
-        <h3 class="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Categories</h3>
+        <h3 class="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ t('common.categories') }}</h3>
 
         <ul class="space-y-2">
             <li v-for="category in categories" :key="category.id">

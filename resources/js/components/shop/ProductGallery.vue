@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue';
+import { t } from '@/i18n';
 
 interface ProductImage {
     id?: number;
@@ -16,7 +17,7 @@ const selectedImage = defineModel<string | null>('selectedImage');
 
 const images = computed(() => {
     if (!props.images || props.images.length === 0) {
-        return [{ url: 'https://placehold.co/600x600?text=Product', alt_text: props.title ?? 'Product image' }];
+        return [{ url: 'https://placehold.co/600x600?text=Product', alt_text: props.title ?? t('common.productImage') }];
     }
 
     return props.images;
@@ -32,7 +33,7 @@ if (!selectedImage.value) {
         <img
             v-if="selectedImage"
             :src="selectedImage"
-            :alt="title ?? 'Product image'"
+            :alt="title ?? t('common.productImage')"
             class="h-[420px] w-full rounded-xl border border-slate-200 object-cover"
         />
 
@@ -44,7 +45,7 @@ if (!selectedImage.value) {
                 @click="selectedImage = image.url"
                 class="h-20 w-20 overflow-hidden rounded-lg border border-slate-200 bg-slate-50"
             >
-                <img :src="image.url" :alt="image.alt_text ?? title ?? 'Product image'" class="h-full w-full object-cover" />
+                <img :src="image.url" :alt="image.alt_text ?? title ?? t('common.productImage')" class="h-full w-full object-cover" />
             </button>
         </div>
     </div>
