@@ -48,3 +48,21 @@ function something()
 {
     // ..
 }
+
+function inertiaHeaders(): array
+{
+    $version = null;
+
+    if (config('app.asset_url')) {
+        $version = hash('xxh128', config('app.asset_url'));
+    } elseif (file_exists(public_path('build/manifest.json'))) {
+        $version = hash_file('xxh128', public_path('build/manifest.json'));
+    } elseif (file_exists(public_path('mix-manifest.json'))) {
+        $version = hash_file('xxh128', public_path('mix-manifest.json'));
+    }
+
+    return [
+        'X-Inertia' => 'true',
+        'X-Inertia-Version' => $version ?? '',
+    ];
+}
