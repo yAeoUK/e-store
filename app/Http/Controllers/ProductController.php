@@ -67,37 +67,4 @@ class ProductController extends Controller
         ]);
     }
 
-    public function store(StoreProductRequest $request): \Illuminate\Http\RedirectResponse
-    {
-        $product = new Product;
-        $product->fill($request->validated());
-
-        if ($request->filled('category_id')) {
-            $product->category_id = $request->integer('category_id');
-        }
-
-        $product->save();
-
-        return redirect()->route('products.show', $product);
-    }
-
-    public function update(UpdateProductRequest $request, Product $product): \Illuminate\Http\RedirectResponse
-    {
-        $product->fill($request->validated());
-
-        if ($request->has('category_id')) {
-            $product->category_id = $request->integer('category_id');
-        }
-
-        $product->save();
-
-        return redirect()->route('products.show', $product);
-    }
-
-    public function destroy(Product $product): \Illuminate\Http\RedirectResponse
-    {
-        $product->delete();
-
-        return redirect()->route('products.index');
-    }
 }

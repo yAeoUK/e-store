@@ -12,17 +12,6 @@ use Inertia\Response;
 
 class CategoryController extends Controller
 {
-    public function index(): Response
-    {
-        $categories = Category::query()
-            ->with('children')
-            ->whereNull('parent_id')
-            ->get();
-
-        return Inertia::render('Categories/Show', [
-            'categories' => $categories,
-        ]);
-    }
 
     public function show(Category $category, Request $request): Response
     {
@@ -66,37 +55,4 @@ class CategoryController extends Controller
         ]);
     }
 
-    public function store(StoreCategoryRequest $request): RedirectResponse
-    {
-        $category = new Category;
-        $category->fill($request->validated());
-
-        if ($request->filled('parent_id')) {
-            $category->parent_id = $request->integer('parent_id');
-        }
-
-        $category->save();
-
-        return redirect()->route('categories.show', $category);
-    }
-
-    public function update(UpdateCategoryRequest $request, Category $category): RedirectResponse
-    {
-        $category->fill($request->validated());
-
-        if ($request->has('parent_id')) {
-            $category->parent_id = $request->integer('parent_id');
-        }
-
-        $category->save();
-
-        return redirect()->route('categories.show', $category);
-    }
-
-    public function destroy(Category $category): RedirectResponse
-    {
-        $category->delete();
-
-        return redirect()->route('categories.index');
-    }
 }
