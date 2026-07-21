@@ -12,7 +12,7 @@ const showingNavigationDropdown = ref(false);
 
 <template>
     <div>
-        <div class="min-h-screen bg-gray-100">
+        <div class="min-h-screen bg-slate-50 dark:bg-slate-950">
             <nav
                 class="border-b border-gray-100 bg-white"
             >
@@ -75,6 +75,21 @@ const showingNavigationDropdown = ref(false);
                                             :href="route('profile.edit')"
                                         >
                                             Profile
+                                        </DropdownLink>
+                                        <DropdownLink
+                                            :href="route('account.profile.show')"
+                                        >
+                                            Account
+                                        </DropdownLink>
+                                        <DropdownLink
+                                            :href="route('account.addresses.index')"
+                                        >
+                                            Addresses
+                                        </DropdownLink>
+                                        <DropdownLink
+                                            :href="route('account.orders')"
+                                        >
+                                            Order History
                                         </DropdownLink>
                                         <DropdownLink
                                             :href="route('logout')"
@@ -166,6 +181,15 @@ const showingNavigationDropdown = ref(false);
                         <div class="mt-3 space-y-1">
                             <ResponsiveNavLink :href="route('profile.edit')">
                                 Profile
+                            </ResponsiveNavLink>
+                            <ResponsiveNavLink :href="route('account.profile.show')">
+                                Account
+                            </ResponsiveNavLink>
+                            <ResponsiveNavLink :href="route('account.addresses.index')">
+                                Addresses
+                            </ResponsiveNavLink>
+                            <ResponsiveNavLink :href="route('account.orders')">
+                                Order History
                             </ResponsiveNavLink>
                             <ResponsiveNavLink
                                 :href="route('logout')"

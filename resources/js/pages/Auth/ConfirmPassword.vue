@@ -26,7 +26,7 @@ const submit = () => {
             password before continuing.
         </div>
 
-        <form @submit.prevent="submit">
+        <form @submit.prevent="submit" class="space-y-6">
             <div>
                 <InputLabel for="password" value="Password" />
                 <TextInput
@@ -41,7 +41,7 @@ const submit = () => {
                 <InputError class="mt-2" :message="form.errors.password" />
             </div>
 
-            <div class="mt-4 flex justify-end">
+            <div class="flex justify-end">
                 <PrimaryButton
                     class="ms-4"
                     :class="{ 'opacity-25': form.processing }"

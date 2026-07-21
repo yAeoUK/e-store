@@ -2,6 +2,7 @@
 import { Head } from '@inertiajs/vue3';
 import { t } from '@/i18n';
 import ProductGallery from '@/components/shop/ProductGallery.vue';
+import ShopAuthBanner from '@/components/ShopAuthBanner.vue';
 import { ref } from 'vue';
 
 interface ProductImage {
@@ -45,6 +46,7 @@ const selectedImage = ref<string | null>(null);
             <ProductGallery :images="product.images" :title="product.name" v-model:selected-image="selectedImage" />
 
             <div class="space-y-6">
+                <ShopAuthBanner />
                 <div>
                     <p v-if="product.category?.name" class="text-sm font-medium uppercase tracking-wide text-indigo-600">
                         {{ product.category.name }}

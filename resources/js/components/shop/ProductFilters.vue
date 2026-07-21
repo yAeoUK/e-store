@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { t } from '@/i18n';
+import PrimaryButton from '@/Components/PrimaryButton.vue';
 
 const props = defineProps<{
     categories?: Array<{ id: number; name: string; slug?: string }>;
@@ -63,9 +64,9 @@ function applyFilters(): void {
         </div>
 
         <div class="mt-4 flex justify-end">
-            <button type="submit" class="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700">
+            <PrimaryButton type="submit">
                 {{ t('shop.products.filters.apply') }}
-            </button>
+            </PrimaryButton>
         </div>
     </form>
 </template>

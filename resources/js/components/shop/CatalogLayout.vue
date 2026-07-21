@@ -2,6 +2,7 @@
 import ProductCard from '@/components/shop/ProductCard.vue';
 import ProductFilters from '@/components/shop/ProductFilters.vue';
 import CategoryNavigation from '@/components/shop/CategoryNavigation.vue';
+import ShopAuthBanner from '@/components/ShopAuthBanner.vue';
 import type { CatalogCategory, CatalogFilters, CatalogProductsPayload, FilterPayload } from '@/components/shop/catalog';
 
 interface Props {
@@ -32,6 +33,7 @@ function handleApplyFilters(filters: FilterPayload): void {
 
         <div class="grid gap-6 lg:grid-cols-[280px_minmax(0,1fr)]">
             <div class="space-y-6">
+                <ShopAuthBanner />
                 <CategoryNavigation :categories="categories" />
             </div>
 
