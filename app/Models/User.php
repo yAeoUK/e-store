@@ -10,6 +10,8 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Carbon;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use App\Models\Address;
 
 /**
  * @property int $id
@@ -44,3 +46,7 @@ class User extends Authenticatable
         ];
     }
 }
+    public function addresses(): HasMany
+    {
+        return $this->hasMany(Address::class);
+    }
