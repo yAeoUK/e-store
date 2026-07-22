@@ -59,7 +59,7 @@ const logout = () => {
           </template>
 
           <template #content>
-            <DropdownLink :href="route('account.profile.show')">Account</DropdownLink>
+            <DropdownLink :href="route('profile.edit')">Profile</DropdownLink>
             <DropdownLink :href="route('account.addresses.index')">Addresses</DropdownLink>
             <DropdownLink :href="route('account.orders')">Order History</DropdownLink>
             <button

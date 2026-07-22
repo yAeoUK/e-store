@@ -93,11 +93,6 @@ const logout = () => {
                                             Profile
                                         </DropdownLink>
                                         <DropdownLink
-                                            :href="route('account.profile.show')"
-                                        >
-                                            Account
-                                        </DropdownLink>
-                                        <DropdownLink
                                             :href="route('account.addresses.index')"
                                         >
                                             Addresses
@@ -197,9 +192,6 @@ const logout = () => {
                         <div class="mt-3 space-y-1">
                             <ResponsiveNavLink :href="route('profile.edit')">
                                 Profile
-                            </ResponsiveNavLink>
-                            <ResponsiveNavLink :href="route('account.profile.show')">
-                                Account
                             </ResponsiveNavLink>
                             <ResponsiveNavLink :href="route('account.addresses.index')">
                                 Addresses

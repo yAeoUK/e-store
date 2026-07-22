@@ -1,7 +1,6 @@
 <?php
 
 use App\Http\Controllers\Account\AddressController;
-use App\Http\Controllers\Account\ProfileController as AccountProfileController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ProfileController;
@@ -20,9 +19,6 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
     Route::prefix('account')->name('account.')->group(function () {
-        Route::get('/profile', [AccountProfileController::class, 'show'])->name('profile.show');
-        Route::patch('/profile', [AccountProfileController::class, 'update'])->name('profile.update');
-
         Route::get('/addresses', [AddressController::class, 'index'])->name('addresses.index');
         Route::post('/addresses', [AddressController::class, 'store'])->name('addresses.store');
         Route::patch('/addresses/{address}', [AddressController::class, 'update'])->name('addresses.update');
