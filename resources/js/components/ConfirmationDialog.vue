@@ -1,8 +1,9 @@
 <script setup>
-import Modal from '@/Components/Modal.vue';
-import DangerButton from '@/Components/DangerButton.vue';
-import PrimaryButton from '@/Components/PrimaryButton.vue';
-import SecondaryButton from '@/Components/SecondaryButton.vue';
+import Modal from '@/components/Modal.vue';
+import DangerButton from '@/components/DangerButton.vue';
+import PrimaryButton from '@/components/PrimaryButton.vue';
+import SecondaryButton from '@/components/SecondaryButton.vue';
+import MutedText from '@/components/MutedText.vue';
 
 defineProps({
     show: {
@@ -45,12 +46,9 @@ const emit = defineEmits(['confirm', 'cancel']);
                 {{ title }}
             </h2>
 
-            <p
-                v-if="message"
-                class="mt-1 text-sm text-gray-600 dark:text-slate-400"
-            >
+            <MutedText v-if="message" class="mt-1">
                 {{ message }}
-            </p>
+            </MutedText>
 
             <slot />
 
@@ -61,7 +59,6 @@ const emit = defineEmits(['confirm', 'cancel']);
 
                 <DangerButton
                     v-if="danger"
-                    :class="{ 'opacity-25': processing }"
                     :disabled="processing"
                     @click="emit('confirm')"
                 >
@@ -69,7 +66,6 @@ const emit = defineEmits(['confirm', 'cancel']);
                 </DangerButton>
                 <PrimaryButton
                     v-else
-                    :class="{ 'opacity-25': processing }"
                     :disabled="processing"
                     @click="emit('confirm')"
                 >

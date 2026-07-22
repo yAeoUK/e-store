@@ -1,9 +1,12 @@
 <script setup>
-import InputError from '@/Components/InputError.vue';
-import InputLabel from '@/Components/InputLabel.vue';
-import PrimaryButton from '@/Components/PrimaryButton.vue';
-import TextInput from '@/Components/TextInput.vue';
-import { Link, useForm, usePage } from '@inertiajs/vue3';
+import InputError from '@/components/InputError.vue';
+import InputLabel from '@/components/InputLabel.vue';
+import PrimaryButton from '@/components/PrimaryButton.vue';
+import TextInput from '@/components/TextInput.vue';
+import TextLink from '@/components/TextLink.vue';
+import MutedText from '@/components/MutedText.vue';
+import SuccessText from '@/components/SuccessText.vue';
+import { useForm, usePage } from '@inertiajs/vue3';
 
 defineProps({
     mustVerifyEmail: {
@@ -29,9 +32,9 @@ const form = useForm({
                 Profile Information
             </h2>
 
-            <p class="mt-1 text-sm text-gray-600">
+            <MutedText class="mt-1">
                 Update your account's profile information and email address.
-            </p>
+            </MutedText>
         </header>
 
         <form
@@ -44,7 +47,7 @@ const form = useForm({
                 <TextInput
                     id="name"
                     type="text"
-                    class="mt-1 block w-full"
+                    class="mt-1"
                     v-model="form.name"
                     required
                     autofocus
@@ -60,7 +63,7 @@ const form = useForm({
                 <TextInput
                     id="email"
                     type="email"
-                    class="mt-1 block w-full"
+                    class="mt-1"
                     v-model="form.email"
                     required
                     autocomplete="username"
@@ -72,22 +75,18 @@ const form = useForm({
             <div v-if="mustVerifyEmail && user.email_verified_at === null">
                 <p class="mt-2 text-sm text-gray-800">
                     Your email address is unverified.
-                    <Link
+                    <TextLink
                         :href="route('verification.send')"
                         method="post"
                         as="button"
-                        class="rounded-md text-sm text-gray-600 underline hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
                     >
                         Click here to re-send the verification email.
-                    </Link>
+                    </TextLink>
                 </p>
 
-                <div
-                    v-show="status === 'verification-link-sent'"
-                    class="mt-2 text-sm font-medium text-green-600"
-                >
+                <SuccessText v-show="status === 'verification-link-sent'" class="mt-2">
                     A new verification link has been sent to your email address.
-                </div>
+                </SuccessText>
             </div>
 
             <div class="flex items-center gap-4">
@@ -99,12 +98,9 @@ const form = useForm({
                     leave-active-class="transition ease-in-out"
                     leave-to-class="opacity-0"
                 >
-                    <p
-                        v-if="form.recentlySuccessful"
-                        class="text-sm text-gray-600"
-                    >
+                    <MutedText v-if="form.recentlySuccessful">
                         Saved.
-                    </p>
+                    </MutedText>
                 </Transition>
             </div>
         </form>

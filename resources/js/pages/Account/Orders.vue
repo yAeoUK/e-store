@@ -1,10 +1,12 @@
 <script setup>
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
+import ShopLayout from '@/Layouts/ShopLayout.vue';
+import Card from '@/components/Card.vue';
+import MutedText from '@/components/MutedText.vue';
 import { Head } from '@inertiajs/vue3';
 </script>
 
 <template>
-  <AuthenticatedLayout>
+  <ShopLayout>
     <Head title="Order History" />
 
     <template #header>
@@ -15,12 +17,12 @@ import { Head } from '@inertiajs/vue3';
 
     <div class="py-12">
       <div class="mx-auto max-w-4xl sm:px-6 lg:px-8">
-        <div class="overflow-hidden bg-white shadow sm:rounded-lg p-6">
-          <p class="text-sm text-gray-600">
+        <Card class="overflow-hidden p-6">
+          <MutedText>
             This page is a placeholder for the user's order history. Orders will be implemented later.
-          </p>
-        </div>
+          </MutedText>
+        </Card>
       </div>
     </div>
-  </AuthenticatedLayout>
+  </ShopLayout>
 </template>

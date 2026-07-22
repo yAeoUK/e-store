@@ -1,5 +1,9 @@
 <script setup>
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
+import ShopLayout from '@/Layouts/ShopLayout.vue';
+import Card from '@/components/Card.vue';
+import MutedText from '@/components/MutedText.vue';
+import TextInput from '@/components/TextInput.vue';
+import Checkbox from '@/components/Checkbox.vue';
 import { Head, useForm } from '@inertiajs/vue3';
 
 const props = defineProps({ addresses: Array });
@@ -27,7 +31,7 @@ function submit() {
 </script>
 
 <template>
-  <AuthenticatedLayout>
+  <ShopLayout>
     <Head title="Saved Addresses" />
 
     <template #header>
@@ -39,7 +43,7 @@ function submit() {
     <div class="py-12">
       <div class="mx-auto max-w-4xl sm:px-6 lg:px-8">
         <div class="space-y-6">
-          <div class="overflow-hidden bg-white shadow sm:rounded-lg p-6">
+          <Card class="overflow-hidden p-6">
             <div v-if="addresses.length === 0" class="mb-4 text-sm text-gray-500">
               No addresses yet.
             </div>
@@ -53,12 +57,12 @@ function submit() {
                 <div class="flex flex-col gap-3 sm:flex-row sm:justify-between">
                   <div>
                     <div class="font-medium">{{ addr.label || addr.name }}</div>
-                    <div class="text-sm text-gray-600">
+                    <MutedText>
                       {{ addr.line1 }} {{ addr.line2 }}
-                    </div>
-                    <div class="text-sm text-gray-600">
+                    </MutedText>
+                    <MutedText>
                       {{ addr.city }} {{ addr.postal_code }} {{ addr.state }}
-                    </div>
+                    </MutedText>
                   </div>
                   <div class="text-right">
                     <form
@@ -73,73 +77,33 @@ function submit() {
                 </div>
               </li>
             </ul>
-          </div>
+          </Card>
 
-          <div class="overflow-hidden bg-white shadow sm:rounded-lg p-6">
+          <Card class="overflow-hidden p-6">
             <h3 class="text-lg font-semibold mb-4">Add Address</h3>
             <form @submit.prevent="submit" class="space-y-4">
               <div>
-                <input
-                  v-model="form.label"
-                  placeholder="Label (e.g., Home)"
-                  class="block w-full rounded border-gray-300 px-3 py-2 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                />
+                <TextInput v-model="form.label" placeholder="Label (e.g., Home)" />
               </div>
               <div>
-                <input
-                  v-model="form.name"
-                  placeholder="Recipient name"
-                  class="block w-full rounded border-gray-300 px-3 py-2 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                />
+                <TextInput v-model="form.name" placeholder="Recipient name" />
               </div>
               <div>
-                <input
-                  v-model="form.line1"
-                  placeholder="Address line 1"
-                  required
-                  class="block w-full rounded border-gray-300 px-3 py-2 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                />
+                <TextInput v-model="form.line1" placeholder="Address line 1" required />
               </div>
               <div>
-                <input
-                  v-model="form.line2"
-                  placeholder="Address line 2"
-                  class="block w-full rounded border-gray-300 px-3 py-2 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                />
+                <TextInput v-model="form.line2" placeholder="Address line 2" />
               </div>
               <div class="grid gap-2 sm:grid-cols-3">
-                <input
-                  v-model="form.city"
-                  placeholder="City"
-                  required
-                  class="rounded border-gray-300 px-3 py-2 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                />
-                <input
-                  v-model="form.state"
-                  placeholder="State"
-                  class="rounded border-gray-300 px-3 py-2 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                />
-                <input
-                  v-model="form.postal_code"
-                  placeholder="Postal code"
-                  required
-                  class="rounded border-gray-300 px-3 py-2 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                />
+                <TextInput v-model="form.city" placeholder="City" required />
+                <TextInput v-model="form.state" placeholder="State" />
+                <TextInput v-model="form.postal_code" placeholder="Postal code" required />
               </div>
               <div>
-                <input
-                  v-model="form.country"
-                  placeholder="Country"
-                  required
-                  class="block w-full rounded border-gray-300 px-3 py-2 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                />
+                <TextInput v-model="form.country" placeholder="Country" required />
               </div>
               <div class="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  v-model="form.is_default"
-                  class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-                />
+                <Checkbox v-model:checked="form.is_default" />
                 <span class="text-sm text-gray-700">Set as default</span>
               </div>
               <div>
@@ -152,9 +116,9 @@ function submit() {
                 </button>
               </div>
             </form>
-          </div>
+          </Card>
         </div>
       </div>
     </div>
-  </AuthenticatedLayout>
+  </ShopLayout>
 </template>

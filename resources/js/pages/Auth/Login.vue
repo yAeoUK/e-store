@@ -1,11 +1,15 @@
 <script setup>
-import Checkbox from '@/Components/Checkbox.vue';
+import Checkbox from '@/components/Checkbox.vue';
 import GuestLayout from '@/Layouts/GuestLayout.vue';
-import InputError from '@/Components/InputError.vue';
-import InputLabel from '@/Components/InputLabel.vue';
-import PrimaryButton from '@/Components/PrimaryButton.vue';
-import TextInput from '@/Components/TextInput.vue';
-import { Head, Link, useForm } from '@inertiajs/vue3';
+import InputError from '@/components/InputError.vue';
+import InputLabel from '@/components/InputLabel.vue';
+import PrimaryButton from '@/components/PrimaryButton.vue';
+import TextInput from '@/components/TextInput.vue';
+import TextLink from '@/components/TextLink.vue';
+import MutedText from '@/components/MutedText.vue';
+import SuccessText from '@/components/SuccessText.vue';
+import FormActions from '@/components/FormActions.vue';
+import { Head, useForm } from '@inertiajs/vue3';
 
 defineProps({
     canResetPassword: {
@@ -33,9 +37,9 @@ const submit = () => {
     <GuestLayout>
         <Head title="Log in" />
 
-        <div v-if="status" class="mb-4 text-sm font-medium text-green-600">
+        <SuccessText v-if="status" class="mb-4">
             {{ status }}
-        </div>
+        </SuccessText>
 
         <form @submit.prevent="submit" class="space-y-6">
             <div>
@@ -44,7 +48,7 @@ const submit = () => {
                 <TextInput
                     id="email"
                     type="email"
-                    class="mt-1 block w-full"
+                    class="mt-1"
                     v-model="form.email"
                     required
                     autofocus
@@ -60,7 +64,7 @@ const submit = () => {
                 <TextInput
                     id="password"
                     type="password"
-                    class="mt-1 block w-full"
+                    class="mt-1"
                     v-model="form.password"
                     required
                     autocomplete="current-password"
@@ -72,29 +76,25 @@ const submit = () => {
             <div class="mt-4 block">
                 <label class="flex items-center">
                     <Checkbox name="remember" v-model:checked="form.remember" />
-                    <span class="ms-2 text-sm text-gray-600"
-                        >Remember me</span
-                    >
+                    <MutedText class="ms-2">Remember me</MutedText>
                 </label>
             </div>
 
-            <div class="mt-4 flex items-center justify-end">
-                <Link
+            <FormActions class="mt-4">
+                <TextLink
                     v-if="canResetPassword"
                     :href="route('password.request')"
-                    class="rounded-md text-sm text-gray-600 underline hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
                 >
                     Forgot your password?
-                </Link>
+                </TextLink>
 
                 <PrimaryButton
                     class="ms-4"
-                    :class="{ 'opacity-25': form.processing }"
                     :disabled="form.processing"
                 >
                     Log in
                 </PrimaryButton>
-            </div>
+            </FormActions>
         </form>
     </GuestLayout>
 </template>

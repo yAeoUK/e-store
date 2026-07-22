@@ -1,8 +1,9 @@
 <script setup>
-import InputError from '@/Components/InputError.vue';
-import InputLabel from '@/Components/InputLabel.vue';
-import PrimaryButton from '@/Components/PrimaryButton.vue';
-import TextInput from '@/Components/TextInput.vue';
+import InputError from '@/components/InputError.vue';
+import InputLabel from '@/components/InputLabel.vue';
+import PrimaryButton from '@/components/PrimaryButton.vue';
+import TextInput from '@/components/TextInput.vue';
+import MutedText from '@/components/MutedText.vue';
 import { useForm } from '@inertiajs/vue3';
 import { ref } from 'vue';
 
@@ -40,10 +41,10 @@ const updatePassword = () => {
                 Update Password
             </h2>
 
-            <p class="mt-1 text-sm text-gray-600">
+            <MutedText class="mt-1">
                 Ensure your account is using a long, random password to stay
                 secure.
-            </p>
+            </MutedText>
         </header>
 
         <form @submit.prevent="updatePassword" class="mt-6 space-y-6">
@@ -55,7 +56,7 @@ const updatePassword = () => {
                     ref="currentPasswordInput"
                     v-model="form.current_password"
                     type="password"
-                    class="mt-1 block w-full"
+                    class="mt-1"
                     autocomplete="current-password"
                 />
 
@@ -73,7 +74,7 @@ const updatePassword = () => {
                     ref="passwordInput"
                     v-model="form.password"
                     type="password"
-                    class="mt-1 block w-full"
+                    class="mt-1"
                     autocomplete="new-password"
                 />
 
@@ -90,7 +91,7 @@ const updatePassword = () => {
                     id="password_confirmation"
                     v-model="form.password_confirmation"
                     type="password"
-                    class="mt-1 block w-full"
+                    class="mt-1"
                     autocomplete="new-password"
                 />
 
@@ -109,12 +110,9 @@ const updatePassword = () => {
                     leave-active-class="transition ease-in-out"
                     leave-to-class="opacity-0"
                 >
-                    <p
-                        v-if="form.recentlySuccessful"
-                        class="text-sm text-gray-600"
-                    >
+                    <MutedText v-if="form.recentlySuccessful">
                         Saved.
-                    </p>
+                    </MutedText>
                 </Transition>
             </div>
         </form>

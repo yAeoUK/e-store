@@ -1,8 +1,11 @@
 <script setup>
 import { computed } from 'vue';
 import GuestLayout from '@/Layouts/GuestLayout.vue';
-import PrimaryButton from '@/Components/PrimaryButton.vue';
-import { Head, Link, useForm } from '@inertiajs/vue3';
+import PrimaryButton from '@/components/PrimaryButton.vue';
+import TextLink from '@/components/TextLink.vue';
+import MutedText from '@/components/MutedText.vue';
+import SuccessText from '@/components/SuccessText.vue';
+import { Head, useForm } from '@inertiajs/vue3';
 
 const props = defineProps({
     status: {
@@ -25,35 +28,29 @@ const verificationLinkSent = computed(
     <GuestLayout>
         <Head title="Email Verification" />
 
-        <div class="mb-4 text-sm text-gray-600">
+        <MutedText class="mb-4">
             Thanks for signing up! Before getting started, could you verify your
             email address by clicking on the link we just emailed to you? If you
             didn't receive the email, we will gladly send you another.
-        </div>
+        </MutedText>
 
-        <div
-            class="mb-4 text-sm font-medium text-green-600"
-            v-if="verificationLinkSent"
-        >
+        <SuccessText v-if="verificationLinkSent" class="mb-4">
             A new verification link has been sent to the email address you
             provided during registration.
-        </div>
+        </SuccessText>
 
         <form @submit.prevent="submit" class="space-y-6">
             <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <PrimaryButton
-                    :class="{ 'opacity-25': form.processing }"
-                    :disabled="form.processing"
-                >
+                <PrimaryButton :disabled="form.processing">
                     Resend Verification Email
                 </PrimaryButton>
 
-                <Link
+                <TextLink
                     :href="route('logout')"
                     method="post"
                     as="button"
-                    class="rounded-md text-sm text-slate-600 underline hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:text-slate-300 dark:hover:text-white"
-                    >Log Out</Link
+                    variant="slate"
+                    >Log Out</TextLink
                 >
             </div>
         </form>

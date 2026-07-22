@@ -1,10 +1,12 @@
 <script setup>
 import GuestLayout from '@/Layouts/GuestLayout.vue';
-import InputError from '@/Components/InputError.vue';
-import InputLabel from '@/Components/InputLabel.vue';
-import PrimaryButton from '@/Components/PrimaryButton.vue';
-import TextInput from '@/Components/TextInput.vue';
-import { Head, Link, useForm } from '@inertiajs/vue3';
+import InputError from '@/components/InputError.vue';
+import InputLabel from '@/components/InputLabel.vue';
+import PrimaryButton from '@/components/PrimaryButton.vue';
+import TextInput from '@/components/TextInput.vue';
+import TextLink from '@/components/TextLink.vue';
+import FormActions from '@/components/FormActions.vue';
+import { Head, useForm } from '@inertiajs/vue3';
 
 const form = useForm({
     name: '',
@@ -31,7 +33,7 @@ const submit = () => {
                 <TextInput
                     id="name"
                     type="text"
-                    class="mt-1 block w-full"
+                    class="mt-1"
                     v-model="form.name"
                     required
                     autofocus
@@ -47,7 +49,7 @@ const submit = () => {
                 <TextInput
                     id="email"
                     type="email"
-                    class="mt-1 block w-full"
+                    class="mt-1"
                     v-model="form.email"
                     required
                     autocomplete="username"
@@ -62,7 +64,7 @@ const submit = () => {
                 <TextInput
                     id="password"
                     type="password"
-                    class="mt-1 block w-full"
+                    class="mt-1"
                     v-model="form.password"
                     required
                     autocomplete="new-password"
@@ -80,7 +82,7 @@ const submit = () => {
                 <TextInput
                     id="password_confirmation"
                     type="password"
-                    class="mt-1 block w-full"
+                    class="mt-1"
                     v-model="form.password_confirmation"
                     required
                     autocomplete="new-password"
@@ -92,22 +94,18 @@ const submit = () => {
                 />
             </div>
 
-            <div class="mt-4 flex items-center justify-end">
-                <Link
-                    :href="route('login')"
-                    class="rounded-md text-sm text-gray-600 underline hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
-                >
+            <FormActions class="mt-4">
+                <TextLink :href="route('login')">
                     Already registered?
-                </Link>
+                </TextLink>
 
                 <PrimaryButton
                     class="ms-4"
-                    :class="{ 'opacity-25': form.processing }"
                     :disabled="form.processing"
                 >
                     Register
                 </PrimaryButton>
-            </div>
+            </FormActions>
         </form>
     </GuestLayout>
 </template>

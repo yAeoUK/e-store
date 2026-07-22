@@ -1,9 +1,10 @@
 <script setup>
 import GuestLayout from '@/Layouts/GuestLayout.vue';
-import InputError from '@/Components/InputError.vue';
-import InputLabel from '@/Components/InputLabel.vue';
-import PrimaryButton from '@/Components/PrimaryButton.vue';
-import TextInput from '@/Components/TextInput.vue';
+import InputError from '@/components/InputError.vue';
+import InputLabel from '@/components/InputLabel.vue';
+import PrimaryButton from '@/components/PrimaryButton.vue';
+import TextInput from '@/components/TextInput.vue';
+import FormActions from '@/components/FormActions.vue';
 import { Head, useForm } from '@inertiajs/vue3';
 
 const props = defineProps({
@@ -42,7 +43,7 @@ const submit = () => {
                 <TextInput
                     id="email"
                     type="email"
-                    class="mt-1 block w-full"
+                    class="mt-1"
                     v-model="form.email"
                     required
                     autofocus
@@ -58,7 +59,7 @@ const submit = () => {
                 <TextInput
                     id="password"
                     type="password"
-                    class="mt-1 block w-full"
+                    class="mt-1"
                     v-model="form.password"
                     required
                     autocomplete="new-password"
@@ -76,7 +77,7 @@ const submit = () => {
                 <TextInput
                     id="password_confirmation"
                     type="password"
-                    class="mt-1 block w-full"
+                    class="mt-1"
                     v-model="form.password_confirmation"
                     required
                     autocomplete="new-password"
@@ -88,14 +89,11 @@ const submit = () => {
                 />
             </div>
 
-            <div class="flex justify-end">
-                <PrimaryButton
-                    :class="{ 'opacity-25': form.processing }"
-                    :disabled="form.processing"
-                >
+            <FormActions>
+                <PrimaryButton :disabled="form.processing">
                     Reset Password
                 </PrimaryButton>
-            </div>
+            </FormActions>
         </form>
     </GuestLayout>
 </template>

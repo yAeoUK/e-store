@@ -1,10 +1,12 @@
 <script setup>
-import DangerButton from '@/Components/DangerButton.vue';
-import InputError from '@/Components/InputError.vue';
-import InputLabel from '@/Components/InputLabel.vue';
-import Modal from '@/Components/Modal.vue';
-import SecondaryButton from '@/Components/SecondaryButton.vue';
-import TextInput from '@/Components/TextInput.vue';
+import DangerButton from '@/components/DangerButton.vue';
+import InputError from '@/components/InputError.vue';
+import InputLabel from '@/components/InputLabel.vue';
+import Modal from '@/components/Modal.vue';
+import SecondaryButton from '@/components/SecondaryButton.vue';
+import TextInput from '@/components/TextInput.vue';
+import MutedText from '@/components/MutedText.vue';
+import FormActions from '@/components/FormActions.vue';
 import { useForm } from '@inertiajs/vue3';
 import { nextTick, ref } from 'vue';
 
@@ -45,11 +47,11 @@ const closeModal = () => {
                 Delete Account
             </h2>
 
-            <p class="mt-1 text-sm text-gray-600">
+            <MutedText class="mt-1">
                 Once your account is deleted, all of its resources and data will
                 be permanently deleted. Before deleting your account, please
                 download any data or information that you wish to retain.
-            </p>
+            </MutedText>
         </header>
 
         <DangerButton @click="confirmUserDeletion">Delete Account</DangerButton>
@@ -62,11 +64,11 @@ const closeModal = () => {
                     Are you sure you want to delete your account?
                 </h2>
 
-                <p class="mt-1 text-sm text-gray-600">
+                <MutedText class="mt-1">
                     Once your account is deleted, all of its resources and data
                     will be permanently deleted. Please enter your password to
                     confirm you would like to permanently delete your account.
-                </p>
+                </MutedText>
 
                 <div class="mt-6">
                     <InputLabel
@@ -80,7 +82,7 @@ const closeModal = () => {
                         ref="passwordInput"
                         v-model="form.password"
                         type="password"
-                        class="mt-1 block w-3/4"
+                        class="mt-1 w-3/4"
                         placeholder="Password"
                         @keyup.enter="deleteUser"
                     />
@@ -88,20 +90,19 @@ const closeModal = () => {
                     <InputError :message="form.errors.password" class="mt-2" />
                 </div>
 
-                <div class="mt-6 flex justify-end">
+                <FormActions class="mt-6">
                     <SecondaryButton @click="closeModal">
                         Cancel
                     </SecondaryButton>
 
                     <DangerButton
                         class="ms-3"
-                        :class="{ 'opacity-25': form.processing }"
                         :disabled="form.processing"
                         @click="deleteUser"
                     >
                         Delete Account
                     </DangerButton>
-                </div>
+                </FormActions>
             </div>
         </Modal>
     </section>

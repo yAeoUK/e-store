@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
+import { formFieldClass } from './classNames';
 
 const props = defineProps({
     modelValue: {
@@ -31,6 +32,6 @@ defineExpose({ focus: () => input.value?.focus() });
         :value="modelValue"
         @input="update"
         ref="input"
-        class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:placeholder:text-slate-500"
+        :class="[formFieldClass, 'block placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:placeholder:text-slate-500']"
     />
 </template>
