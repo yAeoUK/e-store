@@ -7,6 +7,7 @@ import TextInput from '@/components/TextInput.vue';
 import MutedText from '@/components/MutedText.vue';
 import FormActions from '@/components/FormActions.vue';
 import { Head, useForm } from '@inertiajs/vue3';
+import { t } from '@/i18n';
 
 const form = useForm({
     password: '',
@@ -21,16 +22,15 @@ const submit = () => {
 
 <template>
     <GuestLayout>
-        <Head title="Confirm Password" />
+        <Head :title="t('auth.confirmPassword.title')" />
 
         <MutedText class="mb-4">
-            This is a secure area of the application. Please confirm your
-            password before continuing.
+            {{ t('auth.confirmPassword.description') }}
         </MutedText>
 
         <form @submit.prevent="submit" class="space-y-6">
             <div>
-                <InputLabel for="password" value="Password" />
+                <InputLabel for="password" :value="t('auth.confirmPassword.password')" />
                 <TextInput
                     id="password"
                     type="password"
@@ -48,7 +48,7 @@ const submit = () => {
                     class="ms-4"
                     :disabled="form.processing"
                 >
-                    Confirm
+                    {{ t('auth.confirmPassword.submit') }}
                 </PrimaryButton>
             </FormActions>
         </form>

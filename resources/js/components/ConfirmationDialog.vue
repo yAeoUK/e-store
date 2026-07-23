@@ -4,6 +4,7 @@ import DangerButton from '@/components/DangerButton.vue';
 import PrimaryButton from '@/components/PrimaryButton.vue';
 import SecondaryButton from '@/components/SecondaryButton.vue';
 import MutedText from '@/components/MutedText.vue';
+import { t } from '@/i18n';
 
 defineProps({
     show: {
@@ -20,11 +21,11 @@ defineProps({
     },
     confirmLabel: {
         type: String,
-        default: 'Confirm',
+        default: () => t('common.confirm'),
     },
     cancelLabel: {
         type: String,
-        default: 'Cancel',
+        default: () => t('common.cancel'),
     },
     danger: {
         type: Boolean,

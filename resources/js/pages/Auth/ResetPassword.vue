@@ -6,6 +6,7 @@ import PrimaryButton from '@/components/PrimaryButton.vue';
 import TextInput from '@/components/TextInput.vue';
 import FormActions from '@/components/FormActions.vue';
 import { Head, useForm } from '@inertiajs/vue3';
+import { t } from '@/i18n';
 
 const props = defineProps({
     email: {
@@ -34,11 +35,11 @@ const submit = () => {
 
 <template>
     <GuestLayout>
-        <Head title="Reset Password" />
+        <Head :title="t('auth.resetPassword.title')" />
 
         <form @submit.prevent="submit" class="space-y-6">
             <div>
-                <InputLabel for="email" value="Email" />
+                <InputLabel for="email" :value="t('auth.resetPassword.email')" />
 
                 <TextInput
                     id="email"
@@ -54,7 +55,7 @@ const submit = () => {
             </div>
 
             <div>
-                <InputLabel for="password" value="Password" />
+                <InputLabel for="password" :value="t('auth.resetPassword.password')" />
 
                 <TextInput
                     id="password"
@@ -71,7 +72,7 @@ const submit = () => {
             <div>
                 <InputLabel
                     for="password_confirmation"
-                    value="Confirm Password"
+                    :value="t('auth.resetPassword.confirmPassword')"
                 />
 
                 <TextInput
@@ -91,7 +92,7 @@ const submit = () => {
 
             <FormActions>
                 <PrimaryButton :disabled="form.processing">
-                    Reset Password
+                    {{ t('auth.resetPassword.submit') }}
                 </PrimaryButton>
             </FormActions>
         </form>

@@ -2,6 +2,7 @@
 import ApplicationLogo from '@/components/ApplicationLogo.vue';
 import { Link } from '@inertiajs/vue3';
 import Card from '@/components/Card.vue';
+import { t } from '@/i18n';
 </script>
 
 <template>
@@ -13,7 +14,7 @@ import Card from '@/components/Card.vue';
                 <ApplicationLogo class="h-16 w-16" />
             </Link>
             <Link :href="route('home')" class="text-sm font-medium text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200">
-                &larr; Back to shop
+                &larr; {{ t('common.backToShop') }}
             </Link>
         </div>
 

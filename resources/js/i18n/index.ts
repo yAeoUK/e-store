@@ -1,10 +1,16 @@
 import common from './locales/en/common';
 import shop from './locales/en/shop';
+import auth from './locales/en/auth';
+import profile from './locales/en/profile';
+import account from './locales/en/account';
 
 export const translations = {
     en: {
         common,
         shop,
+        auth,
+        profile,
+        account,
     },
 } as const;
 

@@ -10,6 +10,7 @@ import MutedText from '@/components/MutedText.vue';
 import SuccessText from '@/components/SuccessText.vue';
 import FormActions from '@/components/FormActions.vue';
 import { Head, useForm } from '@inertiajs/vue3';
+import { t } from '@/i18n';
 
 defineProps({
     canResetPassword: {
@@ -35,7 +36,7 @@ const submit = () => {
 
 <template>
     <GuestLayout>
-        <Head title="Log in" />
+        <Head :title="t('auth.login.title')" />
 
         <SuccessText v-if="status" class="mb-4">
             {{ status }}
@@ -43,7 +44,7 @@ const submit = () => {
 
         <form @submit.prevent="submit" class="space-y-6">
             <div>
-                <InputLabel for="email" value="Email" />
+                <InputLabel for="email" :value="t('auth.login.email')" />
 
                 <TextInput
                     id="email"
@@ -59,7 +60,7 @@ const submit = () => {
             </div>
 
             <div class="mt-4">
-                <InputLabel for="password" value="Password" />
+                <InputLabel for="password" :value="t('auth.login.password')" />
 
                 <TextInput
                     id="password"
@@ -76,7 +77,7 @@ const submit = () => {
             <div class="mt-4 block">
                 <label class="flex items-center">
                     <Checkbox name="remember" v-model:checked="form.remember" />
-                    <MutedText class="ms-2">Remember me</MutedText>
+                    <MutedText class="ms-2">{{ t('auth.login.rememberMe') }}</MutedText>
                 </label>
             </div>
 
@@ -85,14 +86,14 @@ const submit = () => {
                     v-if="canResetPassword"
                     :href="route('password.request')"
                 >
-                    Forgot your password?
+                    {{ t('auth.login.forgotPassword') }}
                 </TextLink>
 
                 <PrimaryButton
                     class="ms-4"
                     :disabled="form.processing"
                 >
-                    Log in
+                    {{ t('auth.login.submit') }}
                 </PrimaryButton>
             </FormActions>
         </form>

@@ -7,6 +7,7 @@ import TextInput from '@/components/TextInput.vue';
 import TextLink from '@/components/TextLink.vue';
 import FormActions from '@/components/FormActions.vue';
 import { Head, useForm } from '@inertiajs/vue3';
+import { t } from '@/i18n';
 
 const form = useForm({
     name: '',
@@ -24,11 +25,11 @@ const submit = () => {
 
 <template>
     <GuestLayout>
-        <Head title="Register" />
+        <Head :title="t('auth.register.title')" />
 
         <form @submit.prevent="submit" class="space-y-6">
             <div>
-                <InputLabel for="name" value="Name" />
+                <InputLabel for="name" :value="t('auth.register.name')" />
 
                 <TextInput
                     id="name"
@@ -44,7 +45,7 @@ const submit = () => {
             </div>
 
             <div class="mt-4">
-                <InputLabel for="email" value="Email" />
+                <InputLabel for="email" :value="t('auth.register.email')" />
 
                 <TextInput
                     id="email"
@@ -59,7 +60,7 @@ const submit = () => {
             </div>
 
             <div class="mt-4">
-                <InputLabel for="password" value="Password" />
+                <InputLabel for="password" :value="t('auth.register.password')" />
 
                 <TextInput
                     id="password"
@@ -76,7 +77,7 @@ const submit = () => {
             <div class="mt-4">
                 <InputLabel
                     for="password_confirmation"
-                    value="Confirm Password"
+                    :value="t('auth.register.confirmPassword')"
                 />
 
                 <TextInput
@@ -96,14 +97,14 @@ const submit = () => {
 
             <FormActions class="mt-4">
                 <TextLink :href="route('login')">
-                    Already registered?
+                    {{ t('auth.register.alreadyRegistered') }}
                 </TextLink>
 
                 <PrimaryButton
                     class="ms-4"
                     :disabled="form.processing"
                 >
-                    Register
+                    {{ t('auth.register.submit') }}
                 </PrimaryButton>
             </FormActions>
         </form>

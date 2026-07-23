@@ -7,6 +7,7 @@ import TextLink from '@/components/TextLink.vue';
 import MutedText from '@/components/MutedText.vue';
 import SuccessText from '@/components/SuccessText.vue';
 import { useForm, usePage } from '@inertiajs/vue3';
+import { t } from '@/i18n';
 
 defineProps({
     mustVerifyEmail: {
@@ -29,11 +30,11 @@ const form = useForm({
     <section>
         <header>
             <h2 class="text-lg font-medium text-gray-900">
-                Profile Information
+                {{ t('profile.information.heading') }}
             </h2>
 
             <MutedText class="mt-1">
-                Update your account's profile information and email address.
+                {{ t('profile.information.description') }}
             </MutedText>
         </header>
 
@@ -42,7 +43,7 @@ const form = useForm({
             class="mt-6 space-y-6"
         >
             <div>
-                <InputLabel for="name" value="Name" />
+                <InputLabel for="name" :value="t('profile.information.name')" />
 
                 <TextInput
                     id="name"
@@ -58,7 +59,7 @@ const form = useForm({
             </div>
 
             <div>
-                <InputLabel for="email" value="Email" />
+                <InputLabel for="email" :value="t('profile.information.email')" />
 
                 <TextInput
                     id="email"
@@ -74,23 +75,23 @@ const form = useForm({
 
             <div v-if="mustVerifyEmail && user.email_verified_at === null">
                 <p class="mt-2 text-sm text-gray-800">
-                    Your email address is unverified.
+                    {{ t('profile.information.unverified') }}
                     <TextLink
                         :href="route('verification.send')"
                         method="post"
                         as="button"
                     >
-                        Click here to re-send the verification email.
+                        {{ t('profile.information.resendLink') }}
                     </TextLink>
                 </p>
 
                 <SuccessText v-show="status === 'verification-link-sent'" class="mt-2">
-                    A new verification link has been sent to your email address.
+                    {{ t('profile.information.verificationSent') }}
                 </SuccessText>
             </div>
 
             <div class="flex items-center gap-4">
-                <PrimaryButton :disabled="form.processing">Save</PrimaryButton>
+                <PrimaryButton :disabled="form.processing">{{ t('common.save') }}</PrimaryButton>
 
                 <Transition
                     enter-active-class="transition ease-in-out"
@@ -99,7 +100,7 @@ const form = useForm({
                     leave-to-class="opacity-0"
                 >
                     <MutedText v-if="form.recentlySuccessful">
-                        Saved.
+                        {{ t('common.saved') }}
                     </MutedText>
                 </Transition>
             </div>

@@ -8,6 +8,7 @@ import MutedText from '@/components/MutedText.vue';
 import SuccessText from '@/components/SuccessText.vue';
 import FormActions from '@/components/FormActions.vue';
 import { Head, useForm } from '@inertiajs/vue3';
+import { t } from '@/i18n';
 
 defineProps({
     status: {
@@ -26,10 +27,10 @@ const submit = () => {
 
 <template>
     <GuestLayout>
-        <Head title="Forgot Password" />
+        <Head :title="t('auth.forgotPassword.title')" />
 
         <MutedText class="mb-4">
-            Forgot your password? No problem. Just let us know your email address and we will email you a password reset link that will allow you to choose a new one.
+            {{ t('auth.forgotPassword.description') }}
         </MutedText>
 
         <SuccessText v-if="status" class="mb-4">
@@ -38,7 +39,7 @@ const submit = () => {
 
         <form @submit.prevent="submit" class="space-y-6">
             <div>
-                <InputLabel for="email" value="Email" />
+                <InputLabel for="email" :value="t('auth.forgotPassword.email')" />
 
                 <TextInput
                     id="email"
@@ -55,7 +56,7 @@ const submit = () => {
 
             <FormActions>
                 <PrimaryButton :disabled="form.processing">
-                    Email Password Reset Link
+                    {{ t('auth.forgotPassword.submit') }}
                 </PrimaryButton>
             </FormActions>
         </form>
