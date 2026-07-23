@@ -13,6 +13,7 @@ This application is a Laravel application and its main Laravel ecosystems packag
 - inertiajs/inertia-laravel (INERTIA_LARAVEL) - v3
 - laravel/framework (LARAVEL) - v13
 - laravel/prompts (PROMPTS) - v0
+- tightenco/ziggy (ZIGGY) - v2
 - larastan/larastan (LARASTAN) - v3
 - laravel/boost (BOOST) - v2
 - laravel/mcp (MCP) - v0
@@ -24,7 +25,6 @@ This application is a Laravel application and its main Laravel ecosystems packag
 - @inertiajs/vue3 (INERTIA_VUE) - v3
 - tailwindcss (TAILWINDCSS) - v4
 - vue (VUE) - v3
-- @laravel/vite-plugin-wayfinder (WAYFINDER_VITE) - v0
 - eslint (ESLINT) - v9
 - prettier (PRETTIER) - v3
 
@@ -114,6 +114,13 @@ This project has domain-specific skills available in `**/skills/**`. You MUST ac
 
 - Laravel can be deployed using [Laravel Cloud](https://cloud.laravel.com/), which is the fastest way to deploy and scale production Laravel applications.
 
+=== tests rules ===
+
+# Test Enforcement
+
+- Every change must be programmatically tested. Write a new test or update an existing test, then run the affected tests to make sure they pass.
+- Run the minimum number of tests needed to ensure code quality and speed. Use `php artisan test --compact` with a specific filename or filter.
+
 === inertia-laravel/core rules ===
 
 # Inertia
@@ -191,3 +198,59 @@ Vue components must have a single root element.
 - IMPORTANT: Activate `inertia-vue-development` when working with Inertia Vue client-side patterns.
 
 </laravel-boost-guidelines>
+
+<!--
+The section below is project-specific and hand-written — it lives outside the
+<laravel-boost-guidelines> block on purpose, since `composer update` regenerates
+everything inside that block via `artisan boost:update` and would silently wipe
+anything added there. Any AI coding tool reading this file should follow this
+section the same as the Boost guidelines above.
+-->
+
+# Project Conventions (this repo specifically)
+
+## Reuse before writing new UI
+
+- Before writing a `<button>`, `<input>`, a modal/dropdown, or repeating a
+  Tailwind class string, check `resources/js/components/*.vue` (top level,
+  not `shop/`) for an existing component that already does it — see
+  [docs/design-system/README.md](docs/design-system/README.md) for the full
+  inventory (buttons, inputs, `Modal`, `Dropdown`, `ConfirmationDialog`,
+  typography wrappers, etc.) and the shared Tailwind class tokens in
+  `resources/js/components/classNames.js`.
+- Wrap new pages in the existing layouts rather than duplicating header/nav
+  markup: `GuestLayout` for unauthenticated Auth pages, `ShopLayout` for
+  everything else (shop, Account, Profile) — see
+  [docs/frontend/README.md](docs/frontend/README.md).
+- Only promote a component-local variant map (e.g. a `variantClasses` object)
+  to the shared `classNames.js` once a **second** component actually needs it.
+  Don't add a prop "for flexibility" that nothing currently uses — e.g. don't
+  add a `width`/`size`-style prop unless more than one real call site needs a
+  different value than the default.
+- User-facing copy goes through `t('namespace.key')`
+  (`resources/js/i18n/`), not inline strings. Links/redirects go through
+  Ziggy's `route('name')`, never a hardcoded path.
+
+## Testing conventions (this repo specifically)
+
+Full detail in [docs/testing.md](docs/testing.md) — the essentials:
+
+- **Guard relationship tests with unrelated (noise) data.** A test that only
+  creates the data it expects back can pass even if a relationship silently
+  returns *everything* instead of filtering correctly. Create an unrelated row
+  through the same relationship (another category's child, another user's
+  address, etc.) and assert the result excludes it. Pure attribute-cast tests
+  (querying by primary key) don't need this.
+- **Frontend: prefer `findComponent(Component)` over `findComponent({ name: 'X' })`.**
+  A component with an empty `<script setup></script>` (or none) gets no
+  inferred name, so name-string matching silently returns an empty wrapper —
+  no error, just a wrapper that looks "not found." Import the component and
+  match by reference instead.
+- **Frontend: default to `mount()`, not `shallowMount()`.** Only shallow-mount
+  when a test purely asserts prop pass-through to a child component; anything
+  that needs real form interaction, clicks, or slot content needs a full mount.
+- **Frontend: reuse the `resources/js/tests/setup.ts` harness** (`useForm`
+  mock + `getMockForm()` for seeding validation errors, `usePage` override +
+  reset pattern, the global `route()` wiring, `renderStubDefaultSlot`) rather
+  than re-mocking `@inertiajs/vue3`/`@/i18n` per test file.
+

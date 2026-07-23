@@ -1,6 +1,10 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { t } from '@/i18n';
+import PrimaryButton from '@/components/PrimaryButton.vue';
+import TextInput from '@/components/TextInput.vue';
+import InputLabel from '../InputLabel.vue';
+import { formFieldClass, cardSurfaceClass } from '../classNames';
 
 const props = defineProps<{
     categories?: Array<{ id: number; name: string; slug?: string }>;
@@ -34,16 +38,16 @@ function applyFilters(): void {
 </script>
 
 <template>
-    <form @submit.prevent="applyFilters" class="rounded-xl border border-slate-200 bg-slate-50 p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900/90 dark:shadow-none">
+    <form @submit.prevent="applyFilters" :class="[cardSurfaceClass, 'bg-slate-50 p-4 shadow-sm dark:shadow-none']">
         <div class="grid gap-4 md:grid-cols-4">
             <div>
-                <label class="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">{{ t('shop.products.filters.search') }}</label>
-                <input v-model="localFilters.search" type="text" :placeholder="t('shop.products.filters.searchPlaceholder')" class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:placeholder:text-slate-500" />
+                <InputLabel for="search">{{ t('shop.products.filters.search') }}</InputLabel>
+                <TextInput v-model="localFilters.search" type="text" :placeholder="t('shop.products.filters.searchPlaceholder')" />
             </div>
 
             <div>
-                <label class="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">{{ t('shop.products.filters.category') }}</label>
-                <select v-model="localFilters.category_id" class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100">
+                <InputLabel for="category_id">{{ t('shop.products.filters.category') }}</InputLabel>
+                <select v-model="localFilters.category_id" :class="formFieldClass">
                     <option value="">{{ t('shop.products.filters.allCategories') }}</option>
                     <option v-for="category in categories" :key="category.id" :value="category.id">
                         {{ category.name }}
@@ -52,20 +56,20 @@ function applyFilters(): void {
             </div>
 
             <div>
-                <label class="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">{{ t('shop.products.filters.minPrice') }}</label>
-                <input v-model="localFilters.min_price" type="number" min="0" step="0.01" class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100" />
+                <InputLabel for="min_price">{{ t('shop.products.filters.minPrice') }}</InputLabel>
+                <TextInput v-model="localFilters.min_price" type="number" min="0" step="0.01" />
             </div>
 
             <div>
-                <label class="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">{{ t('shop.products.filters.maxPrice') }}</label>
-                <input v-model="localFilters.max_price" type="number" min="0" step="0.01" class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100" />
+                <InputLabel for="max_price">{{ t('shop.products.filters.maxPrice') }}</InputLabel>
+                <TextInput v-model="localFilters.max_price" type="number" min="0" step="0.01" />
             </div>
         </div>
 
         <div class="mt-4 flex justify-end">
-            <button type="submit" class="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700">
+            <PrimaryButton type="submit">
                 {{ t('shop.products.filters.apply') }}
-            </button>
+            </PrimaryButton>
         </div>
     </form>
 </template>

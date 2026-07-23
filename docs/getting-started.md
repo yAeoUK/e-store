@@ -5,9 +5,27 @@ Quick setup for a developer environment.
 Prerequisites
 - PHP 8.5
 - Composer
-- Node.js & pnpm
+- Node.js & npm
 
-Install
+## Fastest path
+
+The repo already ships one-shot Composer scripts that do the manual steps
+below for you (see `composer.json` → `scripts`):
+
+```bash
+# First-time setup: installs PHP + JS deps, copies .env, generates the app
+# key, runs migrations, and builds frontend assets.
+composer setup
+
+# Day-to-day local dev: runs the PHP server, a queue listener, and the Vite
+# dev server together (via `concurrently`).
+composer dev
+```
+
+If you'd rather run each step yourself (e.g. to skip the queue listener, or
+to understand what `composer setup` is doing), see the manual steps below.
+
+## Manual setup
 
 1. Install PHP dependencies
 
@@ -18,14 +36,18 @@ composer install
 2. Install JS dependencies
 
 ```bash
-pnpm install
+npm install
 # Run the dev server for assets (Vite)
-pnpm run dev
+npm run dev
 ```
 
 Environment
-- Copy `.env.example` to `.env` and update database and app URL.
-- Run migrations and seed sample data:
+- Copy `.env.example` to `.env` and run `php artisan key:generate`.
+- The default database is **SQLite** (`DB_CONNECTION=sqlite`) — no separate
+  database server to install or configure. `database/database.sqlite` already
+  exists and is committed to the repo, so migrations can be run immediately.
+- Run migrations and seed sample data (creates a `test@example.com` user via
+  `DatabaseSeeder`, plus catalog data via `CatalogSeeder`):
 
 ```bash
 php artisan migrate --seed
@@ -38,8 +60,11 @@ Running tests
 php artisan test --compact
 
 # JS tests (Vitest)
-pnpm test
+npx vitest run
 ```
+
+See [docs/testing.md](testing.md) for conventions and the frontend test
+harness.
 
 Next steps
 - Document common troubleshooting steps (Vite manifest errors, permissions).
@@ -48,18 +73,26 @@ Useful commands
 
 ```bash
 # Format changed JS files
-pnpm run format
+npm run format
 
 # Fix lint issues
-pnpm run lint
+npm run lint
 
 # Typecheck the frontend
-pnpm run types:check
+npm run types:check
+
+# PHP static analysis (Larastan/PHPStan)
+composer types:check
+
+# PHP code style (Pint), whole codebase
+composer lint          # fix
+composer lint:check    # check only, no changes
 
 # Build production assets
-pnpm run build
+npm run build
 
-# Serve the Laravel app locally
+# Serve the Laravel app locally (only the web server — prefer `composer dev`
+# if you also need the queue listener and Vite running)
 php artisan serve --host=127.0.0.1 --port=8000
 
 # Recreate DB and seed (local development)

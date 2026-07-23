@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Head, router } from '@inertiajs/vue3';
 import { t } from '@/i18n';
+import ShopLayout from '@/Layouts/ShopLayout.vue';
 import CatalogLayout from '@/components/shop/CatalogLayout.vue';
 import type { CatalogCategory, CatalogFilters, CatalogProductsPayload, FilterPayload } from '@/components/shop/catalog';
 
@@ -32,13 +33,15 @@ function applyFilters(filters: FilterPayload): void {
 <template>
     <Head :title="category?.name || t('shop.categories.pageTitle')" />
 
-    <CatalogLayout
-        :heading="category?.name || t('shop.categories.pageTitle')"
-        :description="category?.description"
-        :products="products"
-        :filters="filters"
-        :categories="categories"
-        :empty-message="t('shop.products.categoryEmpty')"
-        :apply-filters="applyFilters"
-    />
+    <ShopLayout>
+        <CatalogLayout
+            :heading="category?.name || t('shop.categories.pageTitle')"
+            :description="category?.description"
+            :products="products"
+            :filters="filters"
+            :categories="categories"
+            :empty-message="t('shop.products.categoryEmpty')"
+            :apply-filters="applyFilters"
+        />
+    </ShopLayout>
 </template>

@@ -5,7 +5,7 @@ This `docs/` directory contains the canonical project documentation. Use the fil
 Contents:
 - `getting-started.md` — Local development and quickstart
 - `contributing.md` — PR, branch and coding conventions
-- `api/` — API reference and OpenAPI artifacts
+- `api/` — notes that this project has no JSON API (Inertia-only)
 - `architecture.md` — System overview and DB schema notes
 - `frontend/` — Inertia + Vue patterns and frontend guidelines
 - `design-system/` — Tailwind tokens and component guidance
@@ -38,11 +38,11 @@ The repository already contains the following important files and folders — qu
 
 Line-range quick links
 
-- App bootstrap (main configuration): [bootstrap/app.php](bootstrap/app.php#L1-L30)
-- Frontend entry (Inertia bootstrap): [resources/js/app.ts](resources/js/app.ts#L1-L40)
-- Blade layout (Inertia/Vite includes): [resources/views/app.blade.php](resources/views/app.blade.php#L1-L40)
-- Products migration (schema): [database/migrations/2026_07_19_000001_create_products_table.php](database/migrations/2026_07_19_000001_create_products_table.php#L1-L60)
-- Environment sample top (important vars): [.env.example](.env.example#L1-L30)
-- Package scripts and deps: [package.json](package.json#L1-L120)
+- App bootstrap (main configuration): [bootstrap/app.php](../bootstrap/app.php#L1-L30)
+- Frontend entry (Inertia bootstrap): [resources/js/app.ts](../resources/js/app.ts#L1-L21)
+- Blade layout (Inertia/Vite includes): [resources/views/app.blade.php](../resources/views/app.blade.php#L1-L40)
+- Products migration (schema): [database/migrations/2026_07_19_000001_create_products_table.php](../database/migrations/2026_07_19_000001_create_products_table.php#L1-L60)
+- Environment sample top (important vars): [.env.example](../.env.example#L1-L30)
+- Package scripts and deps: [package.json](../package.json#L1-L120)
 
 If you want, I can add more specific links (line ranges) into individual docs pages or generate an index page per area.
