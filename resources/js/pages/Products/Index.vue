@@ -14,7 +14,7 @@ interface Props {
 const props = defineProps<Props>();
 
 function applyFilters(filters: FilterPayload): void {
-    router.get('/products', filters, {
+    router.get(route('home'), filters, {
         preserveState: true,
         replace: true,
     });
