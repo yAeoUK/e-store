@@ -1,5 +1,6 @@
-import { describe, expect, it } from 'vitest';
 import { shallowMount } from '@vue/test-utils';
+import { describe, expect, it } from 'vitest';
+import ShopLayout from '@/Layouts/ShopLayout.vue';
 import ProductsShowPage from '@/pages/Products/Show.vue';
 
 const defaultProduct = {
@@ -33,6 +34,7 @@ describe('Products show page', () => {
         expect(wrapper.text()).toContain('common.price');
         expect(wrapper.text()).toContain('$199.99');
         expect(wrapper.text()).toContain('common.inStock');
+        expect(wrapper.findComponent(ShopLayout).exists()).toBe(true);
     });
 
     it('displays product images', () => {

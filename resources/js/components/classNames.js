@@ -11,8 +11,3 @@ export const headingTextClass = 'text-slate-900 dark:text-slate-100';
 
 export const cardSurfaceClass = 'rounded-xl border border-slate-200 dark:border-slate-800 dark:bg-slate-900/90';
 
-export const textLinkVariants = {
-    muted: 'text-gray-600 hover:text-gray-900',
-    slate: 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white',
-};
-

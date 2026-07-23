@@ -20,7 +20,12 @@ onMounted(() => {
 
 function update(e: Event) {
     const target = e.target as HTMLInputElement;
-    emit('update:modelValue', target.value);
+
+    if (target.type === 'number' && target.value !== '') {
+        emit('update:modelValue', target.valueAsNumber);
+    } else {
+        emit('update:modelValue', target.value);
+    }
 }
 
 defineExpose({ focus: () => input.value?.focus() });

@@ -6,10 +6,6 @@ const props = defineProps({
         type: String,
         default: 'right',
     },
-    width: {
-        type: String,
-        default: '48',
-    },
     contentClasses: {
         type: String,
         default: 'py-1 bg-popover text-popover-foreground',
@@ -24,12 +20,6 @@ const closeOnEscape = (e) => {
 
 onMounted(() => document.addEventListener('keydown', closeOnEscape));
 onUnmounted(() => document.removeEventListener('keydown', closeOnEscape));
-
-const widthClass = computed(() => {
-    return {
-        48: 'w-48',
-    }[props.width.toString()];
-});
 
 const alignmentClasses = computed(() => {
     if (props.align === 'left') {
@@ -47,7 +37,23 @@ const open = ref(false);
 <template>
     <div class="relative">
         <div @click="open = !open">
-            <slot name="trigger" />
+            <button
+                type="button"
+                class="inline-flex items-center rounded p-1 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
+            >
+                <svg
+                    class="h-4 w-4"
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                >
+                    <path
+                        fill-rule="evenodd"
+                        d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
+                        clip-rule="evenodd"
+                    />
+                </svg>
+            </button>
         </div>
 
         <!-- Full Screen Dropdown Overlay -->
@@ -67,8 +73,8 @@ const open = ref(false);
         >
             <div
                 v-show="open"
-                class="absolute z-50 mt-2 rounded-md shadow-lg"
-                :class="[widthClass, alignmentClasses]"
+                class="absolute z-50 mt-2 w-48 rounded-md shadow-lg"
+                :class="alignmentClasses"
                 style="display: none"
                 @click="open = false"
             >

@@ -36,27 +36,7 @@ const logout = () => {
     <MutedText>
       {{ t('common.nav.greeting') }} <span class="font-semibold">{{ user.name || user.email }}</span>
     </MutedText>
-    <Dropdown align="right" width="48">
-      <template #trigger>
-        <button
-          type="button"
-          class="inline-flex items-center rounded p-1 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
-        >
-          <svg
-            class="h-4 w-4"
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 20 20"
-            fill="currentColor"
-          >
-            <path
-              fill-rule="evenodd"
-              d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
-              clip-rule="evenodd"
-            />
-          </svg>
-        </button>
-      </template>
-
+    <Dropdown align="right">
       <template #content>
         <DropdownLink :href="route('profile.edit')">{{ t('common.nav.profile') }}</DropdownLink>
         <DropdownLink :href="route('account.addresses.index')">{{ t('common.nav.addresses') }}</DropdownLink>

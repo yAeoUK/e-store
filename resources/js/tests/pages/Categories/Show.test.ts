@@ -1,5 +1,6 @@
-import { describe, expect, it } from 'vitest';
 import { shallowMount } from '@vue/test-utils';
+import { describe, expect, it } from 'vitest';
+import ShopLayout from '@/Layouts/ShopLayout.vue';
 import CategoriesShowPage from '@/pages/Categories/Show.vue';
 import { defaultProducts } from '../../utils';
 
@@ -33,6 +34,7 @@ describe('Categories show page', () => {
         expect(layout.exists()).toBe(true);
         expect(layout.props('heading')).toBe('Furniture');
         expect(layout.props('description')).toBe('Comfortable furniture');
+        expect(wrapper.findComponent(ShopLayout).exists()).toBe(true);
     });
 
     it('displays category filters', () => {

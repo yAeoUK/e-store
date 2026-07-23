@@ -1,5 +1,6 @@
-import { describe, expect, it } from 'vitest';
 import { shallowMount } from '@vue/test-utils';
+import { describe, expect, it } from 'vitest';
+import ShopLayout from '@/Layouts/ShopLayout.vue';
 import ProductsIndexPage from '@/pages/Products/Index.vue';
 import { defaultProducts } from '../../utils';
 
@@ -37,6 +38,7 @@ describe('Products index page', () => {
         expect(layout.exists()).toBe(true);
         expect(layout.props('heading')).toBe('shop.products.heading');
         expect(layout.props('emptyMessage')).toBe('shop.products.empty');
+        expect(wrapper.findComponent(ShopLayout).exists()).toBe(true);
     });
 
     it('displays product filters in the catalog layout', () => {

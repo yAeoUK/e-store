@@ -1,7 +1,11 @@
 <script setup>
 import { computed } from 'vue';
 import { Link } from '@inertiajs/vue3';
-import { textLinkVariants } from './classNames';
+
+const textLinkVariants = {
+    muted: 'text-gray-600 hover:text-gray-900',
+    slate: 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white',
+};
 
 const props = defineProps({
     href: {
