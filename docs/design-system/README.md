@@ -19,6 +19,13 @@ already exists:
   (dropdown items, category nav links).
 - `formFieldClass` — the standard bordered input/select look.
 - `headingTextClass` — heading text color (light/dark aware).
+- `mutedTextClass` — de-emphasized text color (`text-slate-500 dark:text-slate-400`);
+  extracted after the same pair turned up inline in four different components.
+- `mutedLinkClass` — `mutedTextClass`'s hover-capable counterpart for links
+  (adds `hover:text-slate-700 dark:hover:text-slate-200`); used by
+  `LanguageSwitcher`'s inactive-locale link and `GuestLayout`'s back-to-shop
+  link so both set their own resting color explicitly rather than one relying
+  on inheriting it from a parent element.
 - `cardSurfaceClass` — the bordered/rounded card surface used by `Card`.
 
 Note: `TextLink`'s `textLinkVariants` (`muted`/`slate`) live *inside*
@@ -77,6 +84,10 @@ actually needs it.
   login/register `ButtonLink`s for guests, or a greeting + `Dropdown` (profile/
   addresses/orders/logout) + `ConfirmationDialog` for the logout prompt when
   authenticated.
+- `LanguageSwitcher` — EN/AR toggle mounted in both `ShopLayout` and
+  `GuestLayout`. Deliberately plain `<a>` tags, not Inertia `Link`s — see
+  [docs/frontend/README.md](../frontend/README.md) for why switching locale
+  needs a full page reload rather than an SPA navigation.
 
 ## Conventions
 

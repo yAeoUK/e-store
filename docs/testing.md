@@ -79,6 +79,14 @@ resources/js/tests/
 - **Factories**: every model has a factory under `database/factories/`,
   including `AddressFactory`. Always build test data through factories rather
   than raw `Model::create()`.
+- **Testing cookies that are in the `encryptCookies(except: [...])` list**
+  (`appearance`, `sidebar_state`, `locale`) needs the *unencrypted* variants of
+  Pest's cookie helpers, not the defaults: `withUnencryptedCookie($name, $value)`
+  to send one, and `assertCookie($name, $value, encrypted: false)` to check
+  one on the response. Plain `withCookie()`/`assertCookie()` assume the cookie
+  *is* encrypted and will try to decrypt a raw value like `'ar'`, throwing
+  `Illuminate\Encryption\Encrypter`'s "The payload is invalid." — see
+  `tests/Feature/LocaleTest.php` for a working example.
 - **Guard relationship tests with unrelated (noise) data.** A relationship test
   that only creates the data it expects to get back can pass even if the
   relationship silently returns *everything* instead of filtering correctly

@@ -79,3 +79,36 @@ Routing bridge (Ziggy)
   plugin in [resources/js/app.ts](../resources/js/app.ts#L1-L21)
   (`app.use(ZiggyVue)`), which is what makes the global `route()` function
   available in every `<script setup>` block and template.
+
+Locale & RTL (Arabic support)
+
+- `HandleLocale` middleware reads a `locale` cookie, validates it against
+  `config('app.available_locales')` (`['en', 'ar']`), falls back to
+  `config('app.locale')`, and calls `app()->setLocale()`:
+  [app/Http/Middleware/HandleLocale.php](../app/Http/Middleware/HandleLocale.php#L1-L28).
+  Registered in the `web` middleware group in
+  [bootstrap/app.php](../bootstrap/app.php#L1-L30), before
+  `HandleInertiaRequests` — mirrors the existing `HandleAppearance` cookie
+  pattern rather than introducing a new mechanism.
+- Switching locale: `GET /locale/{locale}` →
+  [app/Http/Controllers/LocaleController.php](../app/Http/Controllers/LocaleController.php#L1-L20)
+  — validates the locale (404s on anything not in `available_locales`), queues
+  an *unencrypted* `locale` cookie (it's in the `encryptCookies(except: [...])`
+  list in `bootstrap/app.php`, alongside `appearance`/`sidebar_state`), and
+  redirects back. Deliberately a `GET`, not a `POST`: see
+  [docs/frontend/README.md](frontend/README.md) for why the switcher is a
+  plain `<a>` that needs a full page reload rather than an Inertia visit.
+- `resources/views/app.blade.php` renders both `lang` and `dir` straight from
+  `app()->getLocale()` / `config('app.rtl_locales')` on every request — no
+  Inertia shared prop needed for this, since a full reload always recomputes
+  it fresh.
+- Laravel's own validation/auth error strings are localized too, separately
+  from the Vue-side `t()` system: `lang/en/*.php` (published via
+  `php artisan lang:publish`) and `lang/ar/{validation,auth,passwords,pagination}.php`.
+  `validation.php`'s `attributes` array translates every field name actually
+  used across the app's Form Requests and inline `validate()` calls (auth,
+  profile, address, plus the not-yet-wired-up product/category admin
+  requests) so errors read naturally — e.g. "حقل الاسم مطلوب." rather than
+  "حقل name مطلوب." Both this and the Vue `t()` system key off the same
+  `locale` cookie but are otherwise independent; a new field/rule needs a
+  translation added in both places if it should read naturally in Arabic.

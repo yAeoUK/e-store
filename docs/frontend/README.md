@@ -29,13 +29,60 @@ i18n (`t()`)
 
 - All user-facing copy goes through `t('namespace.key')`, backed by a plain
   nested-object dictionary — no external i18n library:
-  [resources/js/i18n/index.ts](../../resources/js/i18n/index.ts#L1-L33). Locale
-  files live under `resources/js/i18n/locales/en/` split by domain (`common`,
-  `shop`, `auth`, `profile`, `account`); only `en` exists today
-  (`LocaleKey` is currently just `'en'`). If a key isn't found, `t()` returns
-  the path itself rather than throwing, which is handy for spotting missing
-  translations in the rendered UI. Add new copy to the matching domain file
-  rather than inlining strings in components.
+  [resources/js/i18n/index.ts](../../resources/js/i18n/index.ts#L1-L53). Locale
+  files live under `resources/js/i18n/locales/{en,ar}/` split by domain
+  (`common`, `shop`, `auth`, `profile`, `account`). If a key isn't found, `t()`
+  returns the path itself rather than throwing, which is handy for spotting
+  missing translations in the rendered UI. Add new copy to **both** the `en`
+  and `ar` domain file rather than inlining strings in components.
+- **Locale resolution**: `t()`'s default `locale` argument is
+  `currentLocale` — resolved *once*, at module load, from
+  `document.documentElement.lang` (falling back to `'en'` if unset/unrecognized):
+  [resources/js/i18n/index.ts](../../resources/js/i18n/index.ts#L32-L38). It's a
+  plain constant, not a reactive ref, because the app only ever changes locale
+  via a full page reload (see below) — there's no case where it needs to
+  change mid-session, so none of the ~20+ existing `t('...')` call sites had to
+  be touched when Arabic was added.
+- **Keeping `en`/`ar` in sync**: each `locales/ar/*.ts` file is typed
+  `satisfies <Domain>Translations` against a named type exported from its
+  English counterpart (e.g. `ShopTranslations` from
+  [locales/en/shop.ts](../../resources/js/i18n/locales/en/shop.ts)), so a
+  missing or renamed key fails `npm run types:check` at compile time instead
+  of silently falling back to the raw key path at runtime. This needs a
+  **named type export**, not `import enShop from '../en/shop'; ... satisfies
+  typeof enShop` — TypeScript doesn't allow `typeof` on a type-only import, and
+  a non-type-only import of a value only used inside `satisfies` trips the
+  `consistent-type-imports` lint rule. So each `en/*.ts` file binds its object
+  to a local const and additionally exports its inferred type
+  (`export type ShopTranslations = typeof shop`), and the matching `ar/*.ts`
+  does `import type { ShopTranslations } from '../en/shop'`.
+
+Locale switching & RTL
+
+- `LanguageSwitcher.vue` (an EN/AR toggle) is mounted in both `ShopLayout` and
+  `GuestLayout`'s header area:
+  [resources/js/components/LanguageSwitcher.vue](../../resources/js/components/LanguageSwitcher.vue#L1-L32).
+  It reads the current locale the same way `t()` does
+  (`document.documentElement.lang`) and links the *other* locale to
+  `route('locale.update', code)` — deliberately a plain `<a>`, not an Inertia
+  `<Link>`. Switching locale has to cause a **full browser reload**: `dir`/
+  `lang` on `<html>` are rendered server-side in `app.blade.php` from
+  `app()->getLocale()`, and only refresh on a real navigation, not an Inertia
+  XHR visit. See [docs/architecture.md](../architecture.md) for the
+  `HandleLocale` middleware / cookie / route on the backend side of this.
+- **RTL**: `app.blade.php` sets `dir="rtl"`/`dir="ltr"` on `<html>` based on
+  `config('app.rtl_locales')`. Tailwind v4 ships logical-property utilities
+  (`ms-*`, `me-*`, `ps-*`, `pe-*`, `text-start`/`text-end`, `border-s`/
+  `border-e`) and core `rtl:`/`ltr:` variants keyed off that attribute
+  out of the box — no plugin, no `tailwind.config` changes needed. Prefer
+  logical properties for anything direction-sensitive; reach for an explicit
+  `rtl:`/`ltr:` variant pair only when there's no logical-property equivalent,
+  like the back-arrow glyph swap in
+  [resources/js/Layouts/GuestLayout.vue](../../resources/js/Layouts/GuestLayout.vue#L22)
+  (`<span class="rtl:hidden">&larr;</span><span class="ltr:hidden">&rarr;</span>`).
+  `Dropdown.vue`'s `alignmentClasses` (`ltr:origin-top-right rtl:origin-top-left
+  end-0`) is the other reference example — written before Arabic support
+  existed, but already following this exact convention.
 
 Layouts (`resources/js/Layouts/`)
 

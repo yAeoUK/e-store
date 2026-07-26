@@ -231,10 +231,46 @@ section the same as the Boost guidelines above.
   (`resources/js/i18n/`), not inline strings. Links/redirects go through
   Ziggy's `route('name')`, never a hardcoded path.
 
+## Localization & RTL conventions (this repo specifically)
+
+Full detail in [docs/frontend/README.md](docs/frontend/README.md) and
+[docs/architecture.md](docs/architecture.md) — the essentials:
+
+- Two locales exist: `en` and `ar`. New user-facing copy needs an entry in
+  **both** `resources/js/i18n/locales/en/<domain>.ts` and the matching
+  `ar/<domain>.ts` — not just `en`. Each `ar/*.ts` is typed
+  `satisfies <Domain>Translations` against a named type exported from its
+  `en/*.ts` counterpart; a missing/renamed key fails `npm run types:check`, so
+  don't skip adding the Arabic side even for a quick fix.
+- `t()`'s current locale is resolved once from `document.documentElement.lang`
+  at module load (`resources/js/i18n/index.ts`) — it's not reactive, because
+  locale only ever changes via a full page reload (see the `LocaleController`/
+  `HandleLocale` middleware in `docs/architecture.md`). Don't add a locale
+  prop/store expecting mid-session reactivity; it isn't needed.
+- RTL: prefer Tailwind's logical-property utilities (`ms-*`, `me-*`, `ps-*`,
+  `pe-*`, `text-start`/`text-end`, `border-s`/`border-e`) over physical ones
+  (`ml-*`, `mr-*`, `pl-*`, `pr-*`, `text-left`/`text-right`) for anything
+  direction-sensitive — they flip automatically with the `dir` attribute, no
+  Tailwind config needed. Only reach for an explicit `rtl:`/`ltr:` variant
+  pair when there's no logical-property equivalent (e.g. swapping a directional
+  arrow glyph — see `GuestLayout.vue`'s back-arrow or `Dropdown.vue`'s
+  `alignmentClasses`).
+- Laravel's own validation/auth error strings are localized separately from
+  the Vue `t()` system, via `lang/en/*.php` / `lang/ar/*.php`. A new field
+  name used in a Form Request or `$request->validate([...])` needs an entry
+  added to `lang/ar/validation.php`'s `attributes` array too, or its error
+  message will read awkwardly in Arabic (the raw English field name embedded
+  in an otherwise-Arabic sentence).
+
 ## Testing conventions (this repo specifically)
 
 Full detail in [docs/testing.md](docs/testing.md) — the essentials:
 
+- **Cookies in `encryptCookies(except: [...])`** (`appearance`, `sidebar_state`,
+  `locale`) need the unencrypted Pest helpers — `withUnencryptedCookie()` to
+  send one, `assertCookie($name, $value, encrypted: false)` to check one.
+  Plain `withCookie()`/`assertCookie()` assume encryption and throw a
+  decryption error on a raw value like `'ar'`.
 - **Guard relationship tests with unrelated (noise) data.** A test that only
   creates the data it expects back can pass even if a relationship silently
   returns *everything* instead of filtering correctly. Create an unrelated row
