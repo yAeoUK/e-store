@@ -75,6 +75,13 @@ composer ci:check
 npx vitest run
 ```
 
+`composer ci:check` passes cleanly end-to-end as of the TypeScript
+migration/PHPStan cleanup pass (every `.vue` file is `lang="ts"`, every
+Eloquent relation has generic PHPDoc, PHPStan runs at
+`--memory-limit=1G` — see [docs/architecture.md](architecture.md) for why).
+Treat any failure here as a real regression to fix, not more pre-existing
+debt to file away — there isn't any left.
+
 Commit messages
 - Use present-tense, brief summaries.
 

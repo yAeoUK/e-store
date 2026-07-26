@@ -1,8 +1,12 @@
-<script setup>
+<script setup lang="ts">
 import { computed } from 'vue';
 import { mutedLinkClass, headingTextClass } from '@/components/classNames';
 
-const current = computed(() => (typeof document !== 'undefined' ? document.documentElement.lang.split('-')[0] : 'en'));
+const current = computed(() =>
+    typeof document !== 'undefined'
+        ? document.documentElement.lang.split('-')[0]
+        : 'en',
+);
 
 const locales = [
     { code: 'en', label: 'EN' },
@@ -13,7 +17,9 @@ const locales = [
 <template>
     <div class="flex items-center gap-1 text-sm font-medium">
         <template v-for="(locale, index) in locales" :key="locale.code">
-            <span v-if="index > 0" class="text-slate-300 dark:text-slate-700">|</span>
+            <span v-if="index > 0" class="text-slate-300 dark:text-slate-700"
+                >|</span
+            >
             <span
                 v-if="locale.code === current"
                 :class="[headingTextClass, 'px-1']"

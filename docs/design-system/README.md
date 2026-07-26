@@ -35,6 +35,17 @@ avoided an unnecessary shared-file dependency for a single caller. Only
 promote a variant map to `classNames.js` once more than one component
 actually needs it.
 
+**Typing a `variant` prop that indexes a class-variant map**: a runtime
+`defineProps({ variant: { type: String, default: 'secondary' } })` infers as
+plain `string`, which doesn't type-check as an index into
+`{ primary: string; secondary: string }` under `vue-tsc`. `ButtonLink` and
+`TextLink` type these as `type: String as PropType<keyof typeof
+buttonVariants>` (import `PropType` from `vue`) instead of widening the
+variant map itself — same pattern for `Link`-forwarding `href`/`method` props
+(`PropType<string | UrlMethodPair>` / `PropType<Method>` from
+`@inertiajs/core`, since those are Inertia's actual accepted types, not
+plain `string`/`object`).
+
 ## Component inventory
 
 **Buttons & links**

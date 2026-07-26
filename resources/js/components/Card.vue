@@ -1,9 +1,9 @@
-<script setup>
+<script setup lang="ts">
 import { cardSurfaceClass } from './classNames';
 </script>
 
 <template>
-  <div :class="[cardSurfaceClass, 'bg-white shadow-sm dark:shadow-none']">
-    <slot />
-  </div>
+    <div :class="[cardSurfaceClass, 'bg-white shadow-sm dark:shadow-none']">
+        <slot />
+    </div>
 </template>

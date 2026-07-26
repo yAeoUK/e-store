@@ -18,7 +18,9 @@ describe('ProductCard', () => {
 
         const image = wrapper.get('img');
 
-        expect(image.attributes('src')).toContain('https://placehold.co/600x600?text=Product');
+        expect(image.attributes('src')).toContain(
+            'https://placehold.co/600x600?text=Product',
+        );
         expect(image.attributes('alt')).toBe('Test Product');
         expect(wrapper.text()).toContain('Test Product');
         expect(wrapper.text()).toContain('$49.99');
@@ -35,7 +37,12 @@ describe('ProductCard', () => {
                     price: 129.99,
                     short_description: 'Noise cancelling headphones',
                     category: { name: 'Audio' },
-                    images: [{ url: '/images/headphones.jpg', alt_text: 'Headphones image' }],
+                    images: [
+                        {
+                            url: '/images/headphones.jpg',
+                            alt_text: 'Headphones image',
+                        },
+                    ],
                 },
             },
         });

@@ -25,7 +25,7 @@ describe('Checkbox', () => {
 
     it('emits the array with the value added when toggled on in array mode', async () => {
         const wrapper = mount(Checkbox, {
-            props: { checked: [], value: 'blue' } as Record<string, unknown>,
+            props: { checked: [], value: 'blue' },
         });
 
         await wrapper.get('input').setValue(true);
@@ -35,7 +35,7 @@ describe('Checkbox', () => {
 
     it('emits the array with the value removed when toggled off in array mode', async () => {
         const wrapper = mount(Checkbox, {
-            props: { checked: ['blue'], value: 'blue' } as Record<string, unknown>,
+            props: { checked: ['blue'], value: 'blue' },
         });
 
         await wrapper.get('input').setValue(false);

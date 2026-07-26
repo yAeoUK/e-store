@@ -61,8 +61,12 @@ describe('Login page', () => {
         await wrapper.find('form').trigger('submit');
 
         expect(routeMock).toHaveBeenCalledWith('login');
-        expect((wrapper.find('#email').element as HTMLInputElement).value).toBe('jane@example.com');
-        expect((wrapper.find('#password').element as HTMLInputElement).value).toBe('');
+        expect((wrapper.find('#email').element as HTMLInputElement).value).toBe(
+            'jane@example.com',
+        );
+        expect(
+            (wrapper.find('#password').element as HTMLInputElement).value,
+        ).toBe('');
     });
 
     it('renders within GuestLayout', () => {
@@ -102,9 +106,15 @@ describe('Login page', () => {
 
         const errors = wrapper.findAllComponents(InputError);
 
-        expect(errors[0].props('message')).toBe('These credentials do not match our records.');
-        expect(errors[1].props('message')).toBe('The password field is required.');
-        expect(wrapper.text()).toContain('These credentials do not match our records.');
+        expect(errors[0].props('message')).toBe(
+            'These credentials do not match our records.',
+        );
+        expect(errors[1].props('message')).toBe(
+            'The password field is required.',
+        );
+        expect(wrapper.text()).toContain(
+            'These credentials do not match our records.',
+        );
     });
 
     it('renders the remember me text', () => {

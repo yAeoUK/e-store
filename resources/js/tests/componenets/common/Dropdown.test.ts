@@ -28,7 +28,9 @@ describe('Dropdown', () => {
 
     it('is closed by default and opens when the trigger is clicked', async () => {
         const wrapper = mountDropdown();
-        const content = wrapper.find('.menu-item').element.closest('[style]') as HTMLElement;
+        const content = wrapper
+            .find('.menu-item')
+            .element.closest('[style]') as HTMLElement;
 
         expect(content.style.display).toBe('none');
 
@@ -43,7 +45,9 @@ describe('Dropdown', () => {
         await wrapper.find('button').trigger('click');
 
         const overlay = wrapper.find('.fixed.inset-0.z-40');
-        const content = wrapper.find('.menu-item').element.closest('[style]') as HTMLElement;
+        const content = wrapper
+            .find('.menu-item')
+            .element.closest('[style]') as HTMLElement;
 
         await overlay.trigger('click');
 
@@ -55,7 +59,9 @@ describe('Dropdown', () => {
 
         await wrapper.find('button').trigger('click');
 
-        const content = wrapper.find('.menu-item').element.closest('[style]') as HTMLElement;
+        const content = wrapper
+            .find('.menu-item')
+            .element.closest('[style]') as HTMLElement;
 
         await wrapper.find('.menu-item').trigger('click');
 
@@ -64,7 +70,9 @@ describe('Dropdown', () => {
 
     it('closes on Escape when open, and is a no-op when already closed', async () => {
         const wrapper = mountDropdown();
-        const content = wrapper.find('.menu-item').element.closest('[style]') as HTMLElement;
+        const content = wrapper
+            .find('.menu-item')
+            .element.closest('[style]') as HTMLElement;
 
         document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
         await nextTick();
@@ -83,13 +91,17 @@ describe('Dropdown', () => {
     it('defaults to the right alignment classes', () => {
         const wrapper = mountDropdown();
 
-        expect(wrapper.find('.shadow-lg').classes().join(' ')).toContain('ltr:origin-top-right rtl:origin-top-left end-0');
+        expect(wrapper.find('.shadow-lg').classes().join(' ')).toContain(
+            'ltr:origin-top-right rtl:origin-top-left end-0',
+        );
     });
 
     it('applies the left alignment classes when align is left', () => {
         const wrapper = mountDropdown({ align: 'left' });
 
-        expect(wrapper.find('.shadow-lg').classes().join(' ')).toContain('ltr:origin-top-left rtl:origin-top-right start-0');
+        expect(wrapper.find('.shadow-lg').classes().join(' ')).toContain(
+            'ltr:origin-top-left rtl:origin-top-right start-0',
+        );
     });
 
     it('falls back to a plain origin class for any other align value', () => {

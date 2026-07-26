@@ -1,14 +1,14 @@
-<script setup>
-import GuestLayout from '@/Layouts/GuestLayout.vue';
+<script setup lang="ts">
+import { Head, useForm } from '@inertiajs/vue3';
+import FormActions from '@/components/FormActions.vue';
 import InputError from '@/components/InputError.vue';
 import InputLabel from '@/components/InputLabel.vue';
-import PrimaryButton from '@/components/PrimaryButton.vue';
-import TextInput from '@/components/TextInput.vue';
 import MutedText from '@/components/MutedText.vue';
+import PrimaryButton from '@/components/PrimaryButton.vue';
 import SuccessText from '@/components/SuccessText.vue';
-import FormActions from '@/components/FormActions.vue';
-import { Head, useForm } from '@inertiajs/vue3';
+import TextInput from '@/components/TextInput.vue';
 import { t } from '@/i18n';
+import GuestLayout from '@/Layouts/GuestLayout.vue';
 
 defineProps({
     status: {
@@ -39,7 +39,10 @@ const submit = () => {
 
         <form @submit.prevent="submit" class="space-y-6">
             <div>
-                <InputLabel for="email" :value="t('auth.forgotPassword.email')" />
+                <InputLabel
+                    for="email"
+                    :value="t('auth.forgotPassword.email')"
+                />
 
                 <TextInput
                     id="email"

@@ -1,13 +1,13 @@
-<script setup>
-import GuestLayout from '@/Layouts/GuestLayout.vue';
+<script setup lang="ts">
+import { Head, useForm } from '@inertiajs/vue3';
+import FormActions from '@/components/FormActions.vue';
 import InputError from '@/components/InputError.vue';
 import InputLabel from '@/components/InputLabel.vue';
 import PrimaryButton from '@/components/PrimaryButton.vue';
 import TextInput from '@/components/TextInput.vue';
 import TextLink from '@/components/TextLink.vue';
-import FormActions from '@/components/FormActions.vue';
-import { Head, useForm } from '@inertiajs/vue3';
 import { t } from '@/i18n';
+import GuestLayout from '@/Layouts/GuestLayout.vue';
 
 const form = useForm({
     name: '',
@@ -60,7 +60,10 @@ const submit = () => {
             </div>
 
             <div class="mt-4">
-                <InputLabel for="password" :value="t('auth.register.password')" />
+                <InputLabel
+                    for="password"
+                    :value="t('auth.register.password')"
+                />
 
                 <TextInput
                     id="password"
@@ -100,10 +103,7 @@ const submit = () => {
                     {{ t('auth.register.alreadyRegistered') }}
                 </TextLink>
 
-                <PrimaryButton
-                    class="ms-4"
-                    :disabled="form.processing"
-                >
+                <PrimaryButton class="ms-4" :disabled="form.processing">
                     {{ t('auth.register.submit') }}
                 </PrimaryButton>
             </FormActions>

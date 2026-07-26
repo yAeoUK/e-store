@@ -14,7 +14,11 @@ beforeEach(() => {
 describe('ConfirmationDialog', () => {
     it('renders the title and message', () => {
         const wrapper = mount(ConfirmationDialog, {
-            props: { show: true, title: 'Delete address', message: 'Are you sure?' },
+            props: {
+                show: true,
+                title: 'Delete address',
+                message: 'Are you sure?',
+            },
         });
 
         expect(wrapper.text()).toContain('Delete address');
@@ -79,10 +83,17 @@ describe('ConfirmationDialog', () => {
 
     it('disables the confirm button while processing', () => {
         const wrapper = mount(ConfirmationDialog, {
-            props: { show: true, title: 'Confirm', danger: true, processing: true },
+            props: {
+                show: true,
+                title: 'Confirm',
+                danger: true,
+                processing: true,
+            },
         });
 
-        expect(wrapper.findComponent(DangerButton).attributes('disabled')).not.toBeUndefined();
+        expect(
+            wrapper.findComponent(DangerButton).attributes('disabled'),
+        ).not.toBeUndefined();
     });
 
     it('leaves the cancel button enabled while processing', () => {
@@ -90,6 +101,8 @@ describe('ConfirmationDialog', () => {
             props: { show: true, title: 'Confirm', processing: true },
         });
 
-        expect(wrapper.findComponent(SecondaryButton).attributes('disabled')).toBeUndefined();
+        expect(
+            wrapper.findComponent(SecondaryButton).attributes('disabled'),
+        ).toBeUndefined();
     });
 });

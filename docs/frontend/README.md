@@ -13,8 +13,52 @@ Tips
 
 Quick links to source
 
-- Inertia + Vue bootstrap (`createInertiaApp`): [resources/js/app.ts](../../resources/js/app.ts#L1-L21)
+- Inertia + Vue bootstrap (`createInertiaApp`): [resources/js/app.ts](../../resources/js/app.ts#L1-L29)
 - Blade layout (Vite + Inertia includes): [resources/views/app.blade.php](../../resources/views/app.blade.php#L1-L40)
+
+TypeScript
+
+- Every `.vue` file uses `<script setup lang="ts">` — this was a full-repo
+  migration (33 files were still plain `<script setup>`, mixed in with an
+  already-TS majority); there's no "some components are JS" exception anymore.
+  New components should follow suit from the start.
+- Ambient type declarations live under
+  [resources/js/types/](../../resources/js/types/) (all three feed into
+  `tsconfig.json`'s `resources/js/**/*.d.ts` include, no per-file wiring
+  needed):
+  - `ziggy.d.ts` — declares the global `route()` function (Ziggy installs it
+    at runtime via the `ZiggyVue` plugin, but nothing in `ziggy-js`'s own
+    types declares it as a global or as a Vue `ComponentCustomProperty`).
+    Needed for both bare script-level calls (`route('login')`) and template
+    calls (`<Link :href="route('home')">`, which compile to `_ctx.route(...)`
+    and specifically need the `ComponentCustomProperties` augmentation, not
+    just the global function).
+  - `inertia.d.ts` — types Inertia's shared page props (`name`, `auth.user`,
+    `sidebarOpen`) via `declare module '@inertiajs/core' { interface
+    InertiaConfig { sharedPageProps: {...} } }` — Inertia v3's own documented
+    extension point. **Adding a new key to `HandleInertiaRequests::share()`
+    needs a matching addition here**, or `usePage().props.yourNewKey` won't
+    type-check anywhere.
+  - `shims-vue.d.ts` — the standard `declare module '*.vue'` shim so plain
+    `.ts` files (not `vue-tsc`-processed `.vue` SFCs) know what a `.vue`
+    import's default export shape is.
+- **`app.ts`'s `resolve()` function is more fragile than it looks.**
+  `resolvePageComponent()` just calls the lazy-import function and returns
+  whatever it resolves to — it does **not** unwrap `.default` itself. A real
+  dynamic import of a `.vue` file resolves to the module object
+  `{ default: DefineComponent }`, not the bare component. Typing
+  `resolvePageComponent`'s generic (and `import.meta.glob`'s own generic) as
+  bare `DefineComponent` instead of `{ default: DefineComponent }` looks
+  more "correct" but produces a confusing, over-widened inferred type
+  (`DefineComponent | Promise<DefineComponent> | (() => Promise<DefineComponent>)`)
+  that `vue-tsc` can't reconcile against Inertia's `ComponentResolver` type —
+  because `import.meta.glob`'s no-options overload has no argument to infer
+  its own generic from, so it ends up inferring across multiple overloads at
+  once. The fix is to pin **both** generics to the real module shape and
+  unwrap `.default` explicitly:
+  [resources/js/app.ts](../../resources/js/app.ts#L9-L14). Don't
+  "simplify" this back to a bare `DefineComponent` generic — it'll silently
+  reintroduce the exact same `vue-tsc` failure.
 
 Routing (`route()`)
 

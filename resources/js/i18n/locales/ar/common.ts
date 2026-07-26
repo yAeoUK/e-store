@@ -25,6 +25,7 @@ export default {
         logOut: 'تسجيل الخروج',
         register: 'إنشاء حساب',
         logoutConfirmTitle: 'تسجيل الخروج؟',
-        logoutConfirmMessage: 'ستحتاج إلى تسجيل الدخول مرة أخرى للوصول إلى حسابك وسلة التسوق وسجل الطلبات.',
+        logoutConfirmMessage:
+            'ستحتاج إلى تسجيل الدخول مرة أخرى للوصول إلى حسابك وسلة التسوق وسجل الطلبات.',
     },
 } satisfies CommonTranslations;

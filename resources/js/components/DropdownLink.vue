@@ -1,13 +1,15 @@
-<script setup>
+<script setup lang="ts">
+import type { Method, UrlMethodPair } from '@inertiajs/core';
 import { Link } from '@inertiajs/vue3';
+import type { PropType } from 'vue';
 
 defineProps({
     href: {
-        type: [String, Object],
+        type: [String, Object] as PropType<string | UrlMethodPair>,
         required: true,
     },
     method: {
-        type: String,
+        type: String as PropType<Method>,
         default: null,
     },
     as: {

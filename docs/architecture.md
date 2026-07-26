@@ -27,10 +27,23 @@ Models
 - Product model: [app/Models/Product.php](../app/Models/Product.php#L1-L200)
 - ProductImage model: [app/Models/ProductImage.php](../app/Models/ProductImage.php#L1-L120)
 - ProductVariant model: [app/Models/ProductVariant.php](../app/Models/ProductVariant.php#L1-L160)
-- User model (added on `feature/authentication`): [app/Models/User.php](../app/Models/User.php#L1-L60) — uses PHP attributes
+- User model (added on `feature/authentication`): [app/Models/User.php](../app/Models/User.php#L1-L52) — uses PHP attributes
   (`#[Fillable(...)]`, `#[Hidden(...)]`) instead of the classic `$fillable`/`$hidden`
   properties, and a `casts()` method (Laravel 11+ style) instead of a `$casts`
-  property. Gained an `addresses()` hasMany relation.
+  property. Gained an `addresses()` hasMany relation. Implements
+  `Illuminate\Contracts\Auth\MustVerifyEmail` — this import used to be
+  commented out and the interface unimplemented, which silently broke the
+  email-verification flow's type contract (`VerifyEmailController`'s
+  `Verified` event expects a `MustVerifyEmail`); no route currently uses the
+  `verified` middleware, so this had no visible runtime symptom, just a
+  latent correctness gap that PHPStan level 7 caught. The model's PHPDoc used
+  to also declare `$two_factor_secret`/`$two_factor_recovery_codes`/
+  `$two_factor_confirmed_at` and hide them via `#[Hidden(...)]` — vestigial
+  starter-kit scaffolding for columns that were **never added to the users
+  migration** (no 2FA feature exists in this app). Removed along with the
+  matching dead `UserFactory::withTwoFactor()` factory state, which had an
+  empty body and would have failed at runtime (inserting into non-existent
+  columns) if anything had ever called it.
 - Address model (added on `feature/authentication`): [app/Models/Address.php](../app/Models/Address.php#L1-L40) —
   belongs to `User`; `is_default` is cast to boolean. See
   `app/Http/Controllers/Account/AddressController.php` for the "only one default
@@ -112,3 +125,40 @@ Locale & RTL (Arabic support)
   "حقل name مطلوب." Both this and the Vue `t()` system key off the same
   `locale` cookie but are otherwise independent; a new field/rule needs a
   translation added in both places if it should read naturally in Arabic.
+
+Static analysis (PHPStan/Larastan, level 7)
+
+- `composer types:check` runs `phpstan analyse --memory-limit=1G` — the
+  `--memory-limit` flag is baked into the Composer script because PHPStan
+  crashes with an OOM fatal error under PHP CLI's stock 128M default on this
+  codebase's size; if you ever run `phpstan`/`vendor/bin/phpstan` directly
+  instead of through Composer, pass the same flag.
+- **Every Eloquent relation method needs a generic-typed `@return` PHPDoc** —
+  e.g. `@return BelongsTo<Category, $this>` or
+  `@return HasMany<ProductImage, $this>` — and every model using
+  `HasFactory` needs `/** @use HasFactory<ItsFactory> */` immediately above
+  the `use HasFactory;` line. Plain `: BelongsTo`/`: HasMany` return types
+  with no generic PHPDoc pass PHP's own type checker fine but fail Larastan's
+  `missingType.generics` rule. See any relation in
+  [app/Models/Product.php](../app/Models/Product.php#L1-L200) or
+  [app/Models/Category.php](../app/Models/Category.php#L1-L120) for the
+  pattern — apply it to every new relation on every new model.
+- **Faker's locale-specific provider methods aren't visible to PHPStan.**
+  Faker proxies most calls through `Generator::__call()`, and the base
+  `Faker\Generator` class's own `@method` PHPDoc (which is what static
+  analysis actually sees) only lists the common cross-locale methods —
+  `name()`, `city()`, `postcode()`, etc. all resolve fine. Locale-specific
+  ones like `en_US\Address`'s `secondaryAddress()`/`state()` (used in
+  [database/factories/AddressFactory.php](../database/factories/AddressFactory.php#L1-L38),
+  matching `config('app.faker_locale')`) are **not** in that base PHPDoc and
+  get flagged as undefined methods, even though they exist and work
+  perfectly at runtime. Don't try to fix this with a PHPStan `stubFiles`
+  entry re-declaring `Faker\Generator` — a stub for an already-autoloaded
+  class **replaces** PHPStan's reflection of it rather than merging
+  additively, so every other (correctly-recognized) Faker method call across
+  every factory breaks at once. The actual fix: call the provider class's
+  static method directly (`\Faker\Provider\en_US\Address::secondaryAddress()`),
+  bypassing `$this->faker`'s magic proxy for just that one call — real static
+  methods have no reflection ambiguity. Only do this for the specific
+  locale-only methods PHPStan actually flags; leave the common ones (`name()`,
+  `city()`, ...) called through `$this->faker` as normal.

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Account;
 
 use App\Http\Controllers\Controller;
 use App\Models\Address;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
@@ -20,7 +21,7 @@ class AddressController extends Controller
         ]);
     }
 
-    public function store(Request $request)
+    public function store(Request $request): RedirectResponse
     {
         $data = $request->validate([
             'label' => ['nullable', 'string', 'max:255'],
@@ -38,7 +39,7 @@ class AddressController extends Controller
         $user = $request->user();
 
         DB::transaction(function () use ($data, $user) {
-            if (!empty($data['is_default'])) {
+            if (! empty($data['is_default'])) {
                 $user->addresses()->update(['is_default' => false]);
             }
 
@@ -48,7 +49,7 @@ class AddressController extends Controller
         return redirect()->route('account.addresses.index');
     }
 
-    public function update(Request $request, Address $address)
+    public function update(Request $request, Address $address): RedirectResponse
     {
         if ($request->user()->id !== $address->user_id) {
             abort(403);
@@ -68,7 +69,7 @@ class AddressController extends Controller
         ]);
 
         DB::transaction(function () use ($data, $request, $address) {
-            if (!empty($data['is_default'])) {
+            if (! empty($data['is_default'])) {
                 $request->user()->addresses()->update(['is_default' => false]);
             }
 
@@ -78,7 +79,7 @@ class AddressController extends Controller
         return redirect()->route('account.addresses.index');
     }
 
-    public function destroy(Request $request, Address $address)
+    public function destroy(Request $request, Address $address): RedirectResponse
     {
         if ($request->user()->id !== $address->user_id) {
             abort(403);
@@ -89,7 +90,7 @@ class AddressController extends Controller
         return redirect()->route('account.addresses.index');
     }
 
-    public function setDefault(Request $request, Address $address)
+    public function setDefault(Request $request, Address $address): RedirectResponse
     {
         if ($request->user()->id !== $address->user_id) {
             abort(403);

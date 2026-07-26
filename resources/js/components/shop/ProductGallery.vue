@@ -17,7 +17,12 @@ const selectedImage = defineModel<string | null>('selectedImage');
 
 const images = computed(() => {
     if (!props.images || props.images.length === 0) {
-        return [{ url: 'https://placehold.co/600x600?text=Product', alt_text: props.title ?? t('common.productImage') }];
+        return [
+            {
+                url: 'https://placehold.co/600x600?text=Product',
+                alt_text: props.title ?? t('common.productImage'),
+            },
+        ];
     }
 
     return props.images;
@@ -45,7 +50,11 @@ if (!selectedImage.value) {
                 @click="selectedImage = image.url"
                 class="h-20 w-20 overflow-hidden rounded-lg border border-slate-200 bg-slate-50"
             >
-                <img :src="image.url" :alt="image.alt_text ?? title ?? t('common.productImage')" class="h-full w-full object-cover" />
+                <img
+                    :src="image.url"
+                    :alt="image.alt_text ?? title ?? t('common.productImage')"
+                    class="h-full w-full object-cover"
+                />
             </button>
         </div>
     </div>

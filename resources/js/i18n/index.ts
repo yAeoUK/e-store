@@ -30,7 +30,10 @@ export type LocaleKey = keyof typeof translations;
 export type TranslationDictionary = typeof translations.en;
 
 function resolveInitialLocale(): LocaleKey {
-    const htmlLang = typeof document !== 'undefined' ? document.documentElement.lang.split('-')[0] : '';
+    const htmlLang =
+        typeof document !== 'undefined'
+            ? document.documentElement.lang.split('-')[0]
+            : '';
 
     return htmlLang in translations ? (htmlLang as LocaleKey) : 'en';
 }

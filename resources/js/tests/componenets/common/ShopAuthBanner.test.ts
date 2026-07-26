@@ -5,7 +5,9 @@ import DropdownLink from '@/components/DropdownLink.vue';
 import ShopAuthBanner from '@/components/ShopAuthBanner.vue';
 
 function pageWith(user: { name: string; email: string } | null) {
-    return { props: { auth: { user }, errors: {} } } as unknown as ReturnType<typeof usePage>;
+    return { props: { auth: { user }, errors: {} } } as unknown as ReturnType<
+        typeof usePage
+    >;
 }
 
 beforeEach(() => {
@@ -32,7 +34,9 @@ describe('ShopAuthBanner', () => {
     });
 
     it('greets the authenticated user by name', () => {
-        vi.mocked(usePage).mockReturnValue(pageWith({ name: 'Jane Doe', email: 'jane@example.com' }));
+        vi.mocked(usePage).mockReturnValue(
+            pageWith({ name: 'Jane Doe', email: 'jane@example.com' }),
+        );
 
         const wrapper = mount(ShopAuthBanner);
 
@@ -40,7 +44,9 @@ describe('ShopAuthBanner', () => {
     });
 
     it('falls back to the email when the user has no name', () => {
-        vi.mocked(usePage).mockReturnValue(pageWith({ name: '', email: 'jane@example.com' }));
+        vi.mocked(usePage).mockReturnValue(
+            pageWith({ name: '', email: 'jane@example.com' }),
+        );
 
         const wrapper = mount(ShopAuthBanner);
 
@@ -48,7 +54,9 @@ describe('ShopAuthBanner', () => {
     });
 
     it('renders the three dropdown links', () => {
-        vi.mocked(usePage).mockReturnValue(pageWith({ name: 'Jane Doe', email: 'jane@example.com' }));
+        vi.mocked(usePage).mockReturnValue(
+            pageWith({ name: 'Jane Doe', email: 'jane@example.com' }),
+        );
 
         const wrapper = mount(ShopAuthBanner);
         const links = wrapper.findAllComponents(DropdownLink);
@@ -63,53 +71,90 @@ describe('ShopAuthBanner', () => {
     });
 
     it('opens the logout confirmation dialog when the logout trigger is clicked', async () => {
-        vi.mocked(usePage).mockReturnValue(pageWith({ name: 'Jane Doe', email: 'jane@example.com' }));
+        vi.mocked(usePage).mockReturnValue(
+            pageWith({ name: 'Jane Doe', email: 'jane@example.com' }),
+        );
 
         const wrapper = mount(ShopAuthBanner);
 
-        await wrapper.findComponent({ name: 'Dropdown' }).find('button').trigger('click');
+        await wrapper
+            .findComponent({ name: 'Dropdown' })
+            .find('button')
+            .trigger('click');
 
         const dialog = wrapper.findComponent({ name: 'ConfirmationDialog' });
 
         expect(dialog.props('show')).toBe(false);
 
-        const logoutButton = wrapper.findAll('button').find((button) => button.text() === 'common.nav.logOut');
+        const logoutButton = wrapper
+            .findAll('button')
+            .find((button) => button.text() === 'common.nav.logOut');
         await logoutButton?.trigger('click');
 
-        expect(wrapper.findComponent({ name: 'ConfirmationDialog' }).props('show')).toBe(true);
+        expect(
+            wrapper.findComponent({ name: 'ConfirmationDialog' }).props('show'),
+        ).toBe(true);
     });
 
     it('posts to the logout route and resets state on finish when confirmed', async () => {
-        vi.mocked(usePage).mockReturnValue(pageWith({ name: 'Jane Doe', email: 'jane@example.com' }));
+        vi.mocked(usePage).mockReturnValue(
+            pageWith({ name: 'Jane Doe', email: 'jane@example.com' }),
+        );
 
         const wrapper = mount(ShopAuthBanner);
 
-        await wrapper.findComponent({ name: 'ConfirmationDialog' }).vm.$emit('confirm');
+        await wrapper
+            .findComponent({ name: 'ConfirmationDialog' })
+            .vm.$emit('confirm');
 
-        expect(vi.mocked(router.post)).toHaveBeenCalledWith('logout', {}, expect.objectContaining({ onFinish: expect.any(Function) }));
+        expect(vi.mocked(router.post)).toHaveBeenCalledWith(
+            'logout',
+            {},
+            expect.objectContaining({ onFinish: expect.any(Function) }),
+        );
 
-        expect(wrapper.findComponent({ name: 'ConfirmationDialog' }).props('processing')).toBe(true);
+        expect(
+            wrapper
+                .findComponent({ name: 'ConfirmationDialog' })
+                .props('processing'),
+        ).toBe(true);
 
         const onFinish = vi.mocked(router.post).mock.calls[0][2]?.onFinish;
         onFinish?.({} as Parameters<NonNullable<typeof onFinish>>[0]);
         await wrapper.vm.$nextTick();
 
-        expect(wrapper.findComponent({ name: 'ConfirmationDialog' }).props('show')).toBe(false);
-        expect(wrapper.findComponent({ name: 'ConfirmationDialog' }).props('processing')).toBe(false);
+        expect(
+            wrapper.findComponent({ name: 'ConfirmationDialog' }).props('show'),
+        ).toBe(false);
+        expect(
+            wrapper
+                .findComponent({ name: 'ConfirmationDialog' })
+                .props('processing'),
+        ).toBe(false);
     });
 
     it('resets confirmingLogout without posting when the dialog is cancelled', async () => {
-        vi.mocked(usePage).mockReturnValue(pageWith({ name: 'Jane Doe', email: 'jane@example.com' }));
+        vi.mocked(usePage).mockReturnValue(
+            pageWith({ name: 'Jane Doe', email: 'jane@example.com' }),
+        );
 
         const wrapper = mount(ShopAuthBanner);
 
-        const logoutButton = wrapper.findAll('button').find((button) => button.text() === 'common.nav.logOut');
+        const logoutButton = wrapper
+            .findAll('button')
+            .find((button) => button.text() === 'common.nav.logOut');
         await logoutButton?.trigger('click');
-        expect(wrapper.findComponent({ name: 'ConfirmationDialog' }).props('show')).toBe(true);
+        expect(
+            wrapper.findComponent({ name: 'ConfirmationDialog' }).props('show'),
+        ).toBe(true);
 
-        await wrapper.findComponent({ name: 'ConfirmationDialog' }).vm.$emit('cancel');
+        await wrapper
+            .findComponent({ name: 'ConfirmationDialog' })
+            .vm.$emit('cancel');
 
-        expect(wrapper.findComponent({ name: 'ConfirmationDialog' }).props('show')).toBe(false);
+        expect(
+            wrapper.findComponent({ name: 'ConfirmationDialog' }).props('show'),
+        ).toBe(false);
         expect(router.post).not.toHaveBeenCalled();
     });
 });

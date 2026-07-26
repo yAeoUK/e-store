@@ -231,6 +231,34 @@ section the same as the Boost guidelines above.
   (`resources/js/i18n/`), not inline strings. Links/redirects go through
   Ziggy's `route('name')`, never a hardcoded path.
 
+## TypeScript conventions (this repo specifically)
+
+Full detail in [docs/frontend/README.md](docs/frontend/README.md) — the essentials:
+
+- Every `.vue` file uses `<script setup lang="ts">` — this is now a
+  repo-wide, no-exceptions convention (a 33-file migration cleared out the
+  last plain-JS holdouts). New components follow suit from the start.
+- Ambient types live in `resources/js/types/*.d.ts` (already covered by
+  `tsconfig.json`'s include, nothing else to wire up): `ziggy.d.ts` for the
+  global `route()` function, `inertia.d.ts` for Inertia's shared page props,
+  `shims-vue.d.ts` for the standard `.vue` module shape. **Adding a new key
+  to `HandleInertiaRequests::share()` needs a matching addition to
+  `inertia.d.ts`'s `sharedPageProps`**, or it won't type-check anywhere on
+  the frontend.
+- A `defineProps({ variant: { type: String, ... } })`-style prop that indexes
+  into a class-variant map (`buttonVariants[props.variant]`) needs
+  `type: String as PropType<keyof typeof buttonVariants>` (import
+  `PropType` from `vue`) — plain `String` infers as generic `string`, which
+  doesn't type-check as a map index. Same idea for `href`/`method` props
+  forwarded to Inertia's `<Link>`: type them `PropType<string |
+  UrlMethodPair>` / `PropType<Method>` from `@inertiajs/core`, not
+  `[String, Object]`/`String`.
+- Don't touch `resources/js/app.ts`'s `resolve()` function without reading
+  the comment-worthy gotcha in [docs/frontend/README.md](docs/frontend/README.md)
+  first — pinning `resolvePageComponent`'s generic to bare `DefineComponent`
+  instead of `{ default: DefineComponent }` looks more correct but breaks
+  `vue-tsc` in a confusing way.
+
 ## Localization & RTL conventions (this repo specifically)
 
 Full detail in [docs/frontend/README.md](docs/frontend/README.md) and
@@ -261,6 +289,34 @@ Full detail in [docs/frontend/README.md](docs/frontend/README.md) and
   added to `lang/ar/validation.php`'s `attributes` array too, or its error
   message will read awkwardly in Arabic (the raw English field name embedded
   in an otherwise-Arabic sentence).
+
+## PHPStan/Larastan conventions (this repo specifically)
+
+Full detail in [docs/architecture.md](docs/architecture.md) — the essentials:
+
+- Level 7. Every Eloquent relation method needs a generic-typed `@return`
+  PHPDoc (`@return BelongsTo<Category, $this>`, `@return HasMany<ProductImage,
+  $this>`, etc.), and every model with `use HasFactory;` needs
+  `/** @use HasFactory<ItsFactory> */` right above that line. A plain
+  `: BelongsTo`/`: HasMany` return type with no generic PHPDoc passes PHP
+  itself fine but fails Larastan's `missingType.generics` check — apply the
+  pattern to every new relation on every new model, not just the ones
+  PHPStan happens to flag today.
+- `composer types:check` already runs `phpstan analyse --memory-limit=1G` —
+  PHPStan crashes with an OOM fatal error under PHP CLI's stock 128M default
+  on this codebase. Pass the same flag if running `phpstan`/`vendor/bin/phpstan`
+  directly instead of through Composer.
+- Faker's locale-specific provider methods (`en_US\Address::secondaryAddress()`,
+  `::state()`, etc.) aren't in the base `Faker\Generator` class's `@method`
+  PHPDoc, so PHPStan flags them as undefined even though they work fine at
+  runtime. **Do not** "fix" this with a PHPStan `stubFiles` entry
+  re-declaring `Faker\Generator` — a stub for an already-autoloaded class
+  replaces its reflection instead of merging with it, breaking every other
+  (correctly-recognized) Faker method across every factory at once. Instead,
+  call the flagged method's provider class statically
+  (`\Faker\Provider\en_US\Address::state()`), bypassing `$this->faker`'s
+  magic proxy for just that call — leave commonly-recognized methods
+  (`name()`, `city()`, `postcode()`, ...) called through `$this->faker` as-is.
 
 ## Testing conventions (this repo specifically)
 

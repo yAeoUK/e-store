@@ -1,18 +1,18 @@
-<script setup>
+<script setup lang="ts">
+import { useForm } from '@inertiajs/vue3';
+import { nextTick, ref } from 'vue';
 import DangerButton from '@/components/DangerButton.vue';
+import FormActions from '@/components/FormActions.vue';
 import InputError from '@/components/InputError.vue';
 import InputLabel from '@/components/InputLabel.vue';
 import Modal from '@/components/Modal.vue';
+import MutedText from '@/components/MutedText.vue';
 import SecondaryButton from '@/components/SecondaryButton.vue';
 import TextInput from '@/components/TextInput.vue';
-import MutedText from '@/components/MutedText.vue';
-import FormActions from '@/components/FormActions.vue';
-import { useForm } from '@inertiajs/vue3';
-import { nextTick, ref } from 'vue';
 import { t } from '@/i18n';
 
 const confirmingUserDeletion = ref(false);
-const passwordInput = ref(null);
+const passwordInput = ref<{ focus: () => void } | null>(null);
 
 const form = useForm({
     password: '',
@@ -21,14 +21,14 @@ const form = useForm({
 const confirmUserDeletion = () => {
     confirmingUserDeletion.value = true;
 
-    nextTick(() => passwordInput.value.focus());
+    nextTick(() => passwordInput.value?.focus());
 };
 
 const deleteUser = () => {
     form.delete(route('profile.destroy'), {
         preserveScroll: true,
         onSuccess: () => closeModal(),
-        onError: () => passwordInput.value.focus(),
+        onError: () => passwordInput.value?.focus(),
         onFinish: () => form.reset(),
     });
 };
@@ -53,13 +53,13 @@ const closeModal = () => {
             </MutedText>
         </header>
 
-        <DangerButton @click="confirmUserDeletion">{{ t('profile.deleteAccount.heading') }}</DangerButton>
+        <DangerButton @click="confirmUserDeletion">{{
+            t('profile.deleteAccount.heading')
+        }}</DangerButton>
 
         <Modal :show="confirmingUserDeletion" @close="closeModal">
             <div class="p-6">
-                <h2
-                    class="text-lg font-medium text-gray-900"
-                >
+                <h2 class="text-lg font-medium text-gray-900">
                     {{ t('profile.deleteAccount.confirmTitle') }}
                 </h2>
 
@@ -80,7 +80,9 @@ const closeModal = () => {
                         v-model="form.password"
                         type="password"
                         class="mt-1 w-3/4"
-                        :placeholder="t('profile.deleteAccount.passwordPlaceholder')"
+                        :placeholder="
+                            t('profile.deleteAccount.passwordPlaceholder')
+                        "
                         @keyup.enter="deleteUser"
                     />
 

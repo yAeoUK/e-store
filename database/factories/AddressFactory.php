@@ -4,6 +4,7 @@ namespace Database\Factories;
 
 use App\Models\Address;
 use App\Models\User;
+use Faker\Provider\en_US\Address as AddressProvider;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -25,9 +26,9 @@ class AddressFactory extends Factory
             'label' => $this->faker->randomElement(['Home', 'Work', null]),
             'name' => $this->faker->name(),
             'line1' => $this->faker->streetAddress(),
-            'line2' => $this->faker->optional()->secondaryAddress(),
+            'line2' => $this->faker->boolean() ? AddressProvider::secondaryAddress() : null,
             'city' => $this->faker->city(),
-            'state' => $this->faker->state(),
+            'state' => AddressProvider::state(),
             'postal_code' => $this->faker->postcode(),
             'country' => 'US',
             'phone' => $this->faker->phoneNumber(),

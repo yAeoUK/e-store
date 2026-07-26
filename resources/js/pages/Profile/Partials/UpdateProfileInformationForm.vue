@@ -1,12 +1,12 @@
-<script setup>
+<script setup lang="ts">
+import { useForm, usePage } from '@inertiajs/vue3';
 import InputError from '@/components/InputError.vue';
 import InputLabel from '@/components/InputLabel.vue';
+import MutedText from '@/components/MutedText.vue';
 import PrimaryButton from '@/components/PrimaryButton.vue';
+import SuccessText from '@/components/SuccessText.vue';
 import TextInput from '@/components/TextInput.vue';
 import TextLink from '@/components/TextLink.vue';
-import MutedText from '@/components/MutedText.vue';
-import SuccessText from '@/components/SuccessText.vue';
-import { useForm, usePage } from '@inertiajs/vue3';
 import { t } from '@/i18n';
 
 defineProps({
@@ -18,7 +18,8 @@ defineProps({
     },
 });
 
-const user = usePage().props.auth.user;
+// Non-null: this page is only reachable behind the `auth` middleware.
+const user = usePage().props.auth.user!;
 
 const form = useForm({
     name: user.name,
@@ -59,7 +60,10 @@ const form = useForm({
             </div>
 
             <div>
-                <InputLabel for="email" :value="t('profile.information.email')" />
+                <InputLabel
+                    for="email"
+                    :value="t('profile.information.email')"
+                />
 
                 <TextInput
                     id="email"
@@ -85,13 +89,18 @@ const form = useForm({
                     </TextLink>
                 </p>
 
-                <SuccessText v-show="status === 'verification-link-sent'" class="mt-2">
+                <SuccessText
+                    v-show="status === 'verification-link-sent'"
+                    class="mt-2"
+                >
                     {{ t('profile.information.verificationSent') }}
                 </SuccessText>
             </div>
 
             <div class="flex items-center gap-4">
-                <PrimaryButton :disabled="form.processing">{{ t('common.save') }}</PrimaryButton>
+                <PrimaryButton :disabled="form.processing">{{
+                    t('common.save')
+                }}</PrimaryButton>
 
                 <Transition
                     enter-active-class="transition ease-in-out"

@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { Link } from '@inertiajs/vue3';
 import ApplicationLogo from '@/components/ApplicationLogo.vue';
 import Card from '@/components/Card.vue';
@@ -19,8 +19,13 @@ import { t } from '@/i18n';
             <Link :href="route('home')">
                 <ApplicationLogo class="h-16 w-16" />
             </Link>
-            <Link :href="route('home')" :class="[mutedLinkClass, 'text-sm font-medium']">
-                <span class="rtl:hidden">&larr;</span><span class="ltr:hidden">&rarr;</span> {{ t('common.backToShop') }}
+            <Link
+                :href="route('home')"
+                :class="[mutedLinkClass, 'text-sm font-medium']"
+            >
+                <span class="rtl:hidden">&larr;</span
+                ><span class="ltr:hidden">&rarr;</span>
+                {{ t('common.backToShop') }}
             </Link>
         </div>
 

@@ -1,9 +1,14 @@
 <script setup lang="ts">
 import { Head, router } from '@inertiajs/vue3';
+import type {
+    CatalogCategory,
+    CatalogFilters,
+    CatalogProductsPayload,
+    FilterPayload,
+} from '@/components/shop/catalog';
+import CatalogLayout from '@/components/shop/CatalogLayout.vue';
 import { t } from '@/i18n';
 import ShopLayout from '@/Layouts/ShopLayout.vue';
-import CatalogLayout from '@/components/shop/CatalogLayout.vue';
-import type { CatalogCategory, CatalogFilters, CatalogProductsPayload, FilterPayload } from '@/components/shop/catalog';
 
 interface Props {
     products: CatalogProductsPayload;
@@ -11,7 +16,7 @@ interface Props {
     categories?: CatalogCategory[];
 }
 
-const props = defineProps<Props>();
+defineProps<Props>();
 
 function applyFilters(filters: FilterPayload): void {
     router.get(route('home'), filters, {

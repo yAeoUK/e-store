@@ -26,3 +26,20 @@ Follow [Keep a Changelog](https://keepachangelog.com/) format.
 - Added `database/sql/grocery_products_seed.sql` — a standalone SQL script
   (not part of the Laravel seeder/factory system) seeding a grocery product
   catalog in Arabic, with real food photos sourced from LoremFlickr.
+- Brought `composer ci:check` to fully green (eslint, prettier, vue-tsc, pint,
+  phpstan, Pest, Vitest) — previously it had never passed cleanly:
+  - Migrated all 33 remaining plain-`<script setup>` Vue components to
+    `<script setup lang="ts">`; added `resources/js/types/{ziggy,inertia,shims-vue}.d.ts`
+    ambient type declarations to support it.
+  - Fixed the `resources/js/app.ts` page-resolver typing (`resolvePageComponent`
+    never unwraps a module's `.default` itself — the generic needs to reflect
+    the real `{ default: DefineComponent }` module shape, not a bare component).
+  - Added generic-typed `@return` PHPDoc to every Eloquent relation and
+    `@use HasFactory<...>` to every model, and `--memory-limit=1G` to
+    `composer types:check` (PHPStan was OOM-crashing under PHP's stock 128M).
+  - Fixed real bugs surfaced along the way: `User` model was missing
+    `implements MustVerifyEmail`; removed a dead, broken `UserFactory::withTwoFactor()`
+    factory state referencing three DB columns that don't exist in the
+    schema (plus the matching phantom PHPDoc/`Hidden` entries on `User`);
+    replaced a fragile `?->id` route-param pattern in `UpdateCategoryRequest`/
+    `UpdateProductRequest` with `Rule::unique()->ignore()`.

@@ -50,7 +50,9 @@ function useForm<T extends Record<string, unknown>>(initial: T) {
 // form.errors after mounting and assert that validation errors render.
 export function getMockForm<T = MockForm>(): T {
     if (!lastForm) {
-        throw new Error('getMockForm() called before any component called useForm().');
+        throw new Error(
+            'getMockForm() called before any component called useForm().',
+        );
     }
 
     return lastForm as unknown as T;
@@ -83,7 +85,9 @@ vi.mock('@/i18n', () => ({
 export const routeMock = vi.fn((name: string) => name);
 
 (globalThis as any).route = routeMock;
-config.global.config = { globalProperties: { route: routeMock } } as unknown as typeof config.global.config;
+config.global.config = {
+    globalProperties: { route: routeMock },
+} as unknown as typeof config.global.config;
 
 // @vue/test-utils defaults renderStubDefaultSlot to false; several existing shallowMount
 // tests rely on nested slot content (e.g. CatalogLayout inside ShopLayout's default slot)

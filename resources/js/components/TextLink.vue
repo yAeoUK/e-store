@@ -1,6 +1,8 @@
-<script setup>
-import { computed } from 'vue';
+<script setup lang="ts">
+import type { Method, UrlMethodPair } from '@inertiajs/core';
 import { Link } from '@inertiajs/vue3';
+import { computed } from 'vue';
+import type { PropType } from 'vue';
 
 const textLinkVariants = {
     muted: 'text-gray-600 hover:text-gray-900',
@@ -9,11 +11,11 @@ const textLinkVariants = {
 
 const props = defineProps({
     href: {
-        type: [String, Object],
+        type: [String, Object] as PropType<string | UrlMethodPair>,
         required: true,
     },
     method: {
-        type: String,
+        type: String as PropType<Method>,
         default: null,
     },
     as: {
@@ -21,12 +23,14 @@ const props = defineProps({
         default: 'a',
     },
     variant: {
-        type: String,
+        type: String as PropType<keyof typeof textLinkVariants>,
         default: 'muted',
     },
 });
 
-const classes = computed(() => textLinkVariants[props.variant] ?? textLinkVariants.muted);
+const classes = computed(
+    () => textLinkVariants[props.variant] ?? textLinkVariants.muted,
+);
 </script>
 
 <template>
@@ -35,7 +39,10 @@ const classes = computed(() => textLinkVariants[props.variant] ?? textLinkVarian
         :method="method"
         :as="as"
         v-bind="$attrs"
-        :class="['rounded-md text-sm underline focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2', classes]"
+        :class="[
+            'rounded-md text-sm underline focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:outline-none',
+            classes,
+        ]"
     >
         <slot />
     </Link>

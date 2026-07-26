@@ -25,8 +25,13 @@ describe('ProductFilters', () => {
 
         expect(options[1].text()).toBe('Accessories');
         expect(options[2].text()).toBe('Headphones');
-        expect(wrapper.get('input[type="text"]').element).toHaveProperty('value', 'keyboard');
-        expect((wrapper.get('select').element as HTMLSelectElement).value).toBe('2');
+        expect(wrapper.get('input[type="text"]').element).toHaveProperty(
+            'value',
+            'keyboard',
+        );
+        expect((wrapper.get('select').element as HTMLSelectElement).value).toBe(
+            '2',
+        );
     });
 
     it('emits apply with null values when fields are empty', async () => {
