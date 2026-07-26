@@ -2,10 +2,13 @@
 
 use App\Http\Controllers\Account\AddressController;
 use App\Http\Controllers\CategoryController;
+use App\Http\Controllers\LocaleController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
+
+Route::get('/locale/{locale}', LocaleController::class)->name('locale.update');
 
 Route::get('/', [ProductController::class, 'index'])->name('home');
 

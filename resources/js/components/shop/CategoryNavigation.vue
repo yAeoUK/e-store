@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { t } from '@/i18n';
-import { interactiveRowClass, cardSurfaceClass } from '@/components/classNames';
+import { interactiveRowClass, cardSurfaceClass, mutedTextClass } from '@/components/classNames';
 
 interface Category {
     id: number;
@@ -16,7 +16,7 @@ const props = defineProps<{
 
 <template>
     <nav :class="[cardSurfaceClass, 'bg-white p-4 shadow-sm dark:shadow-none']">
-        <h3 class="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ t('common.categories') }}</h3>
+        <h3 :class="[mutedTextClass, 'mb-3 text-sm font-semibold uppercase tracking-wide']">{{ t('common.categories') }}</h3>
 
         <ul class="space-y-2">
             <li v-for="category in categories" :key="category.id">
@@ -25,7 +25,7 @@ const props = defineProps<{
                     <span v-if="category.children?.length" class="text-xs text-slate-400 dark:text-slate-500">{{ category.children.length }}</span>
                 </a>
 
-                <ul v-if="category.children?.length" class="mt-2 ml-4 space-y-1 border-l border-slate-200 pl-3 dark:border-slate-800">
+                <ul v-if="category.children?.length" class="mt-2 ms-4 space-y-1 border-s border-slate-200 ps-3 dark:border-slate-800">
                     <li v-for="child in category.children" :key="child.id">
                         <a :href="`/categories/${child.slug}`" class="block rounded-lg px-3 py-2 text-sm text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800">
                             {{ child.name }}

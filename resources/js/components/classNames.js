@@ -9,5 +9,9 @@ export const formFieldClass = 'w-full rounded-lg border border-slate-300 bg-whit
 
 export const headingTextClass = 'text-slate-900 dark:text-slate-100';
 
+export const mutedTextClass = 'text-slate-500 dark:text-slate-400';
+
+export const mutedLinkClass = 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200';
+
 export const cardSurfaceClass = 'rounded-xl border border-slate-200 dark:border-slate-800 dark:bg-slate-900/90';
 

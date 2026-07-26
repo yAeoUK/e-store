@@ -2,7 +2,7 @@
 import { Link } from '@inertiajs/vue3';
 import { t } from '@/i18n';
 import MutedText from '@/components/MutedText.vue';
-import { headingTextClass, cardSurfaceClass } from '@/components/classNames';
+import { headingTextClass, cardSurfaceClass, mutedTextClass } from '@/components/classNames';
 
 interface ProductImage {
     url: string;
@@ -37,7 +37,7 @@ const imageAlt = props.product.images?.[0]?.alt_text ?? props.product.name;
 
         <div class="space-y-3 p-4">
             <div class="flex items-center justify-between gap-2">
-                <span v-if="product.category?.name" class="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                <span v-if="product.category?.name" :class="[mutedTextClass, 'text-xs font-medium uppercase tracking-wide']">
                     {{ product.category.name }}
                 </span>
                 <span :class="['text-sm font-semibold', headingTextClass]">

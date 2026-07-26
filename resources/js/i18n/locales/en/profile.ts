@@ -1,4 +1,4 @@
-export default {
+const profile = {
     title: 'Profile',
     information: {
         heading: 'Profile Information',
@@ -26,3 +26,7 @@ export default {
         passwordPlaceholder: 'Password',
     },
 };
+
+export type ProfileTranslations = typeof profile;
+
+export default profile;

@@ -1,6 +1,7 @@
 <script setup>
 import { Link } from '@inertiajs/vue3';
 import ApplicationLogo from '@/components/ApplicationLogo.vue';
+import LanguageSwitcher from '@/components/LanguageSwitcher.vue';
 import ShopAuthBanner from '@/components/ShopAuthBanner.vue';
 </script>
 
@@ -12,7 +13,10 @@ import ShopAuthBanner from '@/components/ShopAuthBanner.vue';
                     <ApplicationLogo class="h-8 w-auto" />
                 </Link>
 
-                <ShopAuthBanner />
+                <div class="flex items-center gap-4">
+                    <LanguageSwitcher />
+                    <ShopAuthBanner />
+                </div>
             </div>
 
             <div v-if="$slots.header" class="border-t border-slate-200 dark:border-slate-800">

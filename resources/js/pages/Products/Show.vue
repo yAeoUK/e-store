@@ -6,7 +6,7 @@ import ProductGallery from '@/components/shop/ProductGallery.vue';
 import PageContainer from '@/components/PageContainer.vue';
 import MutedText from '@/components/MutedText.vue';
 import LabelText from '@/components/LabelText.vue';
-import { headingTextClass, cardSurfaceClass } from '@/components/classNames';
+import { headingTextClass, cardSurfaceClass, mutedTextClass } from '@/components/classNames';
 import { ref } from 'vue';
 
 interface ProductImage {
@@ -52,7 +52,7 @@ const selectedImage = ref<string | null>(null);
 
             <div class="space-y-6">
                 <div>
-                    <p v-if="product.category?.name" class="text-sm font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                    <p v-if="product.category?.name" :class="[mutedTextClass, 'text-sm font-medium uppercase tracking-wide']">
                         {{ product.category.name }}
                     </p>
                     <h1 :class="['mt-2 text-3xl font-semibold', headingTextClass]">{{ product.name }}</h1>
@@ -65,7 +65,7 @@ const selectedImage = ref<string | null>(null);
                             <LabelText>{{ t('common.price') }}</LabelText>
                             <p :class="['text-3xl font-semibold', headingTextClass]">${{ Number(product.price).toFixed(2) }}</p>
                         </div>
-                        <div class="text-right">
+                        <div class="text-end">
                             <LabelText>{{ t('common.availability') }}</LabelText>
                             <p class="font-semibold" :class="product.stock && product.stock > 0 ? 'text-emerald-600' : 'text-rose-600'">
                                 {{ product.stock && product.stock > 0 ? t('common.inStock') : t('common.outOfStock') }}

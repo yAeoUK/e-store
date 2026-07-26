@@ -1,11 +1,12 @@
 <script setup>
-import ShopLayout from '@/Layouts/ShopLayout.vue';
+import { Head, useForm } from '@inertiajs/vue3';
 import Card from '@/components/Card.vue';
+import Checkbox from '@/components/Checkbox.vue';
+import InputError from '@/components/InputError.vue';
 import MutedText from '@/components/MutedText.vue';
 import TextInput from '@/components/TextInput.vue';
-import Checkbox from '@/components/Checkbox.vue';
-import { Head, useForm } from '@inertiajs/vue3';
 import { t } from '@/i18n';
+import ShopLayout from '@/Layouts/ShopLayout.vue';
 
 const props = defineProps({ addresses: Array });
 
@@ -65,7 +66,7 @@ function submit() {
                       {{ addr.city }} {{ addr.postal_code }} {{ addr.state }}
                     </MutedText>
                   </div>
-                  <div class="text-right">
+                  <div class="text-end">
                     <form
                       :action="route('account.addresses.destroy', addr.id)"
                       method="post"
@@ -85,23 +86,37 @@ function submit() {
             <form @submit.prevent="submit" class="space-y-4">
               <div>
                 <TextInput v-model="form.label" :placeholder="t('account.addresses.labelPlaceholder')" />
+                <InputError class="mt-2" :message="form.errors.label" />
               </div>
               <div>
                 <TextInput v-model="form.name" :placeholder="t('account.addresses.namePlaceholder')" />
+                <InputError class="mt-2" :message="form.errors.name" />
               </div>
               <div>
                 <TextInput v-model="form.line1" :placeholder="t('account.addresses.line1Placeholder')" required />
+                <InputError class="mt-2" :message="form.errors.line1" />
               </div>
               <div>
                 <TextInput v-model="form.line2" :placeholder="t('account.addresses.line2Placeholder')" />
+                <InputError class="mt-2" :message="form.errors.line2" />
               </div>
               <div class="grid gap-2 sm:grid-cols-3">
-                <TextInput v-model="form.city" :placeholder="t('account.addresses.cityPlaceholder')" required />
-                <TextInput v-model="form.state" :placeholder="t('account.addresses.statePlaceholder')" />
-                <TextInput v-model="form.postal_code" :placeholder="t('account.addresses.postalCodePlaceholder')" required />
+                <div>
+                  <TextInput v-model="form.city" :placeholder="t('account.addresses.cityPlaceholder')" required />
+                  <InputError class="mt-2" :message="form.errors.city" />
+                </div>
+                <div>
+                  <TextInput v-model="form.state" :placeholder="t('account.addresses.statePlaceholder')" />
+                  <InputError class="mt-2" :message="form.errors.state" />
+                </div>
+                <div>
+                  <TextInput v-model="form.postal_code" :placeholder="t('account.addresses.postalCodePlaceholder')" required />
+                  <InputError class="mt-2" :message="form.errors.postal_code" />
+                </div>
               </div>
               <div>
                 <TextInput v-model="form.country" :placeholder="t('account.addresses.countryPlaceholder')" required />
+                <InputError class="mt-2" :message="form.errors.country" />
               </div>
               <div class="flex items-center gap-2">
                 <Checkbox v-model:checked="form.is_default" />

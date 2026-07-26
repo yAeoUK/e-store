@@ -1,4 +1,4 @@
-export default {
+const auth = {
     login: {
         title: 'Log in',
         email: 'Email',
@@ -47,3 +47,7 @@ export default {
         logOut: 'Log Out',
     },
 };
+
+export type AuthTranslations = typeof auth;
+
+export default auth;

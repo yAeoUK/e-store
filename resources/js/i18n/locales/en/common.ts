@@ -1,4 +1,4 @@
-export default {
+const common = {
     categories: 'Categories',
     viewProduct: 'View product',
     price: 'Price',
@@ -26,3 +26,7 @@ export default {
         logoutConfirmMessage: "You'll need to log in again to access your account, cart, and order history.",
     },
 };
+
+export type CommonTranslations = typeof common;
+
+export default common;
