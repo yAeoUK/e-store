@@ -112,13 +112,18 @@ describe('Modal', () => {
         ['lg', 'sm:max-w-lg'],
         ['xl', 'sm:max-w-xl'],
         ['2xl', 'sm:max-w-2xl'],
-    ] as const)('maps maxWidth=%s to the %s class', (maxWidth, expectedClass) => {
-        const wrapper = mount(Modal, {
-            props: { show: true, maxWidth },
-        });
+    ] as const)(
+        'maps maxWidth=%s to the %s class',
+        (maxWidth, expectedClass) => {
+            const wrapper = mount(Modal, {
+                props: { show: true, maxWidth },
+            });
 
-        expect(wrapper.find('.rounded-lg').classes()).toContain(expectedClass);
-    });
+            expect(wrapper.find('.rounded-lg').classes()).toContain(
+                expectedClass,
+            );
+        },
+    );
 
     it('defaults to the 2xl width class when maxWidth is not provided', () => {
         const wrapper = mount(Modal, {

@@ -19,6 +19,13 @@ already exists:
   (dropdown items, category nav links).
 - `formFieldClass` — the standard bordered input/select look.
 - `headingTextClass` — heading text color (light/dark aware).
+- `mutedTextClass` — de-emphasized text color (`text-slate-500 dark:text-slate-400`);
+  extracted after the same pair turned up inline in four different components.
+- `mutedLinkClass` — `mutedTextClass`'s hover-capable counterpart for links
+  (adds `hover:text-slate-700 dark:hover:text-slate-200`); used by
+  `LanguageSwitcher`'s inactive-locale link and `GuestLayout`'s back-to-shop
+  link so both set their own resting color explicitly rather than one relying
+  on inheriting it from a parent element.
 - `cardSurfaceClass` — the bordered/rounded card surface used by `Card`.
 
 Note: `TextLink`'s `textLinkVariants` (`muted`/`slate`) live *inside*
@@ -27,6 +34,17 @@ after confirming `TextLink` was the only consumer, so keeping them local
 avoided an unnecessary shared-file dependency for a single caller. Only
 promote a variant map to `classNames.js` once more than one component
 actually needs it.
+
+**Typing a `variant` prop that indexes a class-variant map**: a runtime
+`defineProps({ variant: { type: String, default: 'secondary' } })` infers as
+plain `string`, which doesn't type-check as an index into
+`{ primary: string; secondary: string }` under `vue-tsc`. `ButtonLink` and
+`TextLink` type these as `type: String as PropType<keyof typeof
+buttonVariants>` (import `PropType` from `vue`) instead of widening the
+variant map itself — same pattern for `Link`-forwarding `href`/`method` props
+(`PropType<string | UrlMethodPair>` / `PropType<Method>` from
+`@inertiajs/core`, since those are Inertia's actual accepted types, not
+plain `string`/`object`).
 
 ## Component inventory
 
@@ -77,6 +95,10 @@ actually needs it.
   login/register `ButtonLink`s for guests, or a greeting + `Dropdown` (profile/
   addresses/orders/logout) + `ConfirmationDialog` for the logout prompt when
   authenticated.
+- `LanguageSwitcher` — EN/AR toggle mounted in both `ShopLayout` and
+  `GuestLayout`. Deliberately plain `<a>` tags, not Inertia `Link`s — see
+  [docs/frontend/README.md](../frontend/README.md) for why switching locale
+  needs a full page reload rather than an SPA navigation.
 
 ## Conventions
 

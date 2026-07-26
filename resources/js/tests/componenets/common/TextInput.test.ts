@@ -8,7 +8,9 @@ describe('TextInput', () => {
             props: { modelValue: 'hello' },
         });
 
-        expect((wrapper.get('input').element as HTMLInputElement).value).toBe('hello');
+        expect((wrapper.get('input').element as HTMLInputElement).value).toBe(
+            'hello',
+        );
     });
 
     it('emits update:modelValue when typed into', async () => {

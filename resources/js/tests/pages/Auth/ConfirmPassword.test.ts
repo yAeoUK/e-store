@@ -59,7 +59,9 @@ describe('ConfirmPassword page', () => {
         };
         await wrapper.vm.$nextTick();
 
-        expect(wrapper.findComponent(InputError).props('message')).toBe('The password is incorrect.');
+        expect(wrapper.findComponent(InputError).props('message')).toBe(
+            'The password is incorrect.',
+        );
         expect(wrapper.text()).toContain('The password is incorrect.');
     });
 
@@ -78,6 +80,8 @@ describe('ConfirmPassword page', () => {
         await wrapper.find('form').trigger('submit');
 
         expect(routeMock).toHaveBeenCalledWith('password.confirm');
-        expect((wrapper.find('#password').element as HTMLInputElement).value).toBe('');
+        expect(
+            (wrapper.find('#password').element as HTMLInputElement).value,
+        ).toBe('');
     });
 });

@@ -86,6 +86,21 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Available Locales
+    |--------------------------------------------------------------------------
+    |
+    | The locales a visitor may switch to via the language switcher, and
+    | which of those are right-to-left scripts (used to set the <html
+    | dir="..."> attribute).
+    |
+    */
+
+    'available_locales' => ['en', 'ar'],
+
+    'rtl_locales' => ['ar'],
+
+    /*
+    |--------------------------------------------------------------------------
     | Encryption Key
     |--------------------------------------------------------------------------
     |

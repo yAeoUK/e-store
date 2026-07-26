@@ -58,8 +58,18 @@ describe('Products show page', () => {
 
     it('displays product variants', () => {
         const variants = [
-            { sku: 'WATCH-BLACK', options: { color: 'Black' }, price: 199.99, stock: 3 },
-            { sku: 'WATCH-SILVER', options: { color: 'Silver' }, price: 209.99, stock: 0 },
+            {
+                sku: 'WATCH-BLACK',
+                options: { color: 'Black' },
+                price: 199.99,
+                stock: 3,
+            },
+            {
+                sku: 'WATCH-SILVER',
+                options: { color: 'Silver' },
+                price: 209.99,
+                stock: 0,
+            },
         ];
 
         const wrapper = mountProductsShowPage({

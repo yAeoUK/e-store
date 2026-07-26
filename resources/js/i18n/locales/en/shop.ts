@@ -1,4 +1,4 @@
-export default {
+const shop = {
     products: {
         pageTitle: 'Products',
         heading: 'Shop products',
@@ -19,3 +19,7 @@ export default {
         pageTitle: 'Categories',
     },
 };
+
+export type ShopTranslations = typeof shop;
+
+export default shop;

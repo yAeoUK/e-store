@@ -1,9 +1,9 @@
-<script setup>
-import Modal from '@/components/Modal.vue';
+<script setup lang="ts">
 import DangerButton from '@/components/DangerButton.vue';
+import Modal from '@/components/Modal.vue';
+import MutedText from '@/components/MutedText.vue';
 import PrimaryButton from '@/components/PrimaryButton.vue';
 import SecondaryButton from '@/components/SecondaryButton.vue';
-import MutedText from '@/components/MutedText.vue';
 import { t } from '@/i18n';
 
 defineProps({

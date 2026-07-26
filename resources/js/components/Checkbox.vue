@@ -1,14 +1,18 @@
-<script setup>
+<script setup lang="ts">
 import { computed } from 'vue';
+import type { PropType } from 'vue';
 
 const emit = defineEmits(['update:checked']);
 
 const props = defineProps({
     checked: {
-        type: [Array, Boolean],
+        type: [Array, Boolean] as PropType<boolean | unknown[]>,
         required: true,
     },
     value: {
+        type: [String, Number, Boolean] as PropType<
+            string | number | boolean | null
+        >,
         default: null,
     },
 });

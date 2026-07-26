@@ -1,12 +1,9 @@
-<script setup>
+<script setup lang="ts">
 import { buttonVariants } from './classNames';
 </script>
 
 <template>
-    <button
-        v-bind="$attrs"
-        :class="buttonVariants.primary"
-    >
+    <button v-bind="$attrs" :class="buttonVariants.primary">
         <slot />
     </button>
 </template>

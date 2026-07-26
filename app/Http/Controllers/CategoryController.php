@@ -2,17 +2,13 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Requests\StoreCategoryRequest;
-use App\Http\Requests\UpdateCategoryRequest;
 use App\Models\Category;
-use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class CategoryController extends Controller
 {
-
     public function show(Category $category, Request $request): Response
     {
         $category->load(['children', 'products']);
@@ -54,5 +50,4 @@ class CategoryController extends Controller
             'categories' => $categories,
         ]);
     }
-
 }

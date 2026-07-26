@@ -1,16 +1,16 @@
-<script setup>
+<script setup lang="ts">
+import { Head, useForm } from '@inertiajs/vue3';
 import Checkbox from '@/components/Checkbox.vue';
-import GuestLayout from '@/Layouts/GuestLayout.vue';
+import FormActions from '@/components/FormActions.vue';
 import InputError from '@/components/InputError.vue';
 import InputLabel from '@/components/InputLabel.vue';
+import MutedText from '@/components/MutedText.vue';
 import PrimaryButton from '@/components/PrimaryButton.vue';
+import SuccessText from '@/components/SuccessText.vue';
 import TextInput from '@/components/TextInput.vue';
 import TextLink from '@/components/TextLink.vue';
-import MutedText from '@/components/MutedText.vue';
-import SuccessText from '@/components/SuccessText.vue';
-import FormActions from '@/components/FormActions.vue';
-import { Head, useForm } from '@inertiajs/vue3';
 import { t } from '@/i18n';
+import GuestLayout from '@/Layouts/GuestLayout.vue';
 
 defineProps({
     canResetPassword: {
@@ -77,7 +77,9 @@ const submit = () => {
             <div class="mt-4 block">
                 <label class="flex items-center">
                     <Checkbox name="remember" v-model:checked="form.remember" />
-                    <MutedText class="ms-2">{{ t('auth.login.rememberMe') }}</MutedText>
+                    <MutedText class="ms-2">{{
+                        t('auth.login.rememberMe')
+                    }}</MutedText>
                 </label>
             </div>
 
@@ -89,10 +91,7 @@ const submit = () => {
                     {{ t('auth.login.forgotPassword') }}
                 </TextLink>
 
-                <PrimaryButton
-                    class="ms-4"
-                    :disabled="form.processing"
-                >
+                <PrimaryButton class="ms-4" :disabled="form.processing">
                     {{ t('auth.login.submit') }}
                 </PrimaryButton>
             </FormActions>

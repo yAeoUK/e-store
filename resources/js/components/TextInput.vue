@@ -2,7 +2,7 @@
 import { onMounted, ref } from 'vue';
 import { formFieldClass } from './classNames';
 
-const props = defineProps({
+defineProps({
     modelValue: {
         type: [String, Number],
         default: '',
@@ -37,6 +37,9 @@ defineExpose({ focus: () => input.value?.focus() });
         :value="modelValue"
         @input="update"
         ref="input"
-        :class="[formFieldClass, 'block placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:placeholder:text-slate-500']"
+        :class="[
+            formFieldClass,
+            'block placeholder:text-slate-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 focus:outline-none dark:placeholder:text-slate-500',
+        ]"
     />
 </template>

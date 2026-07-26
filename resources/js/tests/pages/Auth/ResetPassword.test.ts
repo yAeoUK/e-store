@@ -22,7 +22,9 @@ describe('ResetPassword page', () => {
     it('pre-fills the email field from props', () => {
         const wrapper = mountResetPassword();
 
-        expect((wrapper.find('#email').element as HTMLInputElement).value).toBe('jane@example.com');
+        expect((wrapper.find('#email').element as HTMLInputElement).value).toBe(
+            'jane@example.com',
+        );
     });
 
     it('renders the password and password_confirmation fields', () => {
@@ -40,9 +42,16 @@ describe('ResetPassword page', () => {
         await wrapper.find('form').trigger('submit');
 
         expect(routeMock).toHaveBeenCalledWith('password.store');
-        expect((wrapper.find('#password').element as HTMLInputElement).value).toBe('');
-        expect((wrapper.find('#password_confirmation').element as HTMLInputElement).value).toBe('');
-        expect((wrapper.find('#email').element as HTMLInputElement).value).toBe('jane@example.com');
+        expect(
+            (wrapper.find('#password').element as HTMLInputElement).value,
+        ).toBe('');
+        expect(
+            (wrapper.find('#password_confirmation').element as HTMLInputElement)
+                .value,
+        ).toBe('');
+        expect((wrapper.find('#email').element as HTMLInputElement).value).toBe(
+            'jane@example.com',
+        );
     });
 
     it('renders within GuestLayout', () => {
@@ -67,7 +76,9 @@ describe('ResetPassword page', () => {
         expect(labels).toHaveLength(3);
         expect(labels[0].props('value')).toBe('auth.resetPassword.email');
         expect(labels[1].props('value')).toBe('auth.resetPassword.password');
-        expect(labels[2].props('value')).toBe('auth.resetPassword.confirmPassword');
+        expect(labels[2].props('value')).toBe(
+            'auth.resetPassword.confirmPassword',
+        );
 
         expect(errors).toHaveLength(3);
     });
@@ -84,10 +95,18 @@ describe('ResetPassword page', () => {
 
         const errors = wrapper.findAllComponents(InputError);
 
-        expect(errors[0].props('message')).toBe('We could not find a user with that email address.');
-        expect(errors[1].props('message')).toBe('The password field is required.');
-        expect(errors[2].props('message')).toBe('The password confirmation does not match.');
-        expect(wrapper.text()).toContain('The password confirmation does not match.');
+        expect(errors[0].props('message')).toBe(
+            'We could not find a user with that email address.',
+        );
+        expect(errors[1].props('message')).toBe(
+            'The password field is required.',
+        );
+        expect(errors[2].props('message')).toBe(
+            'The password confirmation does not match.',
+        );
+        expect(wrapper.text()).toContain(
+            'The password confirmation does not match.',
+        );
     });
 
     it('renders the submit button', () => {

@@ -1,7 +1,8 @@
 import { mount } from '@vue/test-utils';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import InputError from '@/components/InputError.vue';
 import Addresses from '@/pages/Account/Addresses.vue';
-import { routeMock } from '../../setup';
+import { getMockForm, routeMock } from '../../setup';
 
 let meta: HTMLMetaElement;
 
@@ -29,7 +30,19 @@ describe('Addresses page', () => {
         const wrapper = mount(Addresses, {
             props: {
                 addresses: [
-                    { id: 1, label: 'Home', name: 'Jane Doe', line1: '123 Main St', line2: '', city: 'Springfield', postal_code: '62704', state: 'IL' },
+                    {
+                        id: 1,
+                        label: 'Home',
+                        name: 'Jane Doe',
+                        line1: '123 Main St',
+                        line2: '',
+                        city: 'Springfield',
+                        postal_code: '62704',
+                        state: 'IL',
+                        country: 'US',
+                        phone: null,
+                        is_default: false,
+                    },
                 ],
             },
         });
@@ -45,13 +58,29 @@ describe('Addresses page', () => {
     it('includes the CSRF token in the per-address delete form', () => {
         const wrapper = mount(Addresses, {
             props: {
-                addresses: [{ id: 1, label: 'Home', name: 'Jane Doe', line1: '123 Main St', city: 'Springfield', postal_code: '62704' }],
+                addresses: [
+                    {
+                        id: 1,
+                        label: 'Home',
+                        name: 'Jane Doe',
+                        line1: '123 Main St',
+                        line2: null,
+                        city: 'Springfield',
+                        state: null,
+                        postal_code: '62704',
+                        country: 'US',
+                        phone: null,
+                        is_default: false,
+                    },
+                ],
             },
         });
 
         const tokenInput = wrapper.find('input[name="_token"]');
 
-        expect((tokenInput.element as HTMLInputElement).value).toBe('test-token');
+        expect((tokenInput.element as HTMLInputElement).value).toBe(
+            'test-token',
+        );
     });
 
     it('submits the new address form to the account.addresses.store route', async () => {
@@ -68,6 +97,40 @@ describe('Addresses page', () => {
         expect(routeMock).toHaveBeenCalledWith('account.addresses.store');
     });
 
+    it('renders validation errors for the new address form fields', async () => {
+        const wrapper = mount(Addresses, { props: { addresses: [] } });
+
+        getMockForm().errors = {
+            line1: 'The line1 field is required.',
+            city: 'The city field is required.',
+            postal_code: 'The postal code field is required.',
+        };
+        await wrapper.vm.$nextTick();
+
+        const errors = wrapper.findAllComponents(InputError);
+
+        expect(
+            errors.some(
+                (error) =>
+                    error.props('message') === 'The line1 field is required.',
+            ),
+        ).toBe(true);
+        expect(
+            errors.some(
+                (error) =>
+                    error.props('message') === 'The city field is required.',
+            ),
+        ).toBe(true);
+        expect(
+            errors.some(
+                (error) =>
+                    error.props('message') ===
+                    'The postal code field is required.',
+            ),
+        ).toBe(true);
+        expect(wrapper.text()).toContain('The line1 field is required.');
+    });
+
     it('toggles the is_default checkbox', async () => {
         const wrapper = mount(Addresses, { props: { addresses: [] } });
 
@@ -77,6 +140,8 @@ describe('Addresses page', () => {
 
         await checkbox.get('input').setValue(true);
 
-        expect(wrapper.findComponent({ name: 'Checkbox' }).props('checked')).toBe(true);
+        expect(
+            wrapper.findComponent({ name: 'Checkbox' }).props('checked'),
+        ).toBe(true);
     });
 });

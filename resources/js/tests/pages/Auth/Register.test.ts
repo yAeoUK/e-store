@@ -33,10 +33,19 @@ describe('Register page', () => {
         await wrapper.find('form').trigger('submit');
 
         expect(routeMock).toHaveBeenCalledWith('register');
-        expect((wrapper.find('#name').element as HTMLInputElement).value).toBe('Jane Doe');
-        expect((wrapper.find('#email').element as HTMLInputElement).value).toBe('jane@example.com');
-        expect((wrapper.find('#password').element as HTMLInputElement).value).toBe('');
-        expect((wrapper.find('#password_confirmation').element as HTMLInputElement).value).toBe('');
+        expect((wrapper.find('#name').element as HTMLInputElement).value).toBe(
+            'Jane Doe',
+        );
+        expect((wrapper.find('#email').element as HTMLInputElement).value).toBe(
+            'jane@example.com',
+        );
+        expect(
+            (wrapper.find('#password').element as HTMLInputElement).value,
+        ).toBe('');
+        expect(
+            (wrapper.find('#password_confirmation').element as HTMLInputElement)
+                .value,
+        ).toBe('');
     });
 
     it('renders within GuestLayout', () => {
@@ -82,8 +91,12 @@ describe('Register page', () => {
 
         expect(errors[0].props('message')).toBe('The name field is required.');
         expect(errors[1].props('message')).toBe('The email field is required.');
-        expect(errors[2].props('message')).toBe('The password field is required.');
-        expect(errors[3].props('message')).toBe('The password confirmation does not match.');
+        expect(errors[2].props('message')).toBe(
+            'The password field is required.',
+        );
+        expect(errors[3].props('message')).toBe(
+            'The password confirmation does not match.',
+        );
         expect(wrapper.text()).toContain('The name field is required.');
     });
 

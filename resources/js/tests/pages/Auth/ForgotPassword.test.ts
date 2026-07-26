@@ -53,8 +53,12 @@ describe('ForgotPassword page', () => {
         };
         await wrapper.vm.$nextTick();
 
-        expect(wrapper.findComponent(InputError).props('message')).toBe('We could not find a user with that email address.');
-        expect(wrapper.text()).toContain('We could not find a user with that email address.');
+        expect(wrapper.findComponent(InputError).props('message')).toBe(
+            'We could not find a user with that email address.',
+        );
+        expect(wrapper.text()).toContain(
+            'We could not find a user with that email address.',
+        );
     });
 
     it('renders the submit button', () => {
@@ -66,7 +70,9 @@ describe('ForgotPassword page', () => {
     });
 
     it('shows the status message when provided', () => {
-        const wrapper = mount(ForgotPassword, { props: { status: 'Link sent.' } });
+        const wrapper = mount(ForgotPassword, {
+            props: { status: 'Link sent.' },
+        });
 
         expect(wrapper.text()).toContain('Link sent.');
     });
@@ -87,8 +93,8 @@ describe('ForgotPassword page', () => {
     });
 
     it('renders within GuestLayout', () => {
-            const wrapper = mount(ForgotPassword);
-    
-            expect(wrapper.findComponent(GuestLayout).exists()).toBe(true);
+        const wrapper = mount(ForgotPassword);
+
+        expect(wrapper.findComponent(GuestLayout).exists()).toBe(true);
     });
 });

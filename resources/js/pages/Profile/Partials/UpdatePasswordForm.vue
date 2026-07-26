@@ -1,15 +1,15 @@
-<script setup>
-import InputError from '@/components/InputError.vue';
-import InputLabel from '@/components/InputLabel.vue';
-import PrimaryButton from '@/components/PrimaryButton.vue';
-import TextInput from '@/components/TextInput.vue';
-import MutedText from '@/components/MutedText.vue';
+<script setup lang="ts">
 import { useForm } from '@inertiajs/vue3';
 import { ref } from 'vue';
+import InputError from '@/components/InputError.vue';
+import InputLabel from '@/components/InputLabel.vue';
+import MutedText from '@/components/MutedText.vue';
+import PrimaryButton from '@/components/PrimaryButton.vue';
+import TextInput from '@/components/TextInput.vue';
 import { t } from '@/i18n';
 
-const passwordInput = ref(null);
-const currentPasswordInput = ref(null);
+const passwordInput = ref<{ focus: () => void } | null>(null);
+const currentPasswordInput = ref<{ focus: () => void } | null>(null);
 
 const form = useForm({
     current_password: '',
@@ -24,11 +24,12 @@ const updatePassword = () => {
         onError: () => {
             if (form.errors.password) {
                 form.reset('password', 'password_confirmation');
-                passwordInput.value.focus();
+                passwordInput.value?.focus();
             }
+
             if (form.errors.current_password) {
                 form.reset('current_password');
-                currentPasswordInput.value.focus();
+                currentPasswordInput.value?.focus();
             }
         },
     });
@@ -49,7 +50,10 @@ const updatePassword = () => {
 
         <form @submit.prevent="updatePassword" class="mt-6 space-y-6">
             <div>
-                <InputLabel for="current_password" :value="t('profile.password.currentPassword')" />
+                <InputLabel
+                    for="current_password"
+                    :value="t('profile.password.currentPassword')"
+                />
 
                 <TextInput
                     id="current_password"
@@ -67,7 +71,10 @@ const updatePassword = () => {
             </div>
 
             <div>
-                <InputLabel for="password" :value="t('profile.password.newPassword')" />
+                <InputLabel
+                    for="password"
+                    :value="t('profile.password.newPassword')"
+                />
 
                 <TextInput
                     id="password"
@@ -102,7 +109,9 @@ const updatePassword = () => {
             </div>
 
             <div class="flex items-center gap-4">
-                <PrimaryButton :disabled="form.processing">{{ t('common.save') }}</PrimaryButton>
+                <PrimaryButton :disabled="form.processing">{{
+                    t('common.save')
+                }}</PrimaryButton>
 
                 <Transition
                     enter-active-class="transition ease-in-out"

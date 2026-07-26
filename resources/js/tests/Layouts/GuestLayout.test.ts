@@ -1,6 +1,7 @@
 import { mount } from '@vue/test-utils';
 import { describe, expect, it } from 'vitest';
 import ApplicationLogo from '@/components/ApplicationLogo.vue';
+import LanguageSwitcher from '@/components/LanguageSwitcher.vue';
 import GuestLayout from '@/Layouts/GuestLayout.vue';
 import { routeMock } from '../setup';
 
@@ -35,5 +36,11 @@ describe('GuestLayout', () => {
         const wrapper = mount(GuestLayout);
 
         expect(wrapper.findComponent(ApplicationLogo).exists()).toBe(true);
+    });
+
+    it('includes the LanguageSwitcher', () => {
+        const wrapper = mount(GuestLayout);
+
+        expect(wrapper.findComponent(LanguageSwitcher).exists()).toBe(true);
     });
 });

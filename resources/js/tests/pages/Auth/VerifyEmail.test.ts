@@ -14,13 +14,17 @@ beforeEach(() => {
 
 describe('VerifyEmail page', () => {
     it('does not show the sent message for other status values', () => {
-        const wrapper = mount(VerifyEmail, { props: { status: 'something-else' } });
+        const wrapper = mount(VerifyEmail, {
+            props: { status: 'something-else' },
+        });
 
         expect(wrapper.findComponent(SuccessText).exists()).toBe(false);
     });
 
     it('shows the sent message when status is verification-link-sent', () => {
-        const wrapper = mount(VerifyEmail, { props: { status: 'verification-link-sent' } });
+        const wrapper = mount(VerifyEmail, {
+            props: { status: 'verification-link-sent' },
+        });
 
         expect(wrapper.findComponent(SuccessText).exists()).toBe(true);
         expect(wrapper.text()).toContain('auth.verifyEmail.linkSent');

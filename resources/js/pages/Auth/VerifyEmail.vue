@@ -1,12 +1,12 @@
-<script setup>
-import { computed } from 'vue';
-import GuestLayout from '@/Layouts/GuestLayout.vue';
-import PrimaryButton from '@/components/PrimaryButton.vue';
-import TextLink from '@/components/TextLink.vue';
-import MutedText from '@/components/MutedText.vue';
-import SuccessText from '@/components/SuccessText.vue';
+<script setup lang="ts">
 import { Head, useForm } from '@inertiajs/vue3';
+import { computed } from 'vue';
+import MutedText from '@/components/MutedText.vue';
+import PrimaryButton from '@/components/PrimaryButton.vue';
+import SuccessText from '@/components/SuccessText.vue';
+import TextLink from '@/components/TextLink.vue';
 import { t } from '@/i18n';
+import GuestLayout from '@/Layouts/GuestLayout.vue';
 
 const props = defineProps({
     status: {
@@ -38,7 +38,9 @@ const verificationLinkSent = computed(
         </SuccessText>
 
         <form @submit.prevent="submit" class="space-y-6">
-            <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div
+                class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
+            >
                 <PrimaryButton :disabled="form.processing">
                     {{ t('auth.verifyEmail.resend') }}
                 </PrimaryButton>

@@ -56,8 +56,9 @@ describe('Categories show page', () => {
 
         const layout = wrapper.findComponent({ name: 'CatalogLayout' });
 
-        expect(layout.props('emptyMessage')).toBe('shop.products.categoryEmpty');
+        expect(layout.props('emptyMessage')).toBe(
+            'shop.products.categoryEmpty',
+        );
         expect(layout.props('products')).toEqual({ data: [] });
     });
-
 });

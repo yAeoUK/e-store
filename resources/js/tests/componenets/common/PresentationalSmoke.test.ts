@@ -14,13 +14,16 @@ describe('presentational components', () => {
         ['LabelText', LabelText],
         ['MutedText', MutedText],
         ['SuccessText', SuccessText],
-    ] as const)('%s mounts and renders its default slot', (_name, component) => {
-        const wrapper = mount(component, {
-            slots: { default: 'Slot content' },
-        });
+    ] as const)(
+        '%s mounts and renders its default slot',
+        (_name, component) => {
+            const wrapper = mount(component, {
+                slots: { default: 'Slot content' },
+            });
 
-        expect(wrapper.text()).toContain('Slot content');
-    });
+            expect(wrapper.text()).toContain('Slot content');
+        },
+    );
 
     it('ApplicationLogo mounts without error and renders an svg', () => {
         const wrapper = mount(ApplicationLogo);

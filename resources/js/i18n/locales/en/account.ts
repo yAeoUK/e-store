@@ -1,4 +1,4 @@
-export default {
+const account = {
     addresses: {
         pageTitle: 'Saved Addresses',
         empty: 'No addresses yet.',
@@ -20,3 +20,7 @@ export default {
             "This page is a placeholder for the user's order history. Orders will be implemented later.",
     },
 };
+
+export type AccountTranslations = typeof account;
+
+export default account;

@@ -1,7 +1,8 @@
 import { mount } from '@vue/test-utils';
 import { describe, expect, it } from 'vitest';
-import ShopAuthBanner from '@/components/ShopAuthBanner.vue';
 import ApplicationLogo from '@/components/ApplicationLogo.vue';
+import LanguageSwitcher from '@/components/LanguageSwitcher.vue';
+import ShopAuthBanner from '@/components/ShopAuthBanner.vue';
 import ShopLayout from '@/Layouts/ShopLayout.vue';
 
 describe('ShopLayout', () => {
@@ -37,6 +38,12 @@ describe('ShopLayout', () => {
         const wrapper = mount(ShopLayout);
 
         expect(wrapper.findComponent(ShopAuthBanner).exists()).toBe(true);
+    });
+
+    it('includes the LanguageSwitcher', () => {
+        const wrapper = mount(ShopLayout);
+
+        expect(wrapper.findComponent(LanguageSwitcher).exists()).toBe(true);
     });
 
     it('links the logo to the site root', () => {

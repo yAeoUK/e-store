@@ -1,8 +1,7 @@
-<script setup>
-</script>
+<script setup lang="ts"></script>
 
 <template>
-  <p class="text-sm text-slate-500 dark:text-slate-500">
-    <slot />
-  </p>
+    <p class="text-sm text-slate-500 dark:text-slate-500">
+        <slot />
+    </p>
 </template>

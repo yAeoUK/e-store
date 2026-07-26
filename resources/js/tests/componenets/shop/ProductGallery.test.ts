@@ -12,7 +12,9 @@ describe('ProductGallery', () => {
 
         const image = wrapper.get('img');
 
-        expect(image.attributes('src')).toContain('https://placehold.co/600x600?text=Product');
+        expect(image.attributes('src')).toContain(
+            'https://placehold.co/600x600?text=Product',
+        );
         expect(image.attributes('alt')).toBe('Test Product');
     });
 

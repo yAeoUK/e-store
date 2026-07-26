@@ -11,9 +11,7 @@ const defaultProductFilters = {
     max_price: null,
 };
 
-const defaultCategories = [
-    { id: 1, name: 'Accessories', slug: 'accessories' },
-];
+const defaultCategories = [{ id: 1, name: 'Accessories', slug: 'accessories' }];
 
 function mountProductsIndexPage(props = {}) {
     return shallowMount(ProductsIndexPage, {
@@ -43,7 +41,12 @@ describe('Products index page', () => {
 
     it('displays product filters in the catalog layout', () => {
         const wrapper = mountProductsIndexPage({
-            filters: { search: 'keyboard', category_id: 2, min_price: 20, max_price: 80 },
+            filters: {
+                search: 'keyboard',
+                category_id: 2,
+                min_price: 20,
+                max_price: 80,
+            },
             categories: [],
         });
 
