@@ -1,11 +1,10 @@
 <script setup lang="ts">
 import { useForm, usePage } from '@inertiajs/vue3';
-import InputError from '@/components/InputError.vue';
-import InputLabel from '@/components/InputLabel.vue';
+import { headingTextClass } from '@/components/classNames';
+import FormField from '@/components/FormField.vue';
 import MutedText from '@/components/MutedText.vue';
 import PrimaryButton from '@/components/PrimaryButton.vue';
 import SuccessText from '@/components/SuccessText.vue';
-import TextInput from '@/components/TextInput.vue';
 import TextLink from '@/components/TextLink.vue';
 import { t } from '@/i18n';
 
@@ -30,7 +29,7 @@ const form = useForm({
 <template>
     <section>
         <header>
-            <h2 class="text-lg font-medium text-gray-900">
+            <h2 :class="['text-lg font-medium', headingTextClass]">
                 {{ t('profile.information.heading') }}
             </h2>
 
@@ -43,42 +42,29 @@ const form = useForm({
             @submit.prevent="form.patch(route('profile.update'))"
             class="mt-6 space-y-6"
         >
-            <div>
-                <InputLabel for="name" :value="t('profile.information.name')" />
+            <FormField
+                id="name"
+                v-model="form.name"
+                type="text"
+                :label="t('profile.information.name')"
+                :error="form.errors.name"
+                required
+                autofocus
+                autocomplete="name"
+            />
 
-                <TextInput
-                    id="name"
-                    type="text"
-                    class="mt-1"
-                    v-model="form.name"
-                    required
-                    autofocus
-                    autocomplete="name"
-                />
-
-                <InputError class="mt-2" :message="form.errors.name" />
-            </div>
-
-            <div>
-                <InputLabel
-                    for="email"
-                    :value="t('profile.information.email')"
-                />
-
-                <TextInput
-                    id="email"
-                    type="email"
-                    class="mt-1"
-                    v-model="form.email"
-                    required
-                    autocomplete="username"
-                />
-
-                <InputError class="mt-2" :message="form.errors.email" />
-            </div>
+            <FormField
+                id="email"
+                v-model="form.email"
+                type="email"
+                :label="t('profile.information.email')"
+                :error="form.errors.email"
+                required
+                autocomplete="username"
+            />
 
             <div v-if="mustVerifyEmail && user.email_verified_at === null">
-                <p class="mt-2 text-sm text-gray-800">
+                <p class="mt-2 text-sm text-gray-800 dark:text-slate-300">
                     {{ t('profile.information.unverified') }}
                     <TextLink
                         :href="route('verification.send')"

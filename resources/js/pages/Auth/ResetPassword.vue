@@ -1,10 +1,8 @@
 <script setup lang="ts">
 import { Head, useForm } from '@inertiajs/vue3';
 import FormActions from '@/components/FormActions.vue';
-import InputError from '@/components/InputError.vue';
-import InputLabel from '@/components/InputLabel.vue';
+import FormField from '@/components/FormField.vue';
 import PrimaryButton from '@/components/PrimaryButton.vue';
-import TextInput from '@/components/TextInput.vue';
 import { t } from '@/i18n';
 import GuestLayout from '@/Layouts/GuestLayout.vue';
 
@@ -38,63 +36,36 @@ const submit = () => {
         <Head :title="t('auth.resetPassword.title')" />
 
         <form @submit.prevent="submit" class="space-y-6">
-            <div>
-                <InputLabel
-                    for="email"
-                    :value="t('auth.resetPassword.email')"
-                />
+            <FormField
+                id="email"
+                v-model="form.email"
+                type="email"
+                :label="t('auth.resetPassword.email')"
+                :error="form.errors.email"
+                required
+                autofocus
+                autocomplete="username"
+            />
 
-                <TextInput
-                    id="email"
-                    type="email"
-                    class="mt-1"
-                    v-model="form.email"
-                    required
-                    autofocus
-                    autocomplete="username"
-                />
+            <FormField
+                id="password"
+                v-model="form.password"
+                type="password"
+                :label="t('auth.resetPassword.password')"
+                :error="form.errors.password"
+                required
+                autocomplete="new-password"
+            />
 
-                <InputError class="mt-2" :message="form.errors.email" />
-            </div>
-
-            <div>
-                <InputLabel
-                    for="password"
-                    :value="t('auth.resetPassword.password')"
-                />
-
-                <TextInput
-                    id="password"
-                    type="password"
-                    class="mt-1"
-                    v-model="form.password"
-                    required
-                    autocomplete="new-password"
-                />
-
-                <InputError class="mt-2" :message="form.errors.password" />
-            </div>
-
-            <div>
-                <InputLabel
-                    for="password_confirmation"
-                    :value="t('auth.resetPassword.confirmPassword')"
-                />
-
-                <TextInput
-                    id="password_confirmation"
-                    type="password"
-                    class="mt-1"
-                    v-model="form.password_confirmation"
-                    required
-                    autocomplete="new-password"
-                />
-
-                <InputError
-                    class="mt-2"
-                    :message="form.errors.password_confirmation"
-                />
-            </div>
+            <FormField
+                id="password_confirmation"
+                v-model="form.password_confirmation"
+                type="password"
+                :label="t('auth.resetPassword.confirmPassword')"
+                :error="form.errors.password_confirmation"
+                required
+                autocomplete="new-password"
+            />
 
             <FormActions>
                 <PrimaryButton :disabled="form.processing">

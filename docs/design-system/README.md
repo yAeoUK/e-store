@@ -58,14 +58,28 @@ plain `string`/`object`).
   items; see the reasoning captured when this was last questioned).
 
 **Form inputs**
-- `TextInput` — wraps a native `<input>`; auto-focuses on mount if the
-  `autofocus` attribute is present; coerces its emitted value to a number for
-  `type="number"` inputs (native inputs otherwise always emit strings, even
-  for number fields).
+- `FormField` — the standard way to render a labeled text/number input with
+  its error message: composes `InputLabel` + a native `<input>` + `InputError`
+  -style error text into one component (`v-model`, `label`, `error`,
+  `labelClass`/`inputClass` for the rare sr-only-label/narrower-input case).
+  Auto-focuses on mount if `autofocus` is present; coerces its emitted value
+  to a number for `type="number"` inputs (native inputs otherwise always emit
+  strings, even for number fields). Generates its own unique id via Vue
+  3.5's `useId()` unless an explicit `id` prop is passed — pass `id` for a
+  form that only ever renders once per page (matches a stable `#email`-style
+  test selector); omit it for a form that can render more than once at a time
+  (e.g. an "edit" modal open alongside its own "add" form), where a hardcoded
+  id would collide. `TextInput`/`InputError` used to be separate components;
+  they were merged into `FormField` once `TextInput` had no callers left
+  outside it and `InputError`'s only remaining caller was also `FormField` —
+  see [docs/testing.md](../testing.md) for how their old dedicated tests were
+  consolidated into `FormField.test.ts` rather than just deleted.
 - `Checkbox` — supports both boolean `v-model:checked` and array-mode
   `v-model:checked` (Vue's native checkbox-array semantics) via a `value` prop.
 - `InputLabel` — renders its `value` prop, or falls back to the default slot.
-- `InputError` — shows/hides via `v-show` based on whether a `message` is set.
+  Still used directly (not through `FormField`) by `ProductFilters.vue`'s
+  `category_id` `<select>`, since `FormField` only wraps a `<TextInput>`-style
+  field, not an arbitrary form control.
 - `FormActions` — a plain flex-end wrapper for action buttons at the bottom of
   a form; no props/logic.
 
@@ -99,6 +113,35 @@ plain `string`/`object`).
   `GuestLayout`. Deliberately plain `<a>` tags, not Inertia `Link`s — see
   [docs/frontend/README.md](../frontend/README.md) for why switching locale
   needs a full page reload rather than an SPA navigation.
+
+## Dark mode
+
+The app supports dark mode via Tailwind's `dark:` variant, keyed off a `.dark`
+class on an ancestor element (`@custom-variant dark (&:is(.dark *));` in
+`resources/css/app.css`) — not the `prefers-color-scheme` media query
+directly. **Every hardcoded Tailwind color utility (`text-*`, `bg-*`,
+`border-*`, `ring-*`) needs a `dark:` counterpart**, or it renders with the
+light-mode color regardless of theme. This bit repeatedly: `text-gray-*`/
+`text-red-600`/`border-slate-200` etc. with no `dark:` pairing turned up in
+over a dozen places across older components and pages before being swept and
+fixed. Two things make this easy to miss:
+- Tailwind v4's compatibility shim in `app.css` hardcodes
+  `border-color: var(--color-gray-200, currentColor)` for *any* element using
+  a bare `border` class with no explicit color — so an unqualified `border`
+  isn't "no color", it's "always light-gray", even in dark mode.
+- A color that's genuinely meant to stay constant across themes (e.g.
+  `DangerButton`/`buttonVariants.primary`'s solid `bg-red-600`/`bg-indigo-600`
+  fills) doesn't need a `dark:` variant at all — an unprefixed Tailwind class
+  already applies in both modes; adding `dark:bg-red-600` (same value) would
+  be a no-op, not a fix. Don't "fix" these; they're a deliberate choice, not
+  a bug.
+
+Established pairings, reuse these rather than inventing new ones:
+- Headings: `headingTextClass` (`text-slate-900 dark:text-slate-100`).
+- Muted text: `mutedTextClass` (`text-slate-500 dark:text-slate-400`).
+- Borders: `border-slate-200 dark:border-slate-800` (matches `cardSurfaceClass`).
+- Indigo accents (links, "default" badges): `text-indigo-600 dark:text-indigo-400`.
+- Destructive/error text: `text-red-600 dark:text-red-400`.
 
 ## Conventions
 

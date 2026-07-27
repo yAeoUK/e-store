@@ -54,5 +54,11 @@ describe('ProductCard', () => {
         expect(wrapper.text()).toContain('Audio');
         expect(wrapper.text()).toContain('Headphones');
         expect(wrapper.text()).toContain('$129.99');
+
+        const links = wrapper.findAllComponents({ name: 'Link' });
+        expect(links).toHaveLength(3);
+        links.forEach((link) => {
+            expect(link.props('href')).toBe('/products/headphones');
+        });
     });
 });

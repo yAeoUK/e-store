@@ -1,3 +1,4 @@
+import { Head } from '@inertiajs/vue3';
 import { shallowMount } from '@vue/test-utils';
 import { describe, expect, it } from 'vitest';
 import ShopLayout from '@/Layouts/ShopLayout.vue';
@@ -26,6 +27,14 @@ function mountProductsShowPage(props = {}) {
 }
 
 describe('Products show page', () => {
+    it('renders the page title via Head, using the product name', () => {
+        const wrapper = mountProductsShowPage();
+        const head = wrapper.findComponent(Head);
+
+        expect(head.exists()).toBe(true);
+        expect(head.attributes('title')).toBe(defaultProduct.name);
+    });
+
     it('renders the product details', () => {
         const wrapper = mountProductsShowPage();
 

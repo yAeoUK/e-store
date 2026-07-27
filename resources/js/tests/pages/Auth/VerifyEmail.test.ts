@@ -6,7 +6,7 @@ import SuccessText from '@/components/SuccessText.vue';
 import TextLink from '@/components/TextLink.vue';
 import GuestLayout from '@/Layouts/GuestLayout.vue';
 import VerifyEmail from '@/pages/Auth/VerifyEmail.vue';
-import { routeMock } from '../../setup';
+import { getMockForm, routeMock } from '../../setup';
 
 beforeEach(() => {
     routeMock.mockClear();
@@ -72,5 +72,16 @@ describe('VerifyEmail page', () => {
 
         expect(button.exists()).toBe(true);
         expect(button.text()).toBe('auth.verifyEmail.resend');
+    });
+
+    it('disables the submit button while the form is processing', async () => {
+        const wrapper = mount(VerifyEmail);
+
+        getMockForm().processing = true;
+        await wrapper.vm.$nextTick();
+
+        expect(
+            wrapper.findComponent(PrimaryButton).attributes('disabled'),
+        ).not.toBeUndefined();
     });
 });

@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Account;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\StoreAddressRequest;
+use App\Http\Requests\UpdateAddressRequest;
 use App\Models\Address;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -21,85 +23,56 @@ class AddressController extends Controller
         ]);
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(StoreAddressRequest $request): RedirectResponse
     {
-        $data = $request->validate([
-            'label' => ['nullable', 'string', 'max:255'],
-            'name' => ['nullable', 'string', 'max:255'],
-            'line1' => ['required', 'string', 'max:255'],
-            'line2' => ['nullable', 'string', 'max:255'],
-            'city' => ['required', 'string', 'max:255'],
-            'state' => ['nullable', 'string', 'max:255'],
-            'postal_code' => ['required', 'string', 'max:64'],
-            'country' => ['required', 'string', 'max:64'],
-            'phone' => ['nullable', 'string', 'max:64'],
-            'is_default' => ['nullable', 'boolean'],
-        ]);
+        $data = $request->validated();
+        $shouldBeDefault = ! empty($data['is_default']);
+        unset($data['is_default']);
 
-        $user = $request->user();
+        DB::transaction(function () use ($data, $shouldBeDefault, $request) {
+            $address = $request->user()->addresses()->create($data);
 
-        DB::transaction(function () use ($data, $user) {
-            if (! empty($data['is_default'])) {
-                $user->addresses()->update(['is_default' => false]);
+            if ($shouldBeDefault) {
+                $address->makeDefault();
             }
-
-            $user->addresses()->create($data);
         });
 
         return redirect()->route('account.addresses.index');
     }
 
-    public function update(Request $request, Address $address): RedirectResponse
+    public function update(UpdateAddressRequest $request, Address $address): RedirectResponse
     {
-        if ($request->user()->id !== $address->user_id) {
-            abort(403);
-        }
+        $data = $request->validated();
+        $shouldBeDefault = ! empty($data['is_default']);
+        // An address can't be un-defaulted directly - only replaced by marking another one
+        // default via makeDefault() - otherwise the user could end up with no default address.
+        unset($data['is_default']);
 
-        $data = $request->validate([
-            'label' => ['nullable', 'string', 'max:255'],
-            'name' => ['nullable', 'string', 'max:255'],
-            'line1' => ['required', 'string', 'max:255'],
-            'line2' => ['nullable', 'string', 'max:255'],
-            'city' => ['required', 'string', 'max:255'],
-            'state' => ['nullable', 'string', 'max:255'],
-            'postal_code' => ['required', 'string', 'max:64'],
-            'country' => ['required', 'string', 'max:64'],
-            'phone' => ['nullable', 'string', 'max:64'],
-            'is_default' => ['nullable', 'boolean'],
-        ]);
-
-        DB::transaction(function () use ($data, $request, $address) {
-            if (! empty($data['is_default'])) {
-                $request->user()->addresses()->update(['is_default' => false]);
-            }
-
+        DB::transaction(function () use ($data, $shouldBeDefault, $address) {
             $address->update($data);
+
+            if ($shouldBeDefault) {
+                $address->makeDefault();
+            }
         });
 
         return redirect()->route('account.addresses.index');
     }
 
-    public function destroy(Request $request, Address $address): RedirectResponse
+    public function destroy(Address $address): RedirectResponse
     {
-        if ($request->user()->id !== $address->user_id) {
-            abort(403);
-        }
+        $this->authorize('delete', $address);
 
         $address->delete();
 
         return redirect()->route('account.addresses.index');
     }
 
-    public function setDefault(Request $request, Address $address): RedirectResponse
+    public function setDefault(Address $address): RedirectResponse
     {
-        if ($request->user()->id !== $address->user_id) {
-            abort(403);
-        }
+        $this->authorize('update', $address);
 
-        DB::transaction(function () use ($request, $address) {
-            $request->user()->addresses()->update(['is_default' => false]);
-            $address->update(['is_default' => true]);
-        });
+        $address->makeDefault();
 
         return redirect()->route('account.addresses.index');
     }

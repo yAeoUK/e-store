@@ -1,14 +1,13 @@
 <script setup lang="ts">
 import { useForm } from '@inertiajs/vue3';
 import { nextTick, ref } from 'vue';
+import { headingTextClass } from '@/components/classNames';
 import DangerButton from '@/components/DangerButton.vue';
 import FormActions from '@/components/FormActions.vue';
-import InputError from '@/components/InputError.vue';
-import InputLabel from '@/components/InputLabel.vue';
+import FormField from '@/components/FormField.vue';
 import Modal from '@/components/Modal.vue';
 import MutedText from '@/components/MutedText.vue';
 import SecondaryButton from '@/components/SecondaryButton.vue';
-import TextInput from '@/components/TextInput.vue';
 import { t } from '@/i18n';
 
 const confirmingUserDeletion = ref(false);
@@ -44,7 +43,7 @@ const closeModal = () => {
 <template>
     <section class="space-y-6">
         <header>
-            <h2 class="text-lg font-medium text-gray-900">
+            <h2 :class="['text-lg font-medium', headingTextClass]">
                 {{ t('profile.deleteAccount.heading') }}
             </h2>
 
@@ -59,7 +58,7 @@ const closeModal = () => {
 
         <Modal :show="confirmingUserDeletion" @close="closeModal">
             <div class="p-6">
-                <h2 class="text-lg font-medium text-gray-900">
+                <h2 :class="['text-lg font-medium', headingTextClass]">
                     {{ t('profile.deleteAccount.confirmTitle') }}
                 </h2>
 
@@ -67,27 +66,21 @@ const closeModal = () => {
                     {{ t('profile.deleteAccount.confirmDescription') }}
                 </MutedText>
 
-                <div class="mt-6">
-                    <InputLabel
-                        for="password"
-                        :value="t('profile.deleteAccount.passwordPlaceholder')"
-                        class="sr-only"
-                    />
-
-                    <TextInput
-                        id="password"
-                        ref="passwordInput"
-                        v-model="form.password"
-                        type="password"
-                        class="mt-1 w-3/4"
-                        :placeholder="
-                            t('profile.deleteAccount.passwordPlaceholder')
-                        "
-                        @keyup.enter="deleteUser"
-                    />
-
-                    <InputError :message="form.errors.password" class="mt-2" />
-                </div>
+                <FormField
+                    id="password"
+                    ref="passwordInput"
+                    v-model="form.password"
+                    type="password"
+                    class="mt-6"
+                    label-class="sr-only"
+                    input-class="w-3/4"
+                    :label="t('profile.deleteAccount.passwordPlaceholder')"
+                    :error="form.errors.password"
+                    :placeholder="
+                        t('profile.deleteAccount.passwordPlaceholder')
+                    "
+                    @keyup.enter="deleteUser"
+                />
 
                 <FormActions class="mt-6">
                     <SecondaryButton @click="closeModal">

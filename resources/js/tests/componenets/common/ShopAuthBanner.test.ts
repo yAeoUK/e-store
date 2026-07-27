@@ -91,9 +91,16 @@ describe('ShopAuthBanner', () => {
             .find((button) => button.text() === 'common.nav.logOut');
         await logoutButton?.trigger('click');
 
-        expect(
-            wrapper.findComponent({ name: 'ConfirmationDialog' }).props('show'),
-        ).toBe(true);
+        const openDialog = wrapper.findComponent({
+            name: 'ConfirmationDialog',
+        });
+        expect(openDialog.props('show')).toBe(true);
+        expect(openDialog.props('title')).toBe('common.nav.logoutConfirmTitle');
+        expect(openDialog.props('message')).toBe(
+            'common.nav.logoutConfirmMessage',
+        );
+        expect(openDialog.props('confirmLabel')).toBe('common.nav.logOut');
+        expect(openDialog.props('danger')).toBe(true);
     });
 
     it('posts to the logout route and resets state on finish when confirmed', async () => {

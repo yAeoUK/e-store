@@ -1,11 +1,10 @@
 <script setup lang="ts">
 import { useForm } from '@inertiajs/vue3';
 import { ref } from 'vue';
-import InputError from '@/components/InputError.vue';
-import InputLabel from '@/components/InputLabel.vue';
+import { headingTextClass } from '@/components/classNames';
+import FormField from '@/components/FormField.vue';
 import MutedText from '@/components/MutedText.vue';
 import PrimaryButton from '@/components/PrimaryButton.vue';
-import TextInput from '@/components/TextInput.vue';
 import { t } from '@/i18n';
 
 const passwordInput = ref<{ focus: () => void } | null>(null);
@@ -39,7 +38,7 @@ const updatePassword = () => {
 <template>
     <section>
         <header>
-            <h2 class="text-lg font-medium text-gray-900">
+            <h2 :class="['text-lg font-medium', headingTextClass]">
                 {{ t('profile.password.heading') }}
             </h2>
 
@@ -49,64 +48,34 @@ const updatePassword = () => {
         </header>
 
         <form @submit.prevent="updatePassword" class="mt-6 space-y-6">
-            <div>
-                <InputLabel
-                    for="current_password"
-                    :value="t('profile.password.currentPassword')"
-                />
+            <FormField
+                id="current_password"
+                ref="currentPasswordInput"
+                v-model="form.current_password"
+                type="password"
+                :label="t('profile.password.currentPassword')"
+                :error="form.errors.current_password"
+                autocomplete="current-password"
+            />
 
-                <TextInput
-                    id="current_password"
-                    ref="currentPasswordInput"
-                    v-model="form.current_password"
-                    type="password"
-                    class="mt-1"
-                    autocomplete="current-password"
-                />
+            <FormField
+                id="password"
+                ref="passwordInput"
+                v-model="form.password"
+                type="password"
+                :label="t('profile.password.newPassword')"
+                :error="form.errors.password"
+                autocomplete="new-password"
+            />
 
-                <InputError
-                    :message="form.errors.current_password"
-                    class="mt-2"
-                />
-            </div>
-
-            <div>
-                <InputLabel
-                    for="password"
-                    :value="t('profile.password.newPassword')"
-                />
-
-                <TextInput
-                    id="password"
-                    ref="passwordInput"
-                    v-model="form.password"
-                    type="password"
-                    class="mt-1"
-                    autocomplete="new-password"
-                />
-
-                <InputError :message="form.errors.password" class="mt-2" />
-            </div>
-
-            <div>
-                <InputLabel
-                    for="password_confirmation"
-                    :value="t('profile.password.confirmPassword')"
-                />
-
-                <TextInput
-                    id="password_confirmation"
-                    v-model="form.password_confirmation"
-                    type="password"
-                    class="mt-1"
-                    autocomplete="new-password"
-                />
-
-                <InputError
-                    :message="form.errors.password_confirmation"
-                    class="mt-2"
-                />
-            </div>
+            <FormField
+                id="password_confirmation"
+                v-model="form.password_confirmation"
+                type="password"
+                :label="t('profile.password.confirmPassword')"
+                :error="form.errors.password_confirmation"
+                autocomplete="new-password"
+            />
 
             <div class="flex items-center gap-4">
                 <PrimaryButton :disabled="form.processing">{{

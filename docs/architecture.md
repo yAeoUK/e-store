@@ -45,10 +45,23 @@ Models
   empty body and would have failed at runtime (inserting into non-existent
   columns) if anything had ever called it.
 - Address model (added on `feature/authentication`): [app/Models/Address.php](../app/Models/Address.php#L1-L40) —
-  belongs to `User`; `is_default` is cast to boolean. See
-  `app/Http/Controllers/Account/AddressController.php` for the "only one default
-  address per user" invariant, which is enforced in the controller (inside a
-  DB transaction), not the model or a DB constraint.
+  belongs to `User`; `is_default` is cast to boolean; `user_id` is
+  deliberately **not** in `$fillable` (never actually settable via request
+  data, but closes the door on a future `Address::create($request->all())`
+  regression). The "only one default address per user" invariant — still not
+  a DB constraint — lives in `Address::makeDefault()` (unset every other
+  address of the same user, then set this one, in a single transaction),
+  called from `AddressController::store`/`update`/`setDefault` instead of
+  each duplicating the unset-then-set logic. `update()` also never writes
+  `is_default: false` through directly — an address can only stop being
+  default as a side effect of a *different* address becoming default via
+  `makeDefault()`, otherwise an unchecked checkbox (or an omitted field) on
+  update would silently leave the user with no default address at all.
+  Authorization is `AddressPolicy` (`view`/`update`/`delete`, ownership-only)
+  via `$this->authorize()` — the app's first `Policy`, backed by an
+  `AuthorizesRequests` trait added to the base `Controller`. Validation is
+  `StoreAddressRequest`/`UpdateAddressRequest`, not inline
+  `$request->validate()`.
 
 If you'd like, I can add inline references from sections above to the exact line ranges that show relationships or important fields.
 
@@ -75,7 +88,9 @@ Accounts & authentication (added on `feature/authentication`)
 
 - `user_id` foreign key (cascade delete) in the addresses migration: [database/migrations/2026_07_21_000000_create_addresses_table.php](../database/migrations/2026_07_21_000000_create_addresses_table.php#L1-L40)
 - `addresses()` relation on the `User` model, `user()` relation on `Address`: [app/Models/User.php](../app/Models/User.php#L1-L60), [app/Models/Address.php](../app/Models/Address.php#L1-L40)
-- Address CRUD + "set default" logic: [app/Http/Controllers/Account/AddressController.php](../app/Http/Controllers/Account/AddressController.php#L1-L106)
+- Address CRUD + "set default" logic: [app/Http/Controllers/Account/AddressController.php](../app/Http/Controllers/Account/AddressController.php#L1-L106),
+  validated by [StoreAddressRequest](../app/Http/Requests/StoreAddressRequest.php)/[UpdateAddressRequest](../app/Http/Requests/UpdateAddressRequest.php)
+  and authorized by [AddressPolicy](../app/Policies/AddressPolicy.php)
 - Standard Laravel Breeze auth controllers under `app/Http/Controllers/Auth/`
   (registration, login, password reset/confirmation, email verification) —
   routes in [routes/auth.php](../routes/auth.php#L1-L60); account/profile routes,

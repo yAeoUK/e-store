@@ -1,8 +1,7 @@
 import { Head } from '@inertiajs/vue3';
 import { mount } from '@vue/test-utils';
 import { beforeEach, describe, expect, it } from 'vitest';
-import InputError from '@/components/InputError.vue';
-import InputLabel from '@/components/InputLabel.vue';
+import FormField from '@/components/FormField.vue';
 import PrimaryButton from '@/components/PrimaryButton.vue';
 import TextLink from '@/components/TextLink.vue';
 import GuestLayout from '@/Layouts/GuestLayout.vue';
@@ -62,21 +61,18 @@ describe('Register page', () => {
         expect(head.attributes('title')).toBe('auth.register.title');
     });
 
-    it('renders the input label and input error for name, email, password and confirm password', () => {
+    it('renders a FormField for name, email, password and confirm password with the right labels', () => {
         const wrapper = mount(Register);
-        const labels = wrapper.findAllComponents(InputLabel);
-        const errors = wrapper.findAllComponents(InputError);
+        const fields = wrapper.findAllComponents(FormField);
 
-        expect(labels).toHaveLength(4);
-        expect(labels[0].props('value')).toBe('auth.register.name');
-        expect(labels[1].props('value')).toBe('auth.register.email');
-        expect(labels[2].props('value')).toBe('auth.register.password');
-        expect(labels[3].props('value')).toBe('auth.register.confirmPassword');
-
-        expect(errors).toHaveLength(4);
+        expect(fields).toHaveLength(4);
+        expect(fields[0].props('label')).toBe('auth.register.name');
+        expect(fields[1].props('label')).toBe('auth.register.email');
+        expect(fields[2].props('label')).toBe('auth.register.password');
+        expect(fields[3].props('label')).toBe('auth.register.confirmPassword');
     });
 
-    it('renders validation errors when present', async () => {
+    it('passes validation errors through to each field', async () => {
         const wrapper = mount(Register);
 
         getMockForm().errors = {
@@ -87,14 +83,14 @@ describe('Register page', () => {
         };
         await wrapper.vm.$nextTick();
 
-        const errors = wrapper.findAllComponents(InputError);
+        const fields = wrapper.findAllComponents(FormField);
 
-        expect(errors[0].props('message')).toBe('The name field is required.');
-        expect(errors[1].props('message')).toBe('The email field is required.');
-        expect(errors[2].props('message')).toBe(
+        expect(fields[0].props('error')).toBe('The name field is required.');
+        expect(fields[1].props('error')).toBe('The email field is required.');
+        expect(fields[2].props('error')).toBe(
             'The password field is required.',
         );
-        expect(errors[3].props('message')).toBe(
+        expect(fields[3].props('error')).toBe(
             'The password confirmation does not match.',
         );
         expect(wrapper.text()).toContain('The name field is required.');
@@ -114,5 +110,16 @@ describe('Register page', () => {
 
         expect(button.exists()).toBe(true);
         expect(button.text()).toBe('auth.register.submit');
+    });
+
+    it('disables the submit button while the form is processing', async () => {
+        const wrapper = mount(Register);
+
+        getMockForm().processing = true;
+        await wrapper.vm.$nextTick();
+
+        expect(
+            wrapper.findComponent(PrimaryButton).attributes('disabled'),
+        ).not.toBeUndefined();
     });
 });

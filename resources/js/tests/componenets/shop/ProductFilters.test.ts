@@ -1,5 +1,6 @@
 import { mount } from '@vue/test-utils';
 import { describe, expect, it } from 'vitest';
+import FormField from '@/components/FormField.vue';
 import ProductFilters from '@/components/shop/ProductFilters.vue';
 
 describe('ProductFilters', () => {
@@ -32,6 +33,14 @@ describe('ProductFilters', () => {
         expect((wrapper.get('select').element as HTMLSelectElement).value).toBe(
             '2',
         );
+
+        const fields = wrapper.findAllComponents(FormField);
+        expect(fields[0].props('label')).toBe('shop.products.filters.search');
+        expect(
+            wrapper.get('input[type="text"]').attributes('placeholder'),
+        ).toBe('shop.products.filters.searchPlaceholder');
+        expect(fields[1].props('label')).toBe('shop.products.filters.minPrice');
+        expect(fields[2].props('label')).toBe('shop.products.filters.maxPrice');
     });
 
     it('emits apply with null values when fields are empty', async () => {

@@ -117,6 +117,49 @@ resources/js/tests/
   whose other methods throw if you try to use them. Importing the actual
   component and matching by reference avoids this trap entirely and works
   regardless of whether a name was inferred.
+  - Exception: a **custom `global.stubs` object** you write inline (e.g.
+    `{ template: '<div data-test="x" />', props: ['product'] }`, used in
+    `CatalogLayout.test.ts` to stub `ProductCard`/`ProductFilters`/
+    `CategoryNavigation`) has no name at all unless you add one — there's no
+    real component to import a reference from, since you wrote the stub
+    yourself. Give it an explicit `name: 'ProductCard'` field if you want to
+    `findComponent({ name: 'ProductCard' })` it later; otherwise you're stuck
+    with a `[data-test="..."]` DOM selector, which can't assert on props.
+- **Check that child components actually receive the props you think they
+  do — don't stop at "the right text is on the page."** A page can render
+  correct-looking text while silently passing the wrong prop to a child (or
+  no prop at all) if the child falls back to some other source for its
+  display text. Concretely: assert `wrapper.findComponent(Head).attributes('title')`
+  for every page's `<Head :title>` (every Auth page test does this — a few
+  other pages didn't, and it went unnoticed because the *page* still rendered
+  fine); assert a `ConfirmationDialog`'s full prop set
+  (`title`/`message`/`confirmLabel`/`danger`/`processing`), not just `show`;
+  assert a stubbed child's actual received prop
+  (`wrapper.findComponent({name:'CatalogLayout'}).props('categories')`)
+  instead of just its existence. This applies with the same weight whether
+  the child is a shared component (`FormField`, `ConfirmationDialog`) or a
+  page-local one (`AddressFormFields`) — check the direct child's own props,
+  and trust that child's *own* test file (if it has one) to verify what it
+  does with them internally, rather than reaching two components deep from
+  the page test.
+- **`.props('x')` only works for a component's *declared* props.** Several
+  components here (`PrimaryButton`, `SecondaryButton`, `DangerButton`,
+  `TextLink`) have no `defineProps` at all and rely on `v-bind="$attrs"` to
+  forward whatever the caller passes (`disabled`, `type`, ...) straight to
+  the native element. `wrapper.findComponent(PrimaryButton).props('disabled')`
+  silently returns `undefined` even when `:disabled="true"` was passed and is
+  visibly working — use `.attributes('disabled')` instead (present/`''` when
+  true, `undefined` when false, since Vue omits falsy boolean attrs
+  entirely). If you're not sure whether a prop is declared, check the
+  component's `defineProps`/`defineModel` calls before choosing which API to
+  assert with.
+- **Reactive proxies aren't reference-equal to the plain object you built.**
+  `useForm()`'s mocked `form.errors` (or any prop sourced from a `reactive()`
+  object) is a Proxy wrapping whatever you assigned — `expect(form.errors).toBe(rawErrorsObject)`
+  fails even though the content is identical, because `toBe` is `Object.is`
+  reference equality and the proxy is a different object. Use `.toEqual()`
+  for object/array props sourced from reactive state; reserve `.toBe()` for
+  primitives or values you're certain aren't proxied.
 
 ## The `setup.ts` test harness
 
@@ -138,14 +181,22 @@ the suite. Nothing here needs to be re-mocked per file.
   `beforeEach`.
 - **`useForm(initial)`** — returns a `reactive()` object that mimics Inertia's
   real form helper closely enough for component tests:
-  - `post`/`get` synchronously call `options.onFinish?.()` — no need to await
-    a real network round-trip.
+  - `post` synchronously calls `options.onSuccess?.()` then `options.onFinish?.()`;
+    `patch` does the same; `get` calls only `options.onFinish?.()` — no need
+    to await a real network round-trip either way.
+  - `clearErrors()` resets `errors` back to `{}`.
   - `reset(...fields)` restores the named fields (or *all* fields, if called
     with no arguments) back to their values at the time `useForm()` was called.
   - `errors` starts as `{}` and `processing` starts as `false`.
-- **`getMockForm()`** — exported alongside `useForm`. It returns the most
-  recently created mock form instance, so a test can seed validation errors
-  *after* mounting a page and confirm they render:
+- **`getMockForm(index = 0)`** — exported alongside `useForm`. Returns the
+  mock form instance from the `index`-th `useForm()` call (in call order)
+  made by the currently-mounted component, reset before every test — so a
+  test can seed validation errors *after* mounting a page and confirm they
+  render. Defaults to the first form, which is all any single-form page needs;
+  pass an explicit index for a component that calls `useForm()` more than
+  once (e.g. `Account/Addresses.vue` has a create `form` and an edit
+  `editForm` — `getMockForm(0)`/`getMockForm(1)` respectively, in the order
+  they're declared in the component's `<script setup>`):
 
   ```ts
   const wrapper = mount(Register);
@@ -153,12 +204,17 @@ the suite. Nothing here needs to be re-mocked per file.
   getMockForm().errors = { email: 'The email field is required.' };
   await wrapper.vm.$nextTick();
 
-  expect(wrapper.findComponent(InputError).props('message'))
+  expect(wrapper.findAllComponents(FormField)[1].props('error'))
       .toBe('The email field is required.');
   ```
 
   This is what makes validation-error-rendering tests possible even though none
-  of the Auth/Account pages expose their `form` via `defineExpose`.
+  of the Auth/Account pages expose their `form` via `defineExpose`. It also
+  works for `processing`: `getMockForm().processing = true` then assert
+  `wrapper.findComponent(PrimaryButton).attributes('disabled')` is defined —
+  the mock doesn't toggle `processing` itself during a `post`/`patch` call
+  (it just invokes the callback options), but directly setting it still
+  proves the template's `:disabled="form.processing"` wiring is correct.
 - **`usePage()`** — a `vi.fn()` defaulting to an anonymous user
   (`{ props: { auth: { user: null } } }`). Override it per test with
   `vi.mocked(usePage).mockReturnValue({ props: { auth: { user: {...} } } })`,

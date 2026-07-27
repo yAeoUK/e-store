@@ -1,17 +1,25 @@
 import { config } from '@vue/test-utils';
-import { vi } from 'vitest';
+import { beforeEach, vi } from 'vitest';
 import { reactive } from 'vue';
 
 const routerGet = vi.fn();
 const routerPost = vi.fn();
+const routerDelete = vi.fn();
 
-type FormOptions = { onFinish?: () => void };
+type FormOptions = { onFinish?: () => void; onSuccess?: () => void };
 type MockForm = Record<string, unknown> & {
     errors: Record<string, string>;
     processing: boolean;
 };
 
-let lastForm: MockForm | undefined;
+// Forms are recorded in useForm() call order for the currently-mounted
+// component; reset before every test so stale instances from a previous
+// test/mount never leak into getMockForm()'s indexing.
+let mockForms: MockForm[] = [];
+
+beforeEach(() => {
+    mockForms = [];
+});
 
 function useForm<T extends Record<string, unknown>>(initial: T) {
     const initialData: Record<string, unknown> = { ...initial };
@@ -24,10 +32,18 @@ function useForm<T extends Record<string, unknown>>(initial: T) {
             return { ...initialData };
         },
         post(_url: string, options: FormOptions = {}) {
+            options.onSuccess?.();
+            options.onFinish?.();
+        },
+        patch(_url: string, options: FormOptions = {}) {
+            options.onSuccess?.();
             options.onFinish?.();
         },
         get(_url: string, options: FormOptions = {}) {
             options.onFinish?.();
+        },
+        clearErrors() {
+            (form as unknown as MockForm).errors = {};
         },
         reset(...fields: string[]) {
             const target = form as unknown as Record<string, unknown>;
@@ -41,21 +57,23 @@ function useForm<T extends Record<string, unknown>>(initial: T) {
         },
     });
 
-    lastForm = form as MockForm;
+    mockForms.push(form as MockForm);
 
     return form;
 }
 
-// Grabs the most recently created mock useForm() instance so tests can seed
+// Grabs a mock useForm() instance (in creation order) so tests can seed
 // form.errors after mounting and assert that validation errors render.
-export function getMockForm<T = MockForm>(): T {
-    if (!lastForm) {
+// Defaults to the first form created, matching every existing page under
+// test that only calls useForm() once.
+export function getMockForm<T = MockForm>(index = 0): T {
+    if (!mockForms[index]) {
         throw new Error(
-            'getMockForm() called before any component called useForm().',
+            'getMockForm() called before any component called useForm() that many times.',
         );
     }
 
-    return lastForm as unknown as T;
+    return mockForms[index] as unknown as T;
 }
 
 const usePage = vi.fn(() => ({ props: { auth: { user: null } } }));
@@ -73,6 +91,7 @@ vi.mock('@inertiajs/vue3', () => ({
     router: {
         get: routerGet,
         post: routerPost,
+        delete: routerDelete,
     },
     useForm,
     usePage,

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue';
+import FormField from '@/components/FormField.vue';
 import PrimaryButton from '@/components/PrimaryButton.vue';
-import TextInput from '@/components/TextInput.vue';
 import { t } from '@/i18n';
 import { formFieldClass, cardSurfaceClass } from '../classNames';
 import InputLabel from '../InputLabel.vue';
@@ -46,16 +46,12 @@ function applyFilters(): void {
         ]"
     >
         <div class="grid gap-4 md:grid-cols-4">
-            <div>
-                <InputLabel for="search">{{
-                    t('shop.products.filters.search')
-                }}</InputLabel>
-                <TextInput
-                    v-model="localFilters.search"
-                    type="text"
-                    :placeholder="t('shop.products.filters.searchPlaceholder')"
-                />
-            </div>
+            <FormField
+                v-model="localFilters.search"
+                type="text"
+                :label="t('shop.products.filters.search')"
+                :placeholder="t('shop.products.filters.searchPlaceholder')"
+            />
 
             <div>
                 <InputLabel for="category_id">{{
@@ -78,29 +74,21 @@ function applyFilters(): void {
                 </select>
             </div>
 
-            <div>
-                <InputLabel for="min_price">{{
-                    t('shop.products.filters.minPrice')
-                }}</InputLabel>
-                <TextInput
-                    v-model="localFilters.min_price"
-                    type="number"
-                    min="0"
-                    step="0.01"
-                />
-            </div>
+            <FormField
+                v-model="localFilters.min_price"
+                type="number"
+                min="0"
+                step="0.01"
+                :label="t('shop.products.filters.minPrice')"
+            />
 
-            <div>
-                <InputLabel for="max_price">{{
-                    t('shop.products.filters.maxPrice')
-                }}</InputLabel>
-                <TextInput
-                    v-model="localFilters.max_price"
-                    type="number"
-                    min="0"
-                    step="0.01"
-                />
-            </div>
+            <FormField
+                v-model="localFilters.max_price"
+                type="number"
+                min="0"
+                step="0.01"
+                :label="t('shop.products.filters.maxPrice')"
+            />
         </div>
 
         <div class="mt-4 flex justify-end">

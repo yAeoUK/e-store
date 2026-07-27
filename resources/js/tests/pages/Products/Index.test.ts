@@ -1,3 +1,4 @@
+import { Head } from '@inertiajs/vue3';
 import { shallowMount } from '@vue/test-utils';
 import { describe, expect, it } from 'vitest';
 import ShopLayout from '@/Layouts/ShopLayout.vue';
@@ -25,17 +26,30 @@ function mountProductsIndexPage(props = {}) {
 }
 
 describe('Products index page', () => {
+    it('renders the page title via Head', () => {
+        const wrapper = mountProductsIndexPage();
+        const head = wrapper.findComponent(Head);
+
+        expect(head.exists()).toBe(true);
+        expect(head.attributes('title')).toBe('shop.products.pageTitle');
+    });
+
     it('renders the product grid through the catalog layout', () => {
+        const categories = [
+            { id: 1, name: 'Accessories', slug: 'accessories' },
+        ];
         const wrapper = mountProductsIndexPage({
             products: { data: [{ id: 1, name: 'Wireless Mouse' }] },
-            categories: [{ id: 1, name: 'Accessories', slug: 'accessories' }],
+            categories,
         });
 
         const layout = wrapper.findComponent({ name: 'CatalogLayout' });
 
         expect(layout.exists()).toBe(true);
         expect(layout.props('heading')).toBe('shop.products.heading');
+        expect(layout.props('description')).toBe('shop.products.description');
         expect(layout.props('emptyMessage')).toBe('shop.products.empty');
+        expect(layout.props('categories')).toEqual(categories);
         expect(wrapper.findComponent(ShopLayout).exists()).toBe(true);
     });
 

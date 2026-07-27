@@ -1,8 +1,7 @@
 import { Head } from '@inertiajs/vue3';
 import { mount } from '@vue/test-utils';
 import { beforeEach, describe, expect, it } from 'vitest';
-import InputError from '@/components/InputError.vue';
-import InputLabel from '@/components/InputLabel.vue';
+import FormField from '@/components/FormField.vue';
 import PrimaryButton from '@/components/PrimaryButton.vue';
 import SuccessText from '@/components/SuccessText.vue';
 import GuestLayout from '@/Layouts/GuestLayout.vue';
@@ -35,17 +34,15 @@ describe('ForgotPassword page', () => {
         expect(wrapper.text()).toContain('auth.forgotPassword.description');
     });
 
-    it('renders the input label and input error for email', () => {
+    it('renders a FormField for email with the right label', () => {
         const wrapper = mount(ForgotPassword);
-        const label = wrapper.findComponent(InputLabel);
-        const error = wrapper.findComponent(InputError);
+        const field = wrapper.findComponent(FormField);
 
-        expect(label.exists()).toBe(true);
-        expect(label.props('value')).toBe('auth.forgotPassword.email');
-        expect(error.exists()).toBe(true);
+        expect(field.exists()).toBe(true);
+        expect(field.props('label')).toBe('auth.forgotPassword.email');
     });
 
-    it('renders validation errors when present', async () => {
+    it('passes validation errors through to the field', async () => {
         const wrapper = mount(ForgotPassword);
 
         getMockForm().errors = {
@@ -53,7 +50,7 @@ describe('ForgotPassword page', () => {
         };
         await wrapper.vm.$nextTick();
 
-        expect(wrapper.findComponent(InputError).props('message')).toBe(
+        expect(wrapper.findComponent(FormField).props('error')).toBe(
             'We could not find a user with that email address.',
         );
         expect(wrapper.text()).toContain(
@@ -67,6 +64,17 @@ describe('ForgotPassword page', () => {
 
         expect(button.exists()).toBe(true);
         expect(button.text()).toBe('auth.forgotPassword.submit');
+    });
+
+    it('disables the submit button while the form is processing', async () => {
+        const wrapper = mount(ForgotPassword);
+
+        getMockForm().processing = true;
+        await wrapper.vm.$nextTick();
+
+        expect(
+            wrapper.findComponent(PrimaryButton).attributes('disabled'),
+        ).not.toBeUndefined();
     });
 
     it('shows the status message when provided', () => {
