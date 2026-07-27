@@ -1,8 +1,7 @@
 import { Head } from '@inertiajs/vue3';
 import { mount } from '@vue/test-utils';
 import { beforeEach, describe, expect, it } from 'vitest';
-import InputError from '@/components/InputError.vue';
-import InputLabel from '@/components/InputLabel.vue';
+import FormField from '@/components/FormField.vue';
 import PrimaryButton from '@/components/PrimaryButton.vue';
 import SuccessText from '@/components/SuccessText.vue';
 import TextLink from '@/components/TextLink.vue';
@@ -83,19 +82,16 @@ describe('Login page', () => {
         expect(head.attributes('title')).toBe('auth.login.title');
     });
 
-    it('renders the input label and input error for email and password', () => {
+    it('renders a FormField for email and password with the right labels', () => {
         const wrapper = mountLogin();
-        const labels = wrapper.findAllComponents(InputLabel);
-        const errors = wrapper.findAllComponents(InputError);
+        const fields = wrapper.findAllComponents(FormField);
 
-        expect(labels).toHaveLength(2);
-        expect(labels[0].props('value')).toBe('auth.login.email');
-        expect(labels[1].props('value')).toBe('auth.login.password');
-
-        expect(errors).toHaveLength(2);
+        expect(fields).toHaveLength(2);
+        expect(fields[0].props('label')).toBe('auth.login.email');
+        expect(fields[1].props('label')).toBe('auth.login.password');
     });
 
-    it('renders validation errors when present', async () => {
+    it('passes validation errors through to the email and password fields', async () => {
         const wrapper = mountLogin();
 
         getMockForm().errors = {
@@ -104,12 +100,12 @@ describe('Login page', () => {
         };
         await wrapper.vm.$nextTick();
 
-        const errors = wrapper.findAllComponents(InputError);
+        const fields = wrapper.findAllComponents(FormField);
 
-        expect(errors[0].props('message')).toBe(
+        expect(fields[0].props('error')).toBe(
             'These credentials do not match our records.',
         );
-        expect(errors[1].props('message')).toBe(
+        expect(fields[1].props('error')).toBe(
             'The password field is required.',
         );
         expect(wrapper.text()).toContain(
@@ -129,5 +125,29 @@ describe('Login page', () => {
 
         expect(button.exists()).toBe(true);
         expect(button.text()).toBe('auth.login.submit');
+    });
+
+    it('disables the submit button while the form is processing', async () => {
+        const wrapper = mountLogin();
+
+        getMockForm().processing = true;
+        await wrapper.vm.$nextTick();
+
+        expect(
+            wrapper.findComponent(PrimaryButton).attributes('disabled'),
+        ).not.toBeUndefined();
+    });
+
+    it('binds the remember-me checkbox to form.remember', async () => {
+        const wrapper = mountLogin();
+
+        expect(
+            (wrapper.find('input[type="checkbox"]').element as HTMLInputElement)
+                .checked,
+        ).toBe(false);
+
+        await wrapper.find('input[type="checkbox"]').setValue(true);
+
+        expect(getMockForm().remember).toBe(true);
     });
 });

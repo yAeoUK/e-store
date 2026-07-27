@@ -2,6 +2,7 @@ import { mount } from '@vue/test-utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import ConfirmationDialog from '@/components/ConfirmationDialog.vue';
 import DangerButton from '@/components/DangerButton.vue';
+import Modal from '@/components/Modal.vue';
 import MutedText from '@/components/MutedText.vue';
 import PrimaryButton from '@/components/PrimaryButton.vue';
 import SecondaryButton from '@/components/SecondaryButton.vue';
@@ -23,6 +24,49 @@ describe('ConfirmationDialog', () => {
 
         expect(wrapper.text()).toContain('Delete address');
         expect(wrapper.text()).toContain('Are you sure?');
+    });
+
+    it('forwards its show prop to the underlying Modal', () => {
+        const shown = mount(ConfirmationDialog, {
+            props: { show: true, title: 'Confirm' },
+        });
+        expect(shown.findComponent(Modal).props('show')).toBe(true);
+
+        const hidden = mount(ConfirmationDialog, {
+            props: { show: false, title: 'Confirm' },
+        });
+        expect(hidden.findComponent(Modal).props('show')).toBe(false);
+    });
+
+    it('defaults the confirm and cancel button labels to common.confirm/cancel', () => {
+        const wrapper = mount(ConfirmationDialog, {
+            props: { show: true, title: 'Confirm' },
+        });
+
+        expect(wrapper.findComponent(PrimaryButton).text()).toBe(
+            'common.confirm',
+        );
+        expect(wrapper.findComponent(SecondaryButton).text()).toBe(
+            'common.cancel',
+        );
+    });
+
+    it('renders custom confirm and cancel button labels when provided', () => {
+        const wrapper = mount(ConfirmationDialog, {
+            props: {
+                show: true,
+                title: 'Confirm',
+                confirmLabel: 'Yes, delete it',
+                cancelLabel: 'No, keep it',
+            },
+        });
+
+        expect(wrapper.findComponent(PrimaryButton).text()).toBe(
+            'Yes, delete it',
+        );
+        expect(wrapper.findComponent(SecondaryButton).text()).toBe(
+            'No, keep it',
+        );
     });
 
     it('does not render a message when none is provided', () => {

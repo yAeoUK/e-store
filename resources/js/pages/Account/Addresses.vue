@@ -1,12 +1,18 @@
 <script setup lang="ts">
-import { Head, useForm } from '@inertiajs/vue3';
+import { Head, router, useForm } from '@inertiajs/vue3';
+import { ref } from 'vue';
 import Card from '@/components/Card.vue';
-import Checkbox from '@/components/Checkbox.vue';
-import InputError from '@/components/InputError.vue';
+import { headingTextClass } from '@/components/classNames';
+import ConfirmationDialog from '@/components/ConfirmationDialog.vue';
+import DangerButton from '@/components/DangerButton.vue';
+import FormActions from '@/components/FormActions.vue';
+import Modal from '@/components/Modal.vue';
 import MutedText from '@/components/MutedText.vue';
-import TextInput from '@/components/TextInput.vue';
+import PrimaryButton from '@/components/PrimaryButton.vue';
+import SecondaryButton from '@/components/SecondaryButton.vue';
 import { t } from '@/i18n';
 import ShopLayout from '@/Layouts/ShopLayout.vue';
+import AddressFormFields from './Partials/AddressFormFields.vue';
 
 interface Address {
     id: number;
@@ -26,10 +32,6 @@ defineProps<{
     addresses: Address[];
 }>();
 
-const csrfToken = document
-    .querySelector('meta[name="csrf-token"]')
-    ?.getAttribute('content');
-
 const form = useForm({
     label: '',
     name: '',
@@ -44,7 +46,90 @@ const form = useForm({
 });
 
 function submit() {
-    form.post(route('account.addresses.store'));
+    form.post(route('account.addresses.store'), {
+        onSuccess: () => form.reset(),
+    });
+}
+
+const confirmingDeleteId = ref<number | null>(null);
+const deleting = ref(false);
+
+function confirmDelete(id: number) {
+    confirmingDeleteId.value = id;
+}
+
+function destroy() {
+    if (confirmingDeleteId.value === null) {
+        return;
+    }
+
+    deleting.value = true;
+
+    router.delete(
+        route('account.addresses.destroy', confirmingDeleteId.value),
+        {
+            preserveScroll: true,
+            onFinish: () => {
+                deleting.value = false;
+                confirmingDeleteId.value = null;
+            },
+        },
+    );
+}
+
+function setDefault(id: number) {
+    router.post(
+        route('account.addresses.setDefault', id),
+        {},
+        { preserveScroll: true },
+    );
+}
+
+const editingAddressId = ref<number | null>(null);
+
+const editForm = useForm({
+    label: '',
+    name: '',
+    line1: '',
+    line2: '',
+    city: '',
+    state: '',
+    postal_code: '',
+    country: 'US',
+    phone: '',
+    is_default: false,
+});
+
+function edit(addr: Address) {
+    editingAddressId.value = addr.id;
+    editForm.clearErrors();
+    editForm.label = addr.label ?? '';
+    editForm.name = addr.name ?? '';
+    editForm.line1 = addr.line1;
+    editForm.line2 = addr.line2 ?? '';
+    editForm.city = addr.city;
+    editForm.state = addr.state ?? '';
+    editForm.postal_code = addr.postal_code;
+    editForm.country = addr.country;
+    editForm.phone = addr.phone ?? '';
+    editForm.is_default = addr.is_default;
+}
+
+function closeEdit() {
+    editingAddressId.value = null;
+    editForm.clearErrors();
+    editForm.reset();
+}
+
+function submitEdit() {
+    if (editingAddressId.value === null) {
+        return;
+    }
+
+    editForm.patch(route('account.addresses.update', editingAddressId.value), {
+        preserveScroll: true,
+        onSuccess: () => closeEdit(),
+    });
 }
 </script>
 
@@ -53,7 +138,12 @@ function submit() {
         <Head :title="t('account.addresses.pageTitle')" />
 
         <template #header>
-            <h2 class="text-xl leading-tight font-semibold text-gray-800">
+            <h2
+                :class="[
+                    'text-xl leading-tight font-semibold',
+                    headingTextClass,
+                ]"
+            >
                 {{ t('account.addresses.pageTitle') }}
             </h2>
         </template>
@@ -62,25 +152,34 @@ function submit() {
             <div class="mx-auto max-w-4xl sm:px-6 lg:px-8">
                 <div class="space-y-6">
                     <Card class="overflow-hidden p-6">
-                        <div
-                            v-if="addresses.length === 0"
-                            class="mb-4 text-sm text-gray-500"
-                        >
+                        <MutedText v-if="addresses.length === 0" class="mb-4">
                             {{ t('account.addresses.empty') }}
-                        </div>
+                        </MutedText>
 
                         <ul class="mb-6 space-y-3">
                             <li
                                 v-for="addr in addresses"
                                 :key="addr.id"
-                                class="rounded border p-4"
+                                class="rounded border border-slate-200 p-4 dark:border-slate-800"
                             >
                                 <div
                                     class="flex flex-col gap-3 sm:flex-row sm:justify-between"
                                 >
                                     <div>
-                                        <div class="font-medium">
-                                            {{ addr.label || addr.name }}
+                                        <div class="flex items-center gap-2">
+                                            <span class="font-medium">
+                                                {{ addr.label || addr.name }}
+                                            </span>
+                                            <span
+                                                v-if="addr.is_default"
+                                                class="text-xs font-medium text-indigo-600 dark:text-indigo-400"
+                                            >
+                                                {{
+                                                    t(
+                                                        'account.addresses.defaultLabel',
+                                                    )
+                                                }}
+                                            </span>
                                         </div>
                                         <MutedText>
                                             {{ addr.line1 }} {{ addr.line2 }}
@@ -91,32 +190,31 @@ function submit() {
                                             {{ addr.state }}
                                         </MutedText>
                                     </div>
-                                    <div class="text-end">
-                                        <form
-                                            :action="
-                                                route(
-                                                    'account.addresses.destroy',
-                                                    addr.id,
-                                                )
-                                            "
-                                            method="post"
+                                    <div
+                                        class="flex flex-wrap items-start gap-2 sm:justify-end"
+                                    >
+                                        <SecondaryButton
+                                            v-if="!addr.is_default"
+                                            type="button"
+                                            @click="setDefault(addr.id)"
                                         >
-                                            <input
-                                                type="hidden"
-                                                name="_token"
-                                                :value="csrfToken"
-                                            />
-                                            <input
-                                                type="hidden"
-                                                name="_method"
-                                                value="delete"
-                                            />
-                                            <button
-                                                class="text-sm text-red-600"
-                                            >
-                                                {{ t('common.delete') }}
-                                            </button>
-                                        </form>
+                                            {{
+                                                t(
+                                                    'account.addresses.setDefault',
+                                                )
+                                            }}
+                                        </SecondaryButton>
+                                        <SecondaryButton
+                                            type="button"
+                                            @click="edit(addr)"
+                                        >
+                                            {{ t('account.addresses.edit') }}
+                                        </SecondaryButton>
+                                        <DangerButton
+                                            @click="confirmDelete(addr.id)"
+                                        >
+                                            {{ t('common.delete') }}
+                                        </DangerButton>
                                     </div>
                                 </div>
                             </li>
@@ -128,135 +226,71 @@ function submit() {
                             {{ t('account.addresses.addHeading') }}
                         </h3>
                         <form @submit.prevent="submit" class="space-y-4">
+                            <AddressFormFields
+                                v-model:label="form.label"
+                                v-model:name="form.name"
+                                v-model:line1="form.line1"
+                                v-model:line2="form.line2"
+                                v-model:city="form.city"
+                                v-model:state="form.state"
+                                v-model:postal_code="form.postal_code"
+                                v-model:country="form.country"
+                                v-model:is_default="form.is_default"
+                                :errors="form.errors"
+                            />
                             <div>
-                                <TextInput
-                                    v-model="form.label"
-                                    :placeholder="
-                                        t('account.addresses.labelPlaceholder')
-                                    "
-                                />
-                                <InputError
-                                    class="mt-2"
-                                    :message="form.errors.label"
-                                />
-                            </div>
-                            <div>
-                                <TextInput
-                                    v-model="form.name"
-                                    :placeholder="
-                                        t('account.addresses.namePlaceholder')
-                                    "
-                                />
-                                <InputError
-                                    class="mt-2"
-                                    :message="form.errors.name"
-                                />
-                            </div>
-                            <div>
-                                <TextInput
-                                    v-model="form.line1"
-                                    :placeholder="
-                                        t('account.addresses.line1Placeholder')
-                                    "
-                                    required
-                                />
-                                <InputError
-                                    class="mt-2"
-                                    :message="form.errors.line1"
-                                />
-                            </div>
-                            <div>
-                                <TextInput
-                                    v-model="form.line2"
-                                    :placeholder="
-                                        t('account.addresses.line2Placeholder')
-                                    "
-                                />
-                                <InputError
-                                    class="mt-2"
-                                    :message="form.errors.line2"
-                                />
-                            </div>
-                            <div class="grid gap-2 sm:grid-cols-3">
-                                <div>
-                                    <TextInput
-                                        v-model="form.city"
-                                        :placeholder="
-                                            t(
-                                                'account.addresses.cityPlaceholder',
-                                            )
-                                        "
-                                        required
-                                    />
-                                    <InputError
-                                        class="mt-2"
-                                        :message="form.errors.city"
-                                    />
-                                </div>
-                                <div>
-                                    <TextInput
-                                        v-model="form.state"
-                                        :placeholder="
-                                            t(
-                                                'account.addresses.statePlaceholder',
-                                            )
-                                        "
-                                    />
-                                    <InputError
-                                        class="mt-2"
-                                        :message="form.errors.state"
-                                    />
-                                </div>
-                                <div>
-                                    <TextInput
-                                        v-model="form.postal_code"
-                                        :placeholder="
-                                            t(
-                                                'account.addresses.postalCodePlaceholder',
-                                            )
-                                        "
-                                        required
-                                    />
-                                    <InputError
-                                        class="mt-2"
-                                        :message="form.errors.postal_code"
-                                    />
-                                </div>
-                            </div>
-                            <div>
-                                <TextInput
-                                    v-model="form.country"
-                                    :placeholder="
-                                        t(
-                                            'account.addresses.countryPlaceholder',
-                                        )
-                                    "
-                                    required
-                                />
-                                <InputError
-                                    class="mt-2"
-                                    :message="form.errors.country"
-                                />
-                            </div>
-                            <div class="flex items-center gap-2">
-                                <Checkbox v-model:checked="form.is_default" />
-                                <span class="text-sm text-gray-700">{{
-                                    t('account.addresses.setDefault')
-                                }}</span>
-                            </div>
-                            <div>
-                                <button
-                                    type="submit"
-                                    class="inline-flex items-center justify-center rounded-md bg-gray-800 px-4 py-2 text-white transition hover:bg-gray-700"
-                                    :disabled="form.processing"
-                                >
+                                <PrimaryButton :disabled="form.processing">
                                     {{ t('account.addresses.submit') }}
-                                </button>
+                                </PrimaryButton>
                             </div>
                         </form>
                     </Card>
                 </div>
             </div>
         </div>
+
+        <Modal :show="editingAddressId !== null" @close="closeEdit">
+            <div class="p-6">
+                <h3 class="mb-4 text-lg font-semibold">
+                    {{ t('account.addresses.editHeading') }}
+                </h3>
+                <form @submit.prevent="submitEdit" class="space-y-4">
+                    <AddressFormFields
+                        v-model:label="editForm.label"
+                        v-model:name="editForm.name"
+                        v-model:line1="editForm.line1"
+                        v-model:line2="editForm.line2"
+                        v-model:city="editForm.city"
+                        v-model:state="editForm.state"
+                        v-model:postal_code="editForm.postal_code"
+                        v-model:country="editForm.country"
+                        v-model:is_default="editForm.is_default"
+                        :errors="editForm.errors"
+                    />
+                    <FormActions>
+                        <SecondaryButton type="button" @click="closeEdit">
+                            {{ t('common.cancel') }}
+                        </SecondaryButton>
+                        <PrimaryButton
+                            class="ms-3"
+                            :disabled="editForm.processing"
+                        >
+                            {{ t('account.addresses.saveChanges') }}
+                        </PrimaryButton>
+                    </FormActions>
+                </form>
+            </div>
+        </Modal>
+
+        <ConfirmationDialog
+            :show="confirmingDeleteId !== null"
+            :title="t('account.addresses.deleteConfirmTitle')"
+            :message="t('account.addresses.deleteConfirmMessage')"
+            :confirm-label="t('common.delete')"
+            danger
+            :processing="deleting"
+            @confirm="destroy"
+            @cancel="confirmingDeleteId = null"
+        />
     </ShopLayout>
 </template>

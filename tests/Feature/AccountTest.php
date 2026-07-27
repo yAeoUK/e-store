@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Address;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Inertia\Testing\AssertableInertia;
 use Tests\TestCase;
 
 class AccountTest extends TestCase
@@ -44,6 +45,26 @@ class AccountTest extends TestCase
         $response->assertOk();
     }
 
+    public function test_addresses_index_only_shows_the_authenticated_users_addresses(): void
+    {
+        $user = User::factory()->create();
+        $address = Address::factory()->create(['user_id' => $user->id]);
+
+        $otherUser = User::factory()->create();
+        Address::factory()->create(['user_id' => $otherUser->id]);
+
+        $response = $this
+            ->actingAs($user)
+            ->get('/account/addresses');
+
+        $response->assertOk();
+        $response->assertInertia(fn (AssertableInertia $page) => $page
+            ->component('Account/Addresses')
+            ->has('addresses', 1)
+            ->where('addresses.0.id', $address->id)
+        );
+    }
+
     public function test_user_can_create_an_address(): void
     {
         $user = User::factory()->create();
@@ -78,6 +99,27 @@ class AccountTest extends TestCase
         ]);
     }
 
+    public function test_creating_an_address_ignores_a_spoofed_user_id(): void
+    {
+        $user = User::factory()->create();
+        $otherUser = User::factory()->create();
+
+        $response = $this
+            ->actingAs($user)
+            ->post('/account/addresses', [
+                'user_id' => $otherUser->id,
+                'line1' => '456 Oak Ave',
+                'city' => 'Metropolis',
+                'postal_code' => '10001',
+                'country' => 'US',
+            ]);
+
+        $response->assertRedirect('/account/addresses');
+
+        $this->assertDatabaseHas('addresses', ['line1' => '456 Oak Ave', 'user_id' => $user->id]);
+        $this->assertDatabaseMissing('addresses', ['line1' => '456 Oak Ave', 'user_id' => $otherUser->id]);
+    }
+
     public function test_creating_a_second_default_address_unsets_the_first(): void
     {
         $user = User::factory()->create();
@@ -97,6 +139,47 @@ class AccountTest extends TestCase
 
         $this->assertDatabaseHas('addresses', ['id' => $existing->id, 'is_default' => false]);
         $this->assertDatabaseHas('addresses', ['user_id' => $user->id, 'line1' => '456 Oak Ave', 'is_default' => true]);
+    }
+
+    public function test_creating_an_address_without_is_default_leaves_existing_default_untouched(): void
+    {
+        $user = User::factory()->create();
+        $existing = Address::factory()->create(['user_id' => $user->id, 'is_default' => true]);
+
+        $response = $this
+            ->actingAs($user)
+            ->post('/account/addresses', [
+                'line1' => '456 Oak Ave',
+                'city' => 'Metropolis',
+                'postal_code' => '10001',
+                'country' => 'US',
+            ]);
+
+        $response->assertRedirect('/account/addresses');
+
+        $this->assertDatabaseHas('addresses', ['id' => $existing->id, 'is_default' => true]);
+        $this->assertDatabaseHas('addresses', ['user_id' => $user->id, 'line1' => '456 Oak Ave', 'is_default' => false]);
+    }
+
+    public function test_creating_an_address_with_is_default_false_leaves_existing_default_untouched(): void
+    {
+        $user = User::factory()->create();
+        $existing = Address::factory()->create(['user_id' => $user->id, 'is_default' => true]);
+
+        $response = $this
+            ->actingAs($user)
+            ->post('/account/addresses', [
+                'line1' => '456 Oak Ave',
+                'city' => 'Metropolis',
+                'postal_code' => '10001',
+                'country' => 'US',
+                'is_default' => false,
+            ]);
+
+        $response->assertRedirect('/account/addresses');
+
+        $this->assertDatabaseHas('addresses', ['id' => $existing->id, 'is_default' => true]);
+        $this->assertDatabaseHas('addresses', ['user_id' => $user->id, 'line1' => '456 Oak Ave', 'is_default' => false]);
     }
 
     public function test_user_can_update_an_address(): void
@@ -124,6 +207,31 @@ class AccountTest extends TestCase
             'line1' => '789 Pine Rd',
             'city' => 'Gotham',
             'postal_code' => '20500',
+        ]);
+    }
+
+    public function test_updating_an_address_ignores_a_spoofed_user_id(): void
+    {
+        $user = User::factory()->create();
+        $address = Address::factory()->create(['user_id' => $user->id]);
+        $otherUser = User::factory()->create();
+
+        $response = $this
+            ->actingAs($user)
+            ->patch("/account/addresses/{$address->id}", [
+                'user_id' => $otherUser->id,
+                'line1' => 'Updated Line',
+                'city' => 'Gotham',
+                'postal_code' => '20500',
+                'country' => 'US',
+            ]);
+
+        $response->assertRedirect('/account/addresses');
+
+        $this->assertDatabaseHas('addresses', [
+            'id' => $address->id,
+            'user_id' => $user->id,
+            'line1' => 'Updated Line',
         ]);
     }
 
@@ -164,6 +272,69 @@ class AccountTest extends TestCase
 
         $this->assertDatabaseHas('addresses', ['id' => $other->id, 'is_default' => true]);
         $this->assertDatabaseHas('addresses', ['id' => $current->id, 'is_default' => false]);
+    }
+
+    public function test_updating_an_address_without_is_default_leaves_existing_default_untouched(): void
+    {
+        $user = User::factory()->create();
+        $default = Address::factory()->create(['user_id' => $user->id, 'is_default' => true]);
+        $other = Address::factory()->create(['user_id' => $user->id, 'is_default' => false]);
+
+        $response = $this
+            ->actingAs($user)
+            ->patch("/account/addresses/{$other->id}", [
+                'line1' => '789 Pine Rd',
+                'city' => 'Gotham',
+                'postal_code' => '20500',
+                'country' => 'US',
+            ]);
+
+        $response->assertRedirect('/account/addresses');
+
+        $this->assertDatabaseHas('addresses', ['id' => $default->id, 'is_default' => true]);
+        $this->assertDatabaseHas('addresses', ['id' => $other->id, 'is_default' => false]);
+    }
+
+    public function test_updating_an_address_with_is_default_false_leaves_existing_default_untouched(): void
+    {
+        $user = User::factory()->create();
+        $default = Address::factory()->create(['user_id' => $user->id, 'is_default' => true]);
+        $other = Address::factory()->create(['user_id' => $user->id, 'is_default' => false]);
+
+        $response = $this
+            ->actingAs($user)
+            ->patch("/account/addresses/{$other->id}", [
+                'line1' => '789 Pine Rd',
+                'city' => 'Gotham',
+                'postal_code' => '20500',
+                'country' => 'US',
+                'is_default' => false,
+            ]);
+
+        $response->assertRedirect('/account/addresses');
+
+        $this->assertDatabaseHas('addresses', ['id' => $default->id, 'is_default' => true]);
+        $this->assertDatabaseHas('addresses', ['id' => $other->id, 'is_default' => false]);
+    }
+
+    public function test_explicitly_unsetting_the_only_default_address_on_update_is_ignored(): void
+    {
+        $user = User::factory()->create();
+        $address = Address::factory()->create(['user_id' => $user->id, 'is_default' => true]);
+
+        $response = $this
+            ->actingAs($user)
+            ->patch("/account/addresses/{$address->id}", [
+                'line1' => '789 Pine Rd',
+                'city' => 'Gotham',
+                'postal_code' => '20500',
+                'country' => 'US',
+                'is_default' => false,
+            ]);
+
+        $response->assertRedirect('/account/addresses');
+
+        $this->assertDatabaseHas('addresses', ['id' => $address->id, 'is_default' => true]);
     }
 
     public function test_updating_another_users_address_is_forbidden(): void
@@ -258,6 +429,55 @@ class AccountTest extends TestCase
             ->post("/account/addresses/{$address->id}/default");
 
         $response->assertForbidden();
+
+        $this->assertDatabaseHas('addresses', ['id' => $address->id, 'is_default' => false]);
+    }
+
+    public function test_guests_cannot_view_the_addresses_index(): void
+    {
+        $this->get('/account/addresses')->assertRedirect(route('login'));
+    }
+
+    public function test_guests_cannot_create_an_address(): void
+    {
+        $this->post('/account/addresses', [
+            'line1' => '456 Oak Ave',
+            'city' => 'Metropolis',
+            'postal_code' => '10001',
+            'country' => 'US',
+        ])->assertRedirect(route('login'));
+
+        $this->assertDatabaseMissing('addresses', ['line1' => '456 Oak Ave']);
+    }
+
+    public function test_guests_cannot_update_an_address(): void
+    {
+        $address = Address::factory()->create(['line1' => 'Original Line']);
+
+        $this->patch("/account/addresses/{$address->id}", [
+            'line1' => 'Hacked Line',
+            'city' => 'Gotham',
+            'postal_code' => '20500',
+            'country' => 'US',
+        ])->assertRedirect(route('login'));
+
+        $this->assertDatabaseHas('addresses', ['id' => $address->id, 'line1' => 'Original Line']);
+    }
+
+    public function test_guests_cannot_delete_an_address(): void
+    {
+        $address = Address::factory()->create();
+
+        $this->delete("/account/addresses/{$address->id}")->assertRedirect(route('login'));
+
+        $this->assertDatabaseHas('addresses', ['id' => $address->id]);
+    }
+
+    public function test_guests_cannot_set_an_address_as_default(): void
+    {
+        $address = Address::factory()->create(['is_default' => false]);
+
+        $this->post("/account/addresses/{$address->id}/default")->assertRedirect(route('login'));
 
         $this->assertDatabaseHas('addresses', ['id' => $address->id, 'is_default' => false]);
     }

@@ -1,3 +1,4 @@
+import { Head } from '@inertiajs/vue3';
 import { shallowMount } from '@vue/test-utils';
 import { describe, expect, it } from 'vitest';
 import ShopLayout from '@/Layouts/ShopLayout.vue';
@@ -26,14 +27,33 @@ function mountCategoriesShowPage(props = {}) {
 }
 
 describe('Categories show page', () => {
-    it('renders the category content', () => {
+    it('renders the page title via Head, using the category name', () => {
         const wrapper = mountCategoriesShowPage();
+        const head = wrapper.findComponent(Head);
+
+        expect(head.exists()).toBe(true);
+        expect(head.attributes('title')).toBe('Furniture');
+    });
+
+    it('falls back to the default page title via Head when there is no category', () => {
+        const wrapper = mountCategoriesShowPage({ category: undefined });
+        const head = wrapper.findComponent(Head);
+
+        expect(head.attributes('title')).toBe('shop.categories.pageTitle');
+    });
+
+    it('renders the category content', () => {
+        const categories = [
+            { id: 2, name: 'Living Room', slug: 'living-room' },
+        ];
+        const wrapper = mountCategoriesShowPage({ categories });
 
         const layout = wrapper.findComponent({ name: 'CatalogLayout' });
 
         expect(layout.exists()).toBe(true);
         expect(layout.props('heading')).toBe('Furniture');
         expect(layout.props('description')).toBe('Comfortable furniture');
+        expect(layout.props('categories')).toEqual(categories);
         expect(wrapper.findComponent(ShopLayout).exists()).toBe(true);
     });
 

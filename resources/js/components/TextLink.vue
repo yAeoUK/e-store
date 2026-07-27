@@ -5,7 +5,7 @@ import { computed } from 'vue';
 import type { PropType } from 'vue';
 
 const textLinkVariants = {
-    muted: 'text-gray-600 hover:text-gray-900',
+    muted: 'text-gray-600 hover:text-gray-900 dark:text-slate-400 dark:hover:text-slate-200',
     slate: 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white',
 };
 

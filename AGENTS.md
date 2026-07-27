@@ -218,6 +218,11 @@ section the same as the Boost guidelines above.
   inventory (buttons, inputs, `Modal`, `Dropdown`, `ConfirmationDialog`,
   typography wrappers, etc.) and the shared Tailwind class tokens in
   `resources/js/components/classNames.js`.
+- A labeled text/number input with an error slot is `FormField` — not a
+  hand-assembled `InputLabel` + `<input>` + error `<p>` (those don't exist as
+  separate composable pieces anymore; `TextInput`/`InputError` were merged
+  into `FormField`). `InputLabel` is still used on its own only where the
+  form control isn't a `FormField`-compatible text input, e.g. a `<select>`.
 - Wrap new pages in the existing layouts rather than duplicating header/nav
   markup: `GuestLayout` for unauthenticated Auth pages, `ShopLayout` for
   everything else (shop, Account, Profile) — see
@@ -227,9 +232,38 @@ section the same as the Boost guidelines above.
   Don't add a prop "for flexibility" that nothing currently uses — e.g. don't
   add a `width`/`size`-style prop unless more than one real call site needs a
   different value than the default.
+- **Every hardcoded Tailwind color utility needs a `dark:` counterpart** —
+  see [docs/design-system/README.md](docs/design-system/README.md)'s "Dark
+  mode" section for the established pairings (headings, muted text, borders,
+  indigo accents, error text) and the two traps that cause this to slip
+  through unnoticed (Tailwind v4's bare-`border` compatibility shim, and
+  solid brand-color button fills that are *supposed* to stay constant across
+  themes).
 - User-facing copy goes through `t('namespace.key')`
   (`resources/js/i18n/`), not inline strings. Links/redirects go through
   Ziggy's `route('name')`, never a hardcoded path.
+
+## Authorization (this repo specifically)
+
+- Per-owner authorization (does this user own this record?) goes through a
+  Laravel Policy, not an inline `if ($request->user()->id !== $model->user_id) { abort(403); }`
+  check duplicated across every controller action that needs it.
+  `AddressPolicy` (`view`/`update`/`delete`) is the app's first and — so far
+  — only Policy; use it as the template if a second owned-resource needs the
+  same treatment. Call it via `$this->authorize('ability', $model)` in a
+  controller (needs `AuthorizesRequests` on the base `Controller`, already
+  added) or `$this->user()->can('ability', $model)` inside a `FormRequest`'s
+  `authorize()`.
+- This is a distinct concern from mass-assignment protection
+  (`$fillable`) — removing a foreign key like `user_id` from `$fillable`
+  stops it being set via `Model::create($request->all())`, but does nothing
+  to stop a different logged-in user from hitting
+  `PATCH /account/addresses/{someone_else's_id}` via route-model binding.
+  Both are needed; neither substitutes for the other.
+- `Category`/`Product` don't have Policies, and shouldn't get one just for
+  symmetry: they're public read-only endpoints today, and the not-yet-built
+  admin CRUD for them will most likely need a role/admin gate, not a
+  per-record ownership check — the wrong tool for that shape of problem.
 
 ## TypeScript conventions (this repo specifically)
 
@@ -345,4 +379,13 @@ Full detail in [docs/testing.md](docs/testing.md) — the essentials:
   mock + `getMockForm()` for seeding validation errors, `usePage` override +
   reset pattern, the global `route()` wiring, `renderStubDefaultSlot`) rather
   than re-mocking `@inertiajs/vue3`/`@/i18n` per test file.
+- **Frontend: check that child components receive the right props, not just
+  that the right text ends up on the page** — e.g. `Head`'s `title`, a
+  `ConfirmationDialog`'s full prop set, a stubbed child's actual received
+  prop. See [docs/testing.md](docs/testing.md) for the full pattern and two
+  related gotchas: `.props('x')` only works for a component's *declared*
+  props (`PrimaryButton` and friends forward `disabled`/etc. via `$attrs`
+  instead — use `.attributes('x')`), and an inline `global.stubs` object
+  needs an explicit `name` field before `findComponent({ name: 'X' })` can
+  match it.
 

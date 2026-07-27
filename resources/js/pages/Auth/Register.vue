@@ -1,10 +1,8 @@
 <script setup lang="ts">
 import { Head, useForm } from '@inertiajs/vue3';
 import FormActions from '@/components/FormActions.vue';
-import InputError from '@/components/InputError.vue';
-import InputLabel from '@/components/InputLabel.vue';
+import FormField from '@/components/FormField.vue';
 import PrimaryButton from '@/components/PrimaryButton.vue';
-import TextInput from '@/components/TextInput.vue';
 import TextLink from '@/components/TextLink.vue';
 import { t } from '@/i18n';
 import GuestLayout from '@/Layouts/GuestLayout.vue';
@@ -28,75 +26,49 @@ const submit = () => {
         <Head :title="t('auth.register.title')" />
 
         <form @submit.prevent="submit" class="space-y-6">
-            <div>
-                <InputLabel for="name" :value="t('auth.register.name')" />
+            <FormField
+                id="name"
+                v-model="form.name"
+                type="text"
+                :label="t('auth.register.name')"
+                :error="form.errors.name"
+                required
+                autofocus
+                autocomplete="name"
+            />
 
-                <TextInput
-                    id="name"
-                    type="text"
-                    class="mt-1"
-                    v-model="form.name"
-                    required
-                    autofocus
-                    autocomplete="name"
-                />
+            <FormField
+                id="email"
+                v-model="form.email"
+                type="email"
+                class="mt-4"
+                :label="t('auth.register.email')"
+                :error="form.errors.email"
+                required
+                autocomplete="username"
+            />
 
-                <InputError class="mt-2" :message="form.errors.name" />
-            </div>
+            <FormField
+                id="password"
+                v-model="form.password"
+                type="password"
+                class="mt-4"
+                :label="t('auth.register.password')"
+                :error="form.errors.password"
+                required
+                autocomplete="new-password"
+            />
 
-            <div class="mt-4">
-                <InputLabel for="email" :value="t('auth.register.email')" />
-
-                <TextInput
-                    id="email"
-                    type="email"
-                    class="mt-1"
-                    v-model="form.email"
-                    required
-                    autocomplete="username"
-                />
-
-                <InputError class="mt-2" :message="form.errors.email" />
-            </div>
-
-            <div class="mt-4">
-                <InputLabel
-                    for="password"
-                    :value="t('auth.register.password')"
-                />
-
-                <TextInput
-                    id="password"
-                    type="password"
-                    class="mt-1"
-                    v-model="form.password"
-                    required
-                    autocomplete="new-password"
-                />
-
-                <InputError class="mt-2" :message="form.errors.password" />
-            </div>
-
-            <div class="mt-4">
-                <InputLabel
-                    for="password_confirmation"
-                    :value="t('auth.register.confirmPassword')"
-                />
-
-                <TextInput
-                    id="password_confirmation"
-                    type="password"
-                    class="mt-1"
-                    v-model="form.password_confirmation"
-                    required
-                    autocomplete="new-password"
-                />
-
-                <InputError
-                    class="mt-2"
-                    :message="form.errors.password_confirmation"
-                />
-            </div>
+            <FormField
+                id="password_confirmation"
+                v-model="form.password_confirmation"
+                type="password"
+                class="mt-4"
+                :label="t('auth.register.confirmPassword')"
+                :error="form.errors.password_confirmation"
+                required
+                autocomplete="new-password"
+            />
 
             <FormActions class="mt-4">
                 <TextLink :href="route('login')">

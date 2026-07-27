@@ -26,40 +26,44 @@ describe('CatalogLayout', () => {
     });
 
     it('renders product cards when products exist', () => {
+        const categories = [
+            { id: 1, name: 'Accessories', slug: 'accessories' },
+        ];
+        const filters = {
+            search: 'keyboard',
+            category_id: null,
+            min_price: null,
+            max_price: null,
+        };
+        const product = {
+            id: 1,
+            name: 'Keyboard',
+            slug: 'keyboard',
+            price: 99.99,
+        };
         const wrapper = mount(CatalogLayout, {
             props: {
                 heading: 'Products',
-                products: {
-                    data: [
-                        {
-                            id: 1,
-                            name: 'Keyboard',
-                            slug: 'keyboard',
-                            price: 99.99,
-                        },
-                    ],
-                },
-                filters: {
-                    search: '',
-                    category_id: null,
-                    min_price: null,
-                    max_price: null,
-                },
-                categories: [],
+                products: { data: [product] },
+                filters,
+                categories,
                 emptyMessage: 'No products',
                 applyFilters: vi.fn(),
             },
             global: {
                 stubs: {
                     ProductCard: {
+                        name: 'ProductCard',
                         template: '<div data-test="product-card" />',
                         props: ['product'],
                     },
                     ProductFilters: {
+                        name: 'ProductFilters',
                         template: '<div data-test="product-filters" />',
                         props: ['categories', 'filters'],
                     },
                     CategoryNavigation: {
+                        name: 'CategoryNavigation',
                         template: '<div data-test="category-navigation" />',
                         props: ['categories'],
                     },
@@ -67,17 +71,27 @@ describe('CatalogLayout', () => {
             },
         });
 
-        expect(wrapper.find('[data-test="product-card"]').exists()).toBe(true);
-        // Assert ProductFilters and CategoryNavigation are rendered
-        expect(wrapper.find('[data-test="product-filters"]').exists()).toBe(
-            true,
-        );
-        expect(wrapper.find('[data-test="category-navigation"]').exists()).toBe(
-            true,
-        );
+        const productCard = wrapper.findComponent({ name: 'ProductCard' });
+        expect(productCard.exists()).toBe(true);
+        expect(productCard.props('product')).toEqual(product);
+
+        const productFilters = wrapper.findComponent({
+            name: 'ProductFilters',
+        });
+        expect(productFilters.props('categories')).toEqual(categories);
+        expect(productFilters.props('filters')).toEqual(filters);
+
+        expect(
+            wrapper
+                .findComponent({ name: 'CategoryNavigation' })
+                .props('categories'),
+        ).toEqual(categories);
     });
 
     it('renders empty state when no products are available', () => {
+        const categories = [
+            { id: 1, name: 'Accessories', slug: 'accessories' },
+        ];
         const wrapper = mount(CatalogLayout, {
             props: {
                 heading: 'Products',
@@ -88,17 +102,19 @@ describe('CatalogLayout', () => {
                     min_price: null,
                     max_price: null,
                 },
-                categories: [],
+                categories,
                 emptyMessage: 'No products',
                 applyFilters: vi.fn(),
             },
             global: {
                 stubs: {
                     ProductFilters: {
+                        name: 'ProductFilters',
                         template: '<div data-test="product-filters" />',
                         props: ['categories', 'filters'],
                     },
                     CategoryNavigation: {
+                        name: 'CategoryNavigation',
                         template: '<div data-test="category-navigation" />',
                         props: ['categories'],
                     },
@@ -107,12 +123,17 @@ describe('CatalogLayout', () => {
         });
 
         expect(wrapper.text()).toContain('No products');
-        // Assert ProductFilters and CategoryNavigation are rendered even when empty
-        expect(wrapper.find('[data-test="product-filters"]').exists()).toBe(
-            true,
-        );
-        expect(wrapper.find('[data-test="category-navigation"]').exists()).toBe(
-            true,
-        );
+        // Assert ProductFilters and CategoryNavigation are rendered (with the
+        // right categories) even when there are no products.
+        expect(
+            wrapper
+                .findComponent({ name: 'ProductFilters' })
+                .props('categories'),
+        ).toEqual(categories);
+        expect(
+            wrapper
+                .findComponent({ name: 'CategoryNavigation' })
+                .props('categories'),
+        ).toEqual(categories);
     });
 });

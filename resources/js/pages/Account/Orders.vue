@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Head } from '@inertiajs/vue3';
 import Card from '@/components/Card.vue';
+import { headingTextClass } from '@/components/classNames';
 import MutedText from '@/components/MutedText.vue';
 import { t } from '@/i18n';
 import ShopLayout from '@/Layouts/ShopLayout.vue';
@@ -11,7 +12,12 @@ import ShopLayout from '@/Layouts/ShopLayout.vue';
         <Head :title="t('account.orders.pageTitle')" />
 
         <template #header>
-            <h2 class="text-xl leading-tight font-semibold text-gray-800">
+            <h2
+                :class="[
+                    'text-xl leading-tight font-semibold',
+                    headingTextClass,
+                ]"
+            >
                 {{ t('account.orders.pageTitle') }}
             </h2>
         </template>

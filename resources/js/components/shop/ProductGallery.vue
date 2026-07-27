@@ -39,7 +39,7 @@ if (!selectedImage.value) {
             v-if="selectedImage"
             :src="selectedImage"
             :alt="title ?? t('common.productImage')"
-            class="h-[420px] w-full rounded-xl border border-slate-200 object-cover"
+            class="h-[420px] w-full rounded-xl border border-slate-200 object-cover dark:border-slate-800"
         />
 
         <div v-if="images.length > 1" class="flex flex-wrap gap-3">
@@ -48,7 +48,7 @@ if (!selectedImage.value) {
                 :key="image.url"
                 type="button"
                 @click="selectedImage = image.url"
-                class="h-20 w-20 overflow-hidden rounded-lg border border-slate-200 bg-slate-50"
+                class="h-20 w-20 overflow-hidden rounded-lg border border-slate-200 bg-slate-50 dark:border-slate-800 dark:bg-slate-800"
             >
                 <img
                     :src="image.url"

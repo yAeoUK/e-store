@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Head } from '@inertiajs/vue3';
 import Card from '@/components/Card.vue';
+import { headingTextClass } from '@/components/classNames';
 import { t } from '@/i18n';
 import ShopLayout from '@/Layouts/ShopLayout.vue';
 import DeleteUserForm from './Partials/DeleteUserForm.vue';
@@ -22,7 +23,12 @@ defineProps({
 
     <ShopLayout>
         <template #header>
-            <h2 class="text-xl leading-tight font-semibold text-gray-800">
+            <h2
+                :class="[
+                    'text-xl leading-tight font-semibold',
+                    headingTextClass,
+                ]"
+            >
                 {{ t('profile.title') }}
             </h2>
         </template>

@@ -2,12 +2,10 @@
 import { Head, useForm } from '@inertiajs/vue3';
 import Checkbox from '@/components/Checkbox.vue';
 import FormActions from '@/components/FormActions.vue';
-import InputError from '@/components/InputError.vue';
-import InputLabel from '@/components/InputLabel.vue';
+import FormField from '@/components/FormField.vue';
 import MutedText from '@/components/MutedText.vue';
 import PrimaryButton from '@/components/PrimaryButton.vue';
 import SuccessText from '@/components/SuccessText.vue';
-import TextInput from '@/components/TextInput.vue';
 import TextLink from '@/components/TextLink.vue';
 import { t } from '@/i18n';
 import GuestLayout from '@/Layouts/GuestLayout.vue';
@@ -43,36 +41,27 @@ const submit = () => {
         </SuccessText>
 
         <form @submit.prevent="submit" class="space-y-6">
-            <div>
-                <InputLabel for="email" :value="t('auth.login.email')" />
+            <FormField
+                id="email"
+                v-model="form.email"
+                type="email"
+                :label="t('auth.login.email')"
+                :error="form.errors.email"
+                required
+                autofocus
+                autocomplete="username"
+            />
 
-                <TextInput
-                    id="email"
-                    type="email"
-                    class="mt-1"
-                    v-model="form.email"
-                    required
-                    autofocus
-                    autocomplete="username"
-                />
-
-                <InputError class="mt-2" :message="form.errors.email" />
-            </div>
-
-            <div class="mt-4">
-                <InputLabel for="password" :value="t('auth.login.password')" />
-
-                <TextInput
-                    id="password"
-                    type="password"
-                    class="mt-1"
-                    v-model="form.password"
-                    required
-                    autocomplete="current-password"
-                />
-
-                <InputError class="mt-2" :message="form.errors.password" />
-            </div>
+            <FormField
+                id="password"
+                v-model="form.password"
+                type="password"
+                class="mt-4"
+                :label="t('auth.login.password')"
+                :error="form.errors.password"
+                required
+                autocomplete="current-password"
+            />
 
             <div class="mt-4 block">
                 <label class="flex items-center">

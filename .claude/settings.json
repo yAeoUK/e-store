@@ -4,7 +4,8 @@
       "Bash(composer ci:check)",
       "Bash(composer lint *)",
       "Bash(vendor/bin/phpstan analyse *)",
-      "Bash(echo \"EXIT CODE: $?\")"
+      "Bash(echo \"EXIT CODE: $?\")",
+      "Bash(npx prettier *)"
     ]
   }
 }

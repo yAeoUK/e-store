@@ -1,8 +1,7 @@
 import { Head } from '@inertiajs/vue3';
 import { mount } from '@vue/test-utils';
 import { beforeEach, describe, expect, it } from 'vitest';
-import InputError from '@/components/InputError.vue';
-import InputLabel from '@/components/InputLabel.vue';
+import FormField from '@/components/FormField.vue';
 import PrimaryButton from '@/components/PrimaryButton.vue';
 import GuestLayout from '@/Layouts/GuestLayout.vue';
 import ConfirmPassword from '@/pages/Auth/ConfirmPassword.vue';
@@ -41,17 +40,15 @@ describe('ConfirmPassword page', () => {
         expect(wrapper.findComponent(GuestLayout).exists()).toBe(true);
     });
 
-    it('renders the input label and input error for password', () => {
+    it('renders a FormField for password with the right label', () => {
         const wrapper = mount(ConfirmPassword);
-        const label = wrapper.findComponent(InputLabel);
-        const error = wrapper.findComponent(InputError);
+        const field = wrapper.findComponent(FormField);
 
-        expect(label.exists()).toBe(true);
-        expect(label.props('value')).toBe('auth.confirmPassword.password');
-        expect(error.exists()).toBe(true);
+        expect(field.exists()).toBe(true);
+        expect(field.props('label')).toBe('auth.confirmPassword.password');
     });
 
-    it('renders validation errors when present', async () => {
+    it('passes validation errors through to the field', async () => {
         const wrapper = mount(ConfirmPassword);
 
         getMockForm().errors = {
@@ -59,7 +56,7 @@ describe('ConfirmPassword page', () => {
         };
         await wrapper.vm.$nextTick();
 
-        expect(wrapper.findComponent(InputError).props('message')).toBe(
+        expect(wrapper.findComponent(FormField).props('error')).toBe(
             'The password is incorrect.',
         );
         expect(wrapper.text()).toContain('The password is incorrect.');
@@ -71,6 +68,17 @@ describe('ConfirmPassword page', () => {
 
         expect(button.exists()).toBe(true);
         expect(button.text()).toBe('auth.confirmPassword.submit');
+    });
+
+    it('disables the submit button while the form is processing', async () => {
+        const wrapper = mount(ConfirmPassword);
+
+        getMockForm().processing = true;
+        await wrapper.vm.$nextTick();
+
+        expect(
+            wrapper.findComponent(PrimaryButton).attributes('disabled'),
+        ).not.toBeUndefined();
     });
 
     it('submits to the password.confirm route and clears the field on finish', async () => {

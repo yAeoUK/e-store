@@ -1,8 +1,7 @@
 import { Head } from '@inertiajs/vue3';
 import { mount } from '@vue/test-utils';
 import { beforeEach, describe, expect, it } from 'vitest';
-import InputError from '@/components/InputError.vue';
-import InputLabel from '@/components/InputLabel.vue';
+import FormField from '@/components/FormField.vue';
 import PrimaryButton from '@/components/PrimaryButton.vue';
 import GuestLayout from '@/Layouts/GuestLayout.vue';
 import ResetPassword from '@/pages/Auth/ResetPassword.vue';
@@ -68,22 +67,19 @@ describe('ResetPassword page', () => {
         expect(head.attributes('title')).toBe('auth.resetPassword.title');
     });
 
-    it('renders the input label and input error for email, password and confirm password', () => {
+    it('renders a FormField for email, password and confirm password with the right labels', () => {
         const wrapper = mountResetPassword();
-        const labels = wrapper.findAllComponents(InputLabel);
-        const errors = wrapper.findAllComponents(InputError);
+        const fields = wrapper.findAllComponents(FormField);
 
-        expect(labels).toHaveLength(3);
-        expect(labels[0].props('value')).toBe('auth.resetPassword.email');
-        expect(labels[1].props('value')).toBe('auth.resetPassword.password');
-        expect(labels[2].props('value')).toBe(
+        expect(fields).toHaveLength(3);
+        expect(fields[0].props('label')).toBe('auth.resetPassword.email');
+        expect(fields[1].props('label')).toBe('auth.resetPassword.password');
+        expect(fields[2].props('label')).toBe(
             'auth.resetPassword.confirmPassword',
         );
-
-        expect(errors).toHaveLength(3);
     });
 
-    it('renders validation errors when present', async () => {
+    it('passes validation errors through to each field', async () => {
         const wrapper = mountResetPassword();
 
         getMockForm().errors = {
@@ -93,15 +89,15 @@ describe('ResetPassword page', () => {
         };
         await wrapper.vm.$nextTick();
 
-        const errors = wrapper.findAllComponents(InputError);
+        const fields = wrapper.findAllComponents(FormField);
 
-        expect(errors[0].props('message')).toBe(
+        expect(fields[0].props('error')).toBe(
             'We could not find a user with that email address.',
         );
-        expect(errors[1].props('message')).toBe(
+        expect(fields[1].props('error')).toBe(
             'The password field is required.',
         );
-        expect(errors[2].props('message')).toBe(
+        expect(fields[2].props('error')).toBe(
             'The password confirmation does not match.',
         );
         expect(wrapper.text()).toContain(
@@ -115,5 +111,16 @@ describe('ResetPassword page', () => {
 
         expect(button.exists()).toBe(true);
         expect(button.text()).toBe('auth.resetPassword.submit');
+    });
+
+    it('disables the submit button while the form is processing', async () => {
+        const wrapper = mountResetPassword();
+
+        getMockForm().processing = true;
+        await wrapper.vm.$nextTick();
+
+        expect(
+            wrapper.findComponent(PrimaryButton).attributes('disabled'),
+        ).not.toBeUndefined();
     });
 });
