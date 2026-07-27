@@ -3,6 +3,7 @@ deployment:
   tasks:
     - export DEPLOYPATH=/home/ahmadra/chubby-silver-lemur.188-34-138-62.cpanel.site
     - export PATH=/home/ahmadra/nodejs/bin:/home/ahmadra/bin:$PATH
+    - export RAYON_NUM_THREADS=1
     - /home/ahmadra/bin/composer install --no-dev --optimize-autoloader --no-interaction --working-dir=$DEPLOYPATH
     - npm --prefix $DEPLOYPATH ci
     - npm --prefix $DEPLOYPATH run build
