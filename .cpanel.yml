@@ -1,0 +1,14 @@
+---
+deployment:
+  tasks:
+    - export DEPLOYPATH=/home/ahmadra/chubby-silver-lemur.188-34-138-62.cpanel.site
+    - export PATH=/home/ahmadra/nodejs/bin:/home/ahmadra/bin:$PATH
+    - /home/ahmadra/bin/composer install --no-dev --optimize-autoloader --no-interaction --working-dir=$DEPLOYPATH
+    - npm --prefix $DEPLOYPATH ci
+    - npm --prefix $DEPLOYPATH run build
+    - /usr/local/bin/php $DEPLOYPATH/artisan config:clear --ansi
+    - /usr/local/bin/php $DEPLOYPATH/artisan migrate --force --ansi
+    - /usr/local/bin/php $DEPLOYPATH/artisan storage:link --ansi || true
+    - /usr/local/bin/php $DEPLOYPATH/artisan config:cache --ansi
+    - /usr/local/bin/php $DEPLOYPATH/artisan route:cache --ansi
+    - /usr/local/bin/php $DEPLOYPATH/artisan view:cache --ansi

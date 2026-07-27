@@ -1,0 +1,80 @@
+name: deploy-develop
+
+on:
+  push:
+    branches:
+      - develop
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-develop
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      CPANEL_HOST: ${{ secrets.CPANEL_HOST }}
+      CPANEL_USERNAME: ${{ secrets.CPANEL_USERNAME }}
+      CPANEL_TOKEN: ${{ secrets.CPANEL_TOKEN }}
+      CPANEL_REPO_ROOT: ${{ secrets.CPANEL_REPO_ROOT }}
+
+    steps:
+      - name: Pull latest develop commit on the server
+        run: |
+          set -e
+          RESPONSE=$(curl -fsS -H "Authorization: cpanel ${CPANEL_USERNAME}:${CPANEL_TOKEN}" \
+            -G "${CPANEL_HOST}/execute/VersionControl/update" \
+            --data-urlencode "repository_root=${CPANEL_REPO_ROOT}" \
+            --data-urlencode "branch=develop")
+          echo "$RESPONSE" | jq .
+          STATUS=$(echo "$RESPONSE" | jq -r '.status')
+          if [ "$STATUS" != "1" ]; then
+            echo "VersionControl/update failed"
+            exit 1
+          fi
+
+      - name: Trigger deployment (.cpanel.yml tasks)
+        id: deploy
+        run: |
+          set -e
+          RESPONSE=$(curl -fsS -H "Authorization: cpanel ${CPANEL_USERNAME}:${CPANEL_TOKEN}" \
+            -G "${CPANEL_HOST}/execute/VersionControlDeployment/create" \
+            --data-urlencode "repository_root=${CPANEL_REPO_ROOT}")
+          echo "$RESPONSE" | jq .
+          STATUS=$(echo "$RESPONSE" | jq -r '.status')
+          if [ "$STATUS" != "1" ]; then
+            echo "VersionControlDeployment/create failed"
+            exit 1
+          fi
+          TASK_ID=$(echo "$RESPONSE" | jq -r '.data.task_id')
+          echo "task_id=$TASK_ID" >> "$GITHUB_OUTPUT"
+
+      - name: Wait for deployment to finish
+        run: |
+          set -e
+          TASK_ID="${{ steps.deploy.outputs.task_id }}"
+          for i in $(seq 1 60); do
+            RESPONSE=$(curl -fsS -H "Authorization: cpanel ${CPANEL_USERNAME}:${CPANEL_TOKEN}" \
+              -G "${CPANEL_HOST}/execute/VersionControlDeployment/retrieve")
+            TASK=$(echo "$RESPONSE" | jq --arg id "$TASK_ID" '.data[] | select((.task_id|tostring) == $id)')
+            SUCCEEDED=$(echo "$TASK" | jq -r '.timestamps.succeeded // empty')
+            FAILED=$(echo "$TASK" | jq -r '.timestamps.failed // empty')
+
+            if [ -n "$SUCCEEDED" ]; then
+              echo "Deployment succeeded at $SUCCEEDED"
+              exit 0
+            fi
+            if [ -n "$FAILED" ]; then
+              echo "Deployment failed at $FAILED"
+              echo "$TASK" | jq .
+              exit 1
+            fi
+
+            echo "Still deploying... ($i/60)"
+            sleep 10
+          done
+          echo "Timed out waiting for deployment to finish"
+          exit 1
