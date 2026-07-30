@@ -1,6 +1,8 @@
 <?php
 
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
 /*
@@ -65,4 +67,14 @@ function inertiaHeaders(): array
         'X-Inertia' => 'true',
         'X-Inertia-Version' => $version ?? '',
     ];
+}
+
+function actingAsAdmin(): User
+{
+    Role::findOrCreate('admin');
+
+    $admin = User::factory()->create();
+    $admin->assignRole('admin');
+
+    return $admin;
 }
