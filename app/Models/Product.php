@@ -59,4 +59,12 @@ class Product extends Model
     {
         return $this->hasMany(ProductVariant::class);
     }
+
+    /**
+     * @return HasMany<OrderItem, $this>
+     */
+    public function orderItems(): HasMany
+    {
+        return $this->hasMany(OrderItem::class);
+    }
 }
