@@ -53,14 +53,6 @@ class Product extends Model
     }
 
     /**
-     * @return HasMany<ProductImage, $this>
-     */
-    public function primaryImage(): HasMany
-    {
-        return $this->hasMany(ProductImage::class)->where('is_primary', true)->orderBy('sort_order');
-    }
-
-    /**
      * @return HasMany<ProductVariant, $this>
      */
     public function variants(): HasMany
