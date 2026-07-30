@@ -5,7 +5,16 @@
       "Bash(composer lint *)",
       "Bash(vendor/bin/phpstan analyse *)",
       "Bash(echo \"EXIT CODE: $?\")",
-      "Bash(npx prettier *)"
+      "Bash(npx prettier *)",
+      "Bash(git status *)",
+      "Bash(vendor/bin/phpstan clear-result-cache *)",
+      "Bash(npm install *)",
+      "Bash(npm audit *)",
+      "Bash(php -m)",
+      "Read(//dev/**)",
+      "Bash(./vendor/bin/pest *)",
+      "Bash(./vendor/bin/pest tests/Feature/Admin/ProductControllerTest.php)",
+      "Bash(grep -iE '\\\\.vue$|Pages/')"
     ]
   }
 }
