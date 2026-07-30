@@ -64,9 +64,7 @@ describe('UpdateProfileInformationForm', () => {
             props: { mustVerifyEmail: true },
         });
 
-        expect(wrapper.text()).not.toContain(
-            'profile.information.unverified',
-        );
+        expect(wrapper.text()).not.toContain('profile.information.unverified');
     });
 
     it('shows the unverified-email notice and resend link when the email is unverified', async () => {

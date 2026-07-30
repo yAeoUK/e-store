@@ -7,7 +7,8 @@ function mountField(props = {}, slots = {}) {
     return mount(SelectField, {
         props: { label: 'Category', modelValue: '', ...props },
         slots: {
-            default: '<option value="">None</option><option value="1">A</option>',
+            default:
+                '<option value="">None</option><option value="1">A</option>',
             ...slots,
         },
     });

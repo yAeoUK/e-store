@@ -50,9 +50,7 @@ describe('Admin Products edit page', () => {
         expect(getMockForm().price).toBe(product.price);
         expect(getMockForm().stock).toBe(product.stock);
         expect(getMockForm().category_id).toBe(2);
-        expect(getMockForm().short_description).toBe(
-            product.short_description,
-        );
+        expect(getMockForm().short_description).toBe(product.short_description);
         expect(getMockForm().description).toBe(product.description);
         expect(getMockForm().is_active).toBe(true);
     });

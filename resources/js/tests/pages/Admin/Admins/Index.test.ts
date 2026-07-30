@@ -92,8 +92,16 @@ describe('Admin Admins index page', () => {
                 admins: {
                     ...admins,
                     links: [
-                        { url: '/admin/admins?page=1', label: '1', active: true },
-                        { url: '/admin/admins?page=2', label: '2', active: false },
+                        {
+                            url: '/admin/admins?page=1',
+                            label: '1',
+                            active: true,
+                        },
+                        {
+                            url: '/admin/admins?page=2',
+                            label: '2',
+                            active: false,
+                        },
                     ],
                 },
             },

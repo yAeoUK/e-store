@@ -108,10 +108,7 @@ function destroy(): void {
             {{ deleteBlockedMessage }}
         </ErrorBanner>
 
-        <form
-            @submit.prevent="applyFilters"
-            :class="filterFormClass"
-        >
+        <form @submit.prevent="applyFilters" :class="filterFormClass">
             <FormField
                 v-model="search"
                 type="text"

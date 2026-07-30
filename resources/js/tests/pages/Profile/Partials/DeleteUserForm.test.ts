@@ -46,9 +46,7 @@ describe('DeleteUserForm', () => {
             'click',
         );
 
-        expect(wrapper.text()).toContain(
-            'profile.deleteAccount.confirmTitle',
-        );
+        expect(wrapper.text()).toContain('profile.deleteAccount.confirmTitle');
         expect(wrapper.text()).toContain(
             'profile.deleteAccount.confirmDescription',
         );

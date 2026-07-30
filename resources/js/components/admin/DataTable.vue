@@ -1,7 +1,7 @@
 <script setup lang="ts" generic="Row extends { id: number | string }">
 import { computed } from 'vue';
-import Pagination from '@/components/Pagination.vue';
 import { wrapBetweenClass } from '@/components/classNames';
+import Pagination from '@/components/Pagination.vue';
 import {
     Table,
     TableBody,

@@ -33,7 +33,7 @@ class OrderItemFactory extends Factory
                     : null;
                 $product = Product::query()->find((int) $attributes['product_id']);
 
-                return $variant?->price ?? $product?->price ?? $this->faker->randomFloat(2, 10, 500);
+                return $variant->price ?? $product->price ?? $this->faker->randomFloat(2, 10, 500);
             },
             'product_snapshot' => function (array $attributes) {
                 $product = Product::query()->find((int) $attributes['product_id']);

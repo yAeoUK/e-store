@@ -40,11 +40,7 @@ const classes = computed(
         :method="method"
         :as="as"
         v-bind="$attrs"
-        :class="[
-            'rounded-md text-sm underline',
-            focusRingClass,
-            classes,
-        ]"
+        :class="['rounded-md text-sm underline', focusRingClass, classes]"
     >
         <slot />
     </Link>

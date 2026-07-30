@@ -80,10 +80,7 @@ function statusVariant(status: string): NonNullable<BadgeVariants['variant']> {
             </h1>
         </template>
 
-        <form
-            @submit.prevent="applyFilters"
-            :class="filterFormClass"
-        >
+        <form @submit.prevent="applyFilters" :class="filterFormClass">
             <FormField
                 v-model="search"
                 type="text"

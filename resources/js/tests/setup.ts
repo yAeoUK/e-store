@@ -125,7 +125,10 @@ vi.mock('@/i18n', () => ({
     t: (key: string) => key,
 }));
 
+// Params kept (though unused) so calls with route()'s full (name, params,
+// absolute) arity type-check against this mock.
 export const routeMock = vi.fn(
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     (name: string, _params?: unknown, _absolute?: boolean) => name,
 );
 

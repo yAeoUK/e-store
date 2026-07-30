@@ -62,7 +62,9 @@ describe('ProductFormFields', () => {
             is_active: false,
         });
 
-        const inputs = wrapper.findAll('input[type="text"], input[type="number"]');
+        const inputs = wrapper.findAll(
+            'input[type="text"], input[type="number"]',
+        );
         expect((inputs[0].element as HTMLInputElement).value).toBe(
             'Wireless Mouse',
         );
@@ -90,9 +92,7 @@ describe('ProductFormFields', () => {
 
         const nameInput = wrapper.find('input[type="text"]');
         await nameInput.setValue('Wireless Mouse');
-        expect(wrapper.emitted('update:name')?.[0]).toEqual([
-            'Wireless Mouse',
-        ]);
+        expect(wrapper.emitted('update:name')?.[0]).toEqual(['Wireless Mouse']);
 
         await wrapper.findComponent(Checkbox).get('input').setValue(false);
         expect(wrapper.emitted('update:is_active')?.[0]).toEqual([false]);
@@ -110,9 +110,7 @@ describe('ProductFormFields', () => {
         const fields = wrapper.findAllComponents(FormField);
         expect(fields[0].props('error')).toBe('The name field is required.');
         expect(fields[1].props('error')).toBe('The price must be a number.');
-        expect(fields[2].props('error')).toBe(
-            'The stock field is required.',
-        );
+        expect(fields[2].props('error')).toBe('The stock field is required.');
     });
 
     it('only passes a slug source when autoSlug is enabled', () => {

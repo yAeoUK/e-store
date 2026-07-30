@@ -105,9 +105,9 @@ describe('Admin Users index page', () => {
     it('renders the DataTable, Pagination and AdminLayout components', () => {
         const wrapper = mountPage();
 
-        expect(
-            wrapper.findComponent({ name: 'AdminLayout' }).exists(),
-        ).toBe(true);
+        expect(wrapper.findComponent({ name: 'AdminLayout' }).exists()).toBe(
+            true,
+        );
         expect(wrapper.findComponent({ name: 'DataTable' }).exists()).toBe(
             true,
         );
@@ -117,9 +117,9 @@ describe('Admin Users index page', () => {
         expect(wrapper.findComponent({ name: 'FormField' }).exists()).toBe(
             true,
         );
-        expect(
-            wrapper.findComponent({ name: 'PrimaryButton' }).exists(),
-        ).toBe(true);
+        expect(wrapper.findComponent({ name: 'PrimaryButton' }).exists()).toBe(
+            true,
+        );
         expect(
             wrapper.findAllComponents({ name: 'SecondaryButton' }).length,
         ).toBeGreaterThan(0);
@@ -154,9 +154,7 @@ describe('Admin Users index page', () => {
 
         const dialog = wrapper.findComponent({ name: 'ConfirmationDialog' });
         expect(dialog.props('show')).toBe(true);
-        expect(dialog.props('title')).toBe(
-            'admin.users.promoteConfirmTitle',
-        );
+        expect(dialog.props('title')).toBe('admin.users.promoteConfirmTitle');
         expect(dialog.props('message')).toBe(
             'admin.users.promoteConfirmMessage',
         );
@@ -196,9 +194,7 @@ describe('Admin Users index page', () => {
 
         expect(router.post).not.toHaveBeenCalled();
         expect(
-            wrapper.findComponent({ name: 'ConfirmationDialog' }).props(
-                'show',
-            ),
+            wrapper.findComponent({ name: 'ConfirmationDialog' }).props('show'),
         ).toBe(false);
     });
 });

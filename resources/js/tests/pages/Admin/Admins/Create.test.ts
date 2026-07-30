@@ -36,9 +36,7 @@ describe('Admin Admins create page', () => {
         expect(text).toContain('admin.admins.createNameLabel');
         expect(text).toContain('admin.admins.createEmailLabel');
         expect(text).toContain('admin.admins.createPasswordLabel');
-        expect(text).toContain(
-            'admin.admins.createPasswordConfirmationLabel',
-        );
+        expect(text).toContain('admin.admins.createPasswordConfirmationLabel');
         expect(text).toContain('admin.admins.createSubmit');
     });
 
@@ -48,9 +46,7 @@ describe('Admin Admins create page', () => {
         expect(wrapper.findComponent({ name: 'AdminLayout' }).exists()).toBe(
             true,
         );
-        expect(
-            wrapper.findAllComponents({ name: 'Card' }),
-        ).toHaveLength(2);
+        expect(wrapper.findAllComponents({ name: 'Card' })).toHaveLength(2);
     });
 
     it('submits the promote form to admin.admins.promote', async () => {

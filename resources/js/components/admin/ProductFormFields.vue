@@ -57,10 +57,7 @@ const isActive = defineModel<boolean>('is_active', { default: true });
     </div>
 
     <div class="grid gap-4 sm:grid-cols-3">
-        <SelectField
-            v-model="categoryId"
-            :label="t('admin.products.category')"
-        >
+        <SelectField v-model="categoryId" :label="t('admin.products.category')">
             <option value="">
                 {{ t('admin.products.noCategory') }}
             </option>

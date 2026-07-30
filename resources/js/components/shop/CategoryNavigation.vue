@@ -24,7 +24,9 @@ const page = usePage();
 function isCurrent(href: string): boolean {
     const url = typeof page.url === 'string' ? page.url : '';
 
-    return url === href || url.startsWith(`${href}/`) || url.startsWith(`${href}?`);
+    return (
+        url === href || url.startsWith(`${href}/`) || url.startsWith(`${href}?`)
+    );
 }
 
 function toItem(category: Category): SidebarNavItem {

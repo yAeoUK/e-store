@@ -7,7 +7,11 @@ import type {
     Paginated,
 } from '@/components/admin/admin.ts';
 import DataTable from '@/components/admin/DataTable.vue';
-import { filterFormClass, linkClass, pageTitleClass } from '@/components/classNames';
+import {
+    filterFormClass,
+    linkClass,
+    pageTitleClass,
+} from '@/components/classNames';
 import ConfirmationDialog from '@/components/ConfirmationDialog.vue';
 import FormField from '@/components/FormField.vue';
 import PrimaryButton from '@/components/PrimaryButton.vue';
@@ -95,10 +99,7 @@ function promote(): void {
             </h1>
         </template>
 
-        <form
-            @submit.prevent="applyFilters"
-            :class="filterFormClass"
-        >
+        <form @submit.prevent="applyFilters" :class="filterFormClass">
             <FormField
                 v-model="search"
                 type="text"

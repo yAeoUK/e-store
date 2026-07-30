@@ -80,9 +80,9 @@ describe('Admin Categories create page', () => {
         expect(wrapper.findComponent({ name: 'ButtonLink' }).exists()).toBe(
             true,
         );
-        expect(
-            wrapper.findComponent({ name: 'PrimaryButton' }).exists(),
-        ).toBe(true);
+        expect(wrapper.findComponent({ name: 'PrimaryButton' }).exists()).toBe(
+            true,
+        );
     });
 
     it('wires CategoryFormFields with auto-slug enabled and the categories/errors props', () => {

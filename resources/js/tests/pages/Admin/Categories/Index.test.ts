@@ -206,9 +206,9 @@ describe('Admin Categories index page', () => {
         expect(wrapper.findComponent({ name: 'Pagination' }).exists()).toBe(
             true,
         );
-        expect(
-            wrapper.findComponent({ name: 'PrimaryButton' }).exists(),
-        ).toBe(true);
+        expect(wrapper.findComponent({ name: 'PrimaryButton' }).exists()).toBe(
+            true,
+        );
         expect(
             wrapper.findAllComponents({ name: 'ButtonLink' }).length,
         ).toBeGreaterThan(0);

@@ -176,7 +176,7 @@ describe('ProductImageManager', () => {
     it('shows the uploading indicator while images are compressing', async () => {
         let resolveCompression: (file: File) => void = () => {};
         vi.mocked(imageCompression).mockImplementationOnce(
-            (_file: File) =>
+            () =>
                 new Promise((resolve) => {
                     resolveCompression = resolve;
                 }),
@@ -186,9 +186,7 @@ describe('ProductImageManager', () => {
             props: { productId: 9, images: [] },
         });
 
-        expect(wrapper.text()).not.toContain(
-            'admin.products.uploadingImages',
-        );
+        expect(wrapper.text()).not.toContain('admin.products.uploadingImages');
 
         const file = new File(['a'], 'one.jpg', { type: 'image/jpeg' });
         await selectFiles(wrapper, [file]);
@@ -198,9 +196,7 @@ describe('ProductImageManager', () => {
         resolveCompression(file);
         await flushPromises();
 
-        expect(wrapper.text()).not.toContain(
-            'admin.products.uploadingImages',
-        );
+        expect(wrapper.text()).not.toContain('admin.products.uploadingImages');
     });
 
     it('does nothing when the file input change fires with no files', async () => {

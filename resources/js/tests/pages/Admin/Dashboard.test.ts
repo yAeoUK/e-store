@@ -108,9 +108,7 @@ describe('Admin Dashboard page', () => {
         const wrapper = mountPage();
 
         expect(wrapper.text()).toContain('admin.dashboard.revenueChartTitle');
-        expect(wrapper.text()).toContain(
-            'admin.dashboard.categoryChartTitle',
-        );
+        expect(wrapper.text()).toContain('admin.dashboard.categoryChartTitle');
     });
 
     it('renders the Card and AdminLayout components', () => {

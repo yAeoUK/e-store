@@ -195,9 +195,7 @@ describe('Admin Products index page', () => {
 
         const dialog = wrapper.findComponent({ name: 'ConfirmationDialog' });
 
-        expect(dialog.props('title')).toBe(
-            'admin.products.deleteConfirmTitle',
-        );
+        expect(dialog.props('title')).toBe('admin.products.deleteConfirmTitle');
         expect(dialog.props('message')).toBe(
             'admin.products.deleteConfirmMessage',
         );

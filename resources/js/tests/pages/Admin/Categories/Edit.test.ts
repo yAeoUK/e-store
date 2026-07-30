@@ -31,9 +31,8 @@ describe('Admin Categories edit page', () => {
             props: { category, categories: [] },
         });
 
-        const nameInput = wrapper.find(
-            'input[type="text"]',
-        ).element as HTMLInputElement;
+        const nameInput = wrapper.find('input[type="text"]')
+            .element as HTMLInputElement;
         expect(nameInput.value).toBe('Home Appliances');
         expect(wrapper.text()).toContain('home-appliances');
         expect(
@@ -124,9 +123,9 @@ describe('Admin Categories edit page', () => {
         expect(wrapper.findComponent({ name: 'ButtonLink' }).exists()).toBe(
             true,
         );
-        expect(
-            wrapper.findComponent({ name: 'PrimaryButton' }).exists(),
-        ).toBe(true);
+        expect(wrapper.findComponent({ name: 'PrimaryButton' }).exists()).toBe(
+            true,
+        );
     });
 
     it('wires CategoryFormFields with auto-slug disabled and the categories/errors props', () => {
