@@ -14,7 +14,11 @@
       "Read(//dev/**)",
       "Bash(./vendor/bin/pest *)",
       "Bash(./vendor/bin/pest tests/Feature/Admin/ProductControllerTest.php)",
-      "Bash(grep -iE '\\\\.vue$|Pages/')"
+      "Bash(grep -iE '\\\\.vue$|Pages/')",
+      "Bash(echo \"LINT_EXIT:$?\")",
+      "Bash(vendor/bin/pint --parallel --test)",
+      "Bash(composer show *)",
+      "Read(//d//**)"
     ]
   }
 }
