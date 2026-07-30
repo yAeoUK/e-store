@@ -6,10 +6,18 @@ const routerGet = vi.fn();
 const routerPost = vi.fn();
 const routerDelete = vi.fn();
 
-type FormOptions = { onFinish?: () => void; onSuccess?: () => void };
+type FormOptions = {
+    onFinish?: () => void;
+    onSuccess?: () => void;
+    onError?: () => void;
+    forceFormData?: boolean;
+    onProgress?: (event: { percentage?: number }) => void;
+};
 type MockForm = Record<string, unknown> & {
     errors: Record<string, string>;
     processing: boolean;
+    lastPostUrl?: string;
+    lastPostOptions?: FormOptions;
 };
 
 // Forms are recorded in useForm() call order for the currently-mounted
@@ -32,10 +40,26 @@ function useForm<T extends Record<string, unknown>>(initial: T) {
             return { ...initialData };
         },
         post(_url: string, options: FormOptions = {}) {
+            (form as unknown as MockForm).lastPostUrl = _url;
+            (form as unknown as MockForm).lastPostOptions = options;
             options.onSuccess?.();
             options.onFinish?.();
         },
         patch(_url: string, options: FormOptions = {}) {
+            (form as unknown as MockForm).lastPostUrl = _url;
+            (form as unknown as MockForm).lastPostOptions = options;
+            options.onSuccess?.();
+            options.onFinish?.();
+        },
+        put(_url: string, options: FormOptions = {}) {
+            (form as unknown as MockForm).lastPostUrl = _url;
+            (form as unknown as MockForm).lastPostOptions = options;
+            options.onSuccess?.();
+            options.onFinish?.();
+        },
+        delete(_url: string, options: FormOptions = {}) {
+            (form as unknown as MockForm).lastPostUrl = _url;
+            (form as unknown as MockForm).lastPostOptions = options;
             options.onSuccess?.();
             options.onFinish?.();
         },
@@ -101,7 +125,12 @@ vi.mock('@/i18n', () => ({
     t: (key: string) => key,
 }));
 
-export const routeMock = vi.fn((name: string) => name);
+// Params kept (though unused) so calls with route()'s full (name, params,
+// absolute) arity type-check against this mock.
+export const routeMock = vi.fn(
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    (name: string, _params?: unknown, _absolute?: boolean) => name,
+);
 
 (globalThis as any).route = routeMock;
 config.global.config = {

@@ -27,3 +27,35 @@ test('image attributes are cast correctly', function () {
     expect($fresh->sort_order)->toBeInt()->toBe(3)
         ->and($fresh->is_primary)->toBeTrue();
 });
+
+test('makePrimary marks the image as primary', function () {
+    $image = ProductImage::factory()->create(['is_primary' => false]);
+
+    $image->makePrimary();
+
+    expect($image->fresh()->is_primary)->toBeTrue();
+});
+
+test('makePrimary unsets the previous primary among the same product\'s images', function () {
+    $product = Product::factory()->create();
+    $current = ProductImage::factory()->create(['product_id' => $product->id, 'is_primary' => true]);
+    $other = ProductImage::factory()->create(['product_id' => $product->id, 'is_primary' => false]);
+
+    $other->makePrimary();
+
+    expect($other->fresh()->is_primary)->toBeTrue()
+        ->and($current->fresh()->is_primary)->toBeFalse();
+});
+
+test('makePrimary does not affect other products\' images', function () {
+    $product = Product::factory()->create();
+    $image = ProductImage::factory()->create(['product_id' => $product->id, 'is_primary' => false]);
+
+    $otherProduct = Product::factory()->create();
+    $otherImage = ProductImage::factory()->create(['product_id' => $otherProduct->id, 'is_primary' => true]);
+
+    $image->makePrimary();
+
+    expect($image->fresh()->is_primary)->toBeTrue()
+        ->and($otherImage->fresh()->is_primary)->toBeTrue();
+});

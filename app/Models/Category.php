@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasUniqueSlug;
 use Database\Factories\CategoryFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -11,11 +12,15 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Category extends Model
 {
     /** @use HasFactory<CategoryFactory> */
-    use HasFactory;
+    use HasFactory, HasUniqueSlug;
 
+    // `parent_id` and `slug` are deliberately excluded: parent_id is a
+    // foreign key that must be set only after the FormRequest's `exists`
+    // check has run, and slug must be set only via generateUniqueSlug() -
+    // neither should ever be settable by passing a raw request array
+    // straight into create()/update(), even by future accident.
     protected $fillable = [
         'name',
-        'slug',
         'description',
     ];
 

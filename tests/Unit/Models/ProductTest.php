@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\Category;
+use App\Models\OrderItem;
 use App\Models\Product;
 use App\Models\ProductImage;
 use App\Models\ProductVariant;
@@ -46,24 +47,18 @@ test('variants relationship returns the related variants', function () {
         ->and($product->variants->pluck('id'))->not->toContain($otherVariant->id);
 });
 
-test('primaryImage is a hasMany relation and returns every primary-flagged image', function () {
-    // Despite the singular name, primaryImage() is intentionally a hasMany (not hasOne) —
-    // it does not enforce a single primary image, so all is_primary=true rows are returned.
+test('orderItems relationship returns the related order items', function () {
     $product = Product::factory()->create();
-    $firstPrimary = ProductImage::factory()->create(['product_id' => $product->id, 'is_primary' => true]);
-    $secondPrimary = ProductImage::factory()->create(['product_id' => $product->id, 'is_primary' => true]);
-    ProductImage::factory()->create(['product_id' => $product->id, 'is_primary' => false]);
+    $orderItem = OrderItem::factory()->create(['product_id' => $product->id]);
 
-    // Unrelated data: another product with its own primary-flagged image, so the
-    // relation must filter by product_id too, not just is_primary across the table.
+    // Unrelated data: another product with its own order item, so the
+    // relation must filter by product_id and not just return every order item.
     $otherProduct = Product::factory()->create();
-    $otherPrimary = ProductImage::factory()->create(['product_id' => $otherProduct->id, 'is_primary' => true]);
+    $otherOrderItem = OrderItem::factory()->create(['product_id' => $otherProduct->id]);
 
-    $primaryImages = $product->primaryImage()->get();
-
-    expect($primaryImages)->toHaveCount(2)
-        ->and($primaryImages->pluck('id')->all())->toEqualCanonicalizing([$firstPrimary->id, $secondPrimary->id])
-        ->and($primaryImages->pluck('id'))->not->toContain($otherPrimary->id);
+    expect($product->orderItems)->toHaveCount(1)
+        ->and($product->orderItems->first()->id)->toBe($orderItem->id)
+        ->and($product->orderItems->pluck('id'))->not->toContain($otherOrderItem->id);
 });
 
 test('product attributes are cast correctly', function () {

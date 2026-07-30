@@ -18,6 +18,19 @@ describe('ProductGallery', () => {
         expect(image.attributes('alt')).toBe('Test Product');
     });
 
+    it('falls back to the translated alt text when no title is provided', () => {
+        const wrapper = mount(ProductGallery, {
+            props: {},
+        });
+
+        const image = wrapper.get('img');
+
+        expect(image.attributes('src')).toContain(
+            'https://placehold.co/600x600?text=Product',
+        );
+        expect(image.attributes('alt')).toBe('common.productImage');
+    });
+
     it('renders provided images and updates selected image on thumbnail click', async () => {
         const images = [
             { id: 1, url: '/images/first.jpg', alt_text: 'First' },

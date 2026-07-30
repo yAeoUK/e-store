@@ -2,7 +2,11 @@
 import { Head, router, useForm } from '@inertiajs/vue3';
 import { ref } from 'vue';
 import Card from '@/components/Card.vue';
-import { headingTextClass } from '@/components/classNames';
+import {
+    accentBadgeTextClass,
+    headingTextClass,
+    rowActionsClass,
+} from '@/components/classNames';
 import ConfirmationDialog from '@/components/ConfirmationDialog.vue';
 import DangerButton from '@/components/DangerButton.vue';
 import FormActions from '@/components/FormActions.vue';
@@ -172,7 +176,7 @@ function submitEdit() {
                                             </span>
                                             <span
                                                 v-if="addr.is_default"
-                                                class="text-xs font-medium text-indigo-600 dark:text-indigo-400"
+                                                :class="accentBadgeTextClass"
                                             >
                                                 {{
                                                     t(
@@ -190,9 +194,7 @@ function submitEdit() {
                                             {{ addr.state }}
                                         </MutedText>
                                     </div>
-                                    <div
-                                        class="flex flex-wrap items-start gap-2 sm:justify-end"
-                                    >
+                                    <div :class="rowActionsClass">
                                         <SecondaryButton
                                             v-if="!addr.is_default"
                                             type="button"
@@ -271,10 +273,7 @@ function submitEdit() {
                         <SecondaryButton type="button" @click="closeEdit">
                             {{ t('common.cancel') }}
                         </SecondaryButton>
-                        <PrimaryButton
-                            class="ms-3"
-                            :disabled="editForm.processing"
-                        >
+                        <PrimaryButton :disabled="editForm.processing">
                             {{ t('account.addresses.saveChanges') }}
                         </PrimaryButton>
                     </FormActions>

@@ -17,4 +17,13 @@ describe('Orders page', () => {
         expect(head.exists()).toBe(true);
         expect(head.attributes('title')).toBe('account.orders.pageTitle');
     });
+
+    it('renders the placeholder inside a Card within the ShopLayout', () => {
+        const wrapper = mount(Orders);
+
+        expect(wrapper.findComponent({ name: 'ShopLayout' }).exists()).toBe(
+            true,
+        );
+        expect(wrapper.findComponent({ name: 'Card' }).exists()).toBe(true);
+    });
 });

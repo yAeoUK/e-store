@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasUniqueSlug;
 use Database\Factories\ProductFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -11,11 +12,17 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Product extends Model
 {
     /** @use HasFactory<ProductFactory> */
-    use HasFactory;
+    use HasFactory, HasUniqueSlug;
 
+    public const LOW_STOCK_THRESHOLD = 5;
+
+    // `category_id` and `slug` are deliberately excluded: category_id is a
+    // foreign key that must be set only after the FormRequest's `exists`
+    // check has run, and slug must be set only via generateUniqueSlug() -
+    // neither should ever be settable by passing a raw request array
+    // straight into create()/update(), even by future accident.
     protected $fillable = [
         'name',
-        'slug',
         'price',
         'short_description',
         'description',
@@ -48,18 +55,18 @@ class Product extends Model
     }
 
     /**
-     * @return HasMany<ProductImage, $this>
-     */
-    public function primaryImage(): HasMany
-    {
-        return $this->hasMany(ProductImage::class)->where('is_primary', true)->orderBy('sort_order');
-    }
-
-    /**
      * @return HasMany<ProductVariant, $this>
      */
     public function variants(): HasMany
     {
         return $this->hasMany(ProductVariant::class);
+    }
+
+    /**
+     * @return HasMany<OrderItem, $this>
+     */
+    public function orderItems(): HasMany
+    {
+        return $this->hasMany(OrderItem::class);
     }
 }

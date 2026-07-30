@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\Address;
+use App\Models\Order;
 use App\Models\User;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Facades\Hash;
@@ -27,4 +28,15 @@ test('addresses relationship returns only the owning user addresses', function (
 
     expect($user->addresses)->toHaveCount(1)
         ->and($user->addresses->first()->id)->toBe($address->id);
+});
+
+test('orders relationship returns only the owning user orders', function () {
+    $user = User::factory()->create();
+    $otherUser = User::factory()->create();
+
+    $order = Order::factory()->create(['user_id' => $user->id]);
+    Order::factory()->create(['user_id' => $otherUser->id]);
+
+    expect($user->orders)->toHaveCount(1)
+        ->and($user->orders->first()->id)->toBe($order->id);
 });

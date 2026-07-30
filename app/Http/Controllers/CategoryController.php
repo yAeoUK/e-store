@@ -11,10 +11,9 @@ class CategoryController extends Controller
 {
     public function show(Category $category, Request $request): Response
     {
-        $category->load(['children', 'products']);
-
         $products = $category->products()
-            ->with(['category', 'images', 'variants'])
+            ->select(['id', 'category_id', 'name', 'slug', 'price', 'short_description'])
+            ->with(['category:id,name', 'images:product_id,url,alt_text'])
             ->where('is_active', true)
             ->when($request->filled('search'), function ($query) use ($request): void {
                 $search = $request->string('search')->trim();
@@ -35,7 +34,8 @@ class CategoryController extends Controller
             ->withQueryString();
 
         $categories = Category::query()
-            ->with('children')
+            ->select(['id', 'name', 'slug'])
+            ->with('children:id,parent_id,name,slug')
             ->whereNull('parent_id')
             ->get();
 

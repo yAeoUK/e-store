@@ -13,7 +13,8 @@ class ProductController extends Controller
     public function index(Request $request): Response
     {
         $query = Product::query()
-            ->with(['category', 'images', 'variants'])
+            ->select(['id', 'category_id', 'name', 'slug', 'price', 'short_description'])
+            ->with(['category:id,name', 'images:product_id,url,alt_text'])
             ->where('is_active', true);
 
         if ($request->filled('search')) {
@@ -40,7 +41,8 @@ class ProductController extends Controller
         $products = $query->latest()->paginate(12)->withQueryString();
 
         $categories = Category::query()
-            ->with('children')
+            ->select(['id', 'name', 'slug'])
+            ->with('children:id,parent_id,name,slug')
             ->whereNull('parent_id')
             ->get();
 
@@ -58,7 +60,11 @@ class ProductController extends Controller
 
     public function show(Product $product): Response
     {
-        $product->load(['category', 'images', 'variants']);
+        $product->load([
+            'category:id,name',
+            'images:product_id,url,alt_text',
+            'variants:product_id,sku,options,stock',
+        ]);
 
         return Inertia::render('Products/Show', [
             'product' => $product,

@@ -3,7 +3,6 @@ import { computed } from 'vue';
 import { t } from '@/i18n';
 
 interface ProductImage {
-    id?: number;
     url: string;
     alt_text?: string | null;
 }

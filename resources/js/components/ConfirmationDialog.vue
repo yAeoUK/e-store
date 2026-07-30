@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { dialogTitleClass } from '@/components/classNames';
 import DangerButton from '@/components/DangerButton.vue';
 import Modal from '@/components/Modal.vue';
 import MutedText from '@/components/MutedText.vue';
@@ -43,7 +44,7 @@ const emit = defineEmits(['confirm', 'cancel']);
 <template>
     <Modal :show="show" max-width="sm" @close="emit('cancel')">
         <div class="p-6">
-            <h2 class="text-lg font-medium text-gray-900 dark:text-slate-100">
+            <h2 :class="dialogTitleClass">
                 {{ title }}
             </h2>
 

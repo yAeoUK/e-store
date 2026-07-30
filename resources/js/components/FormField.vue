@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, useId } from 'vue';
 import { formFieldClass } from './classNames';
+import InputError from './InputError.vue';
 import InputLabel from './InputLabel.vue';
 
 defineOptions({ inheritAttrs: false });
@@ -57,10 +58,6 @@ defineExpose({ focus: () => input.value?.focus() });
                 inputClass,
             ]"
         />
-        <div v-show="error">
-            <p class="mt-2 text-sm text-red-600 dark:text-red-400">
-                {{ error }}
-            </p>
-        </div>
+        <InputError :message="error" />
     </div>
 </template>

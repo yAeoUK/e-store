@@ -60,5 +60,6 @@ describe('ProductCard', () => {
         links.forEach((link) => {
             expect(link.props('href')).toBe('/products/headphones');
         });
+        expect(wrapper.text()).toContain('common.viewProduct');
     });
 });

@@ -3,10 +3,11 @@ import type { Method, UrlMethodPair } from '@inertiajs/core';
 import { Link } from '@inertiajs/vue3';
 import { computed } from 'vue';
 import type { PropType } from 'vue';
+import { focusRingClass, mutedBodyTextClass } from './classNames';
 
 const textLinkVariants = {
-    muted: 'text-gray-600 hover:text-gray-900 dark:text-slate-400 dark:hover:text-slate-200',
-    slate: 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white',
+    muted: `${mutedBodyTextClass} hover:text-slate-900 dark:hover:text-slate-200`,
+    slate: `${mutedBodyTextClass} hover:text-slate-900 dark:hover:text-white`,
 };
 
 const props = defineProps({
@@ -39,10 +40,7 @@ const classes = computed(
         :method="method"
         :as="as"
         v-bind="$attrs"
-        :class="[
-            'rounded-md text-sm underline focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:outline-none',
-            classes,
-        ]"
+        :class="['rounded-md text-sm underline', focusRingClass, classes]"
     >
         <slot />
     </Link>

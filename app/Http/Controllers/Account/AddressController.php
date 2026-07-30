@@ -16,7 +16,10 @@ class AddressController extends Controller
 {
     public function index(Request $request): Response
     {
-        $addresses = $request->user()->addresses()->get();
+        $addresses = $request->user()->addresses()->get([
+            'id', 'label', 'name', 'line1', 'line2', 'city',
+            'state', 'postal_code', 'country', 'phone', 'is_default',
+        ]);
 
         return Inertia::render('Account/Addresses', [
             'addresses' => $addresses,

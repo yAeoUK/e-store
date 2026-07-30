@@ -42,8 +42,23 @@ describe('Products show page', () => {
         expect(wrapper.text()).toContain(defaultProduct.description);
         expect(wrapper.text()).toContain('common.price');
         expect(wrapper.text()).toContain('$199.99');
+        expect(wrapper.text()).toContain('common.availability');
         expect(wrapper.text()).toContain('common.inStock');
         expect(wrapper.findComponent(ShopLayout).exists()).toBe(true);
+    });
+
+    it('shows out-of-stock styling and text when the product has no stock', () => {
+        const wrapper = mountProductsShowPage({
+            product: { ...defaultProduct, stock: 0 },
+        });
+
+        expect(wrapper.text()).toContain('common.outOfStock');
+
+        const availability = wrapper
+            .findAll('p')
+            .find((paragraph) => paragraph.text() === 'common.outOfStock');
+
+        expect(availability?.classes()).toContain('text-red-600');
     });
 
     it('displays product images', () => {
@@ -88,6 +103,7 @@ describe('Products show page', () => {
             },
         });
 
+        expect(wrapper.text()).toContain('common.variants');
         expect(wrapper.text()).toContain('WATCH-BLACK');
         expect(wrapper.text()).toContain('color: Black');
         expect(wrapper.text()).toContain('WATCH-SILVER');

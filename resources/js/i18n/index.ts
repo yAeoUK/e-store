@@ -1,9 +1,11 @@
 import accountAr from './locales/ar/account';
+import adminAr from './locales/ar/admin';
 import authAr from './locales/ar/auth';
 import commonAr from './locales/ar/common';
 import profileAr from './locales/ar/profile';
 import shopAr from './locales/ar/shop';
 import account from './locales/en/account';
+import admin from './locales/en/admin';
 import auth from './locales/en/auth';
 import common from './locales/en/common';
 import profile from './locales/en/profile';
@@ -16,6 +18,7 @@ export const translations = {
         auth,
         profile,
         account,
+        admin,
     },
     ar: {
         common: commonAr,
@@ -23,6 +26,7 @@ export const translations = {
         auth: authAr,
         profile: profileAr,
         account: accountAr,
+        admin: adminAr,
     },
 } as const;
 

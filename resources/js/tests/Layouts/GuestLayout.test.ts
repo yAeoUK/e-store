@@ -1,6 +1,7 @@
 import { mount } from '@vue/test-utils';
 import { describe, expect, it } from 'vitest';
 import ApplicationLogo from '@/components/ApplicationLogo.vue';
+import Card from '@/components/Card.vue';
 import LanguageSwitcher from '@/components/LanguageSwitcher.vue';
 import GuestLayout from '@/Layouts/GuestLayout.vue';
 import { routeMock } from '../setup';
@@ -42,5 +43,11 @@ describe('GuestLayout', () => {
         const wrapper = mount(GuestLayout);
 
         expect(wrapper.findComponent(LanguageSwitcher).exists()).toBe(true);
+    });
+
+    it('renders the Card', () => {
+        const wrapper = mount(GuestLayout);
+
+        expect(wrapper.findComponent(Card).exists()).toBe(true);
     });
 });

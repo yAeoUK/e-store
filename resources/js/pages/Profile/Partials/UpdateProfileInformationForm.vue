@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useForm, usePage } from '@inertiajs/vue3';
-import { headingTextClass } from '@/components/classNames';
+import { bodyTextClass, dialogTitleClass } from '@/components/classNames';
 import FormField from '@/components/FormField.vue';
 import MutedText from '@/components/MutedText.vue';
 import PrimaryButton from '@/components/PrimaryButton.vue';
@@ -29,7 +29,7 @@ const form = useForm({
 <template>
     <section>
         <header>
-            <h2 :class="['text-lg font-medium', headingTextClass]">
+            <h2 :class="dialogTitleClass">
                 {{ t('profile.information.heading') }}
             </h2>
 
@@ -64,7 +64,7 @@ const form = useForm({
             />
 
             <div v-if="mustVerifyEmail && user.email_verified_at === null">
-                <p class="mt-2 text-sm text-gray-800 dark:text-slate-300">
+                <p :class="['mt-2 text-sm', bodyTextClass]">
                     {{ t('profile.information.unverified') }}
                     <TextLink
                         :href="route('verification.send')"

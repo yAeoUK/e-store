@@ -120,7 +120,7 @@ describe('ConfirmationDialog', () => {
             props: { show: true, title: 'Confirm' },
         });
 
-        await wrapper.find('.bg-gray-500').trigger('click');
+        await wrapper.find('.bg-slate-500').trigger('click');
 
         expect(wrapper.emitted('cancel')).toBeTruthy();
     });

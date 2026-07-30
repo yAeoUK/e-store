@@ -5,7 +5,6 @@ namespace App\Models;
 use Database\Factories\AddressFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Facades\DB;
 
 class Address extends Model
@@ -29,14 +28,6 @@ class Address extends Model
     protected $casts = [
         'is_default' => 'boolean',
     ];
-
-    /**
-     * @return BelongsTo<User, $this>
-     */
-    public function user(): BelongsTo
-    {
-        return $this->belongsTo(User::class);
-    }
 
     /**
      * Make this the user's one and only default address.
