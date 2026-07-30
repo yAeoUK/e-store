@@ -41,10 +41,11 @@ describe('CatalogLayout', () => {
             slug: 'keyboard',
             price: 99.99,
         };
+        const links = [{ url: '/products?page=2', label: '2', active: false }];
         const wrapper = mount(CatalogLayout, {
             props: {
                 heading: 'Products',
-                products: { data: [product] },
+                products: { data: [product], links },
                 filters,
                 categories,
                 emptyMessage: 'No products',
@@ -67,6 +68,11 @@ describe('CatalogLayout', () => {
                         template: '<div data-test="category-navigation" />',
                         props: ['categories'],
                     },
+                    Pagination: {
+                        name: 'Pagination',
+                        template: '<div data-test="pagination" />',
+                        props: ['links'],
+                    },
                 },
             },
         });
@@ -86,6 +92,10 @@ describe('CatalogLayout', () => {
                 .findComponent({ name: 'CategoryNavigation' })
                 .props('categories'),
         ).toEqual(categories);
+
+        expect(
+            wrapper.findComponent({ name: 'Pagination' }).props('links'),
+        ).toEqual(links);
     });
 
     it('renders empty state when no products are available', () => {

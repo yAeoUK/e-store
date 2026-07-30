@@ -80,7 +80,7 @@ const submit = () => {
                     {{ t('auth.login.forgotPassword') }}
                 </TextLink>
 
-                <PrimaryButton class="ms-4" :disabled="form.processing">
+                <PrimaryButton :disabled="form.processing">
                     {{ t('auth.login.submit') }}
                 </PrimaryButton>
             </FormActions>

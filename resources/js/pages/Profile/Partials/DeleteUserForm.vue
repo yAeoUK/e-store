@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useForm } from '@inertiajs/vue3';
 import { nextTick, ref } from 'vue';
-import { headingTextClass } from '@/components/classNames';
+import { dialogTitleClass } from '@/components/classNames';
 import DangerButton from '@/components/DangerButton.vue';
 import FormActions from '@/components/FormActions.vue';
 import FormField from '@/components/FormField.vue';
@@ -43,7 +43,7 @@ const closeModal = () => {
 <template>
     <section class="space-y-6">
         <header>
-            <h2 :class="['text-lg font-medium', headingTextClass]">
+            <h2 :class="dialogTitleClass">
                 {{ t('profile.deleteAccount.heading') }}
             </h2>
 
@@ -58,7 +58,7 @@ const closeModal = () => {
 
         <Modal :show="confirmingUserDeletion" @close="closeModal">
             <div class="p-6">
-                <h2 :class="['text-lg font-medium', headingTextClass]">
+                <h2 :class="dialogTitleClass">
                     {{ t('profile.deleteAccount.confirmTitle') }}
                 </h2>
 
@@ -88,7 +88,6 @@ const closeModal = () => {
                     </SecondaryButton>
 
                     <DangerButton
-                        class="ms-3"
                         :disabled="form.processing"
                         @click="deleteUser"
                     >

@@ -121,7 +121,7 @@ describe('TextLink', () => {
 
         expect(link.props('href')).toBe('/forgot-password');
         expect(wrapper.text()).toBe('Forgot your password?');
-        expect(wrapper.classes().join(' ')).toContain('text-gray-600');
+        expect(wrapper.classes().join(' ')).toContain('text-slate-600');
     });
 
     it('applies the slate variant class when requested', () => {

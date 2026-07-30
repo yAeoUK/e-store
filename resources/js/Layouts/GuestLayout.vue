@@ -2,14 +2,17 @@
 import { Link } from '@inertiajs/vue3';
 import ApplicationLogo from '@/components/ApplicationLogo.vue';
 import Card from '@/components/Card.vue';
-import { mutedLinkClass } from '@/components/classNames';
+import { mutedLinkClass, pageBgClass } from '@/components/classNames';
 import LanguageSwitcher from '@/components/LanguageSwitcher.vue';
 import { t } from '@/i18n';
 </script>
 
 <template>
     <div
-        class="flex min-h-screen flex-col items-center bg-slate-50 pt-6 sm:justify-center sm:pt-0 dark:bg-slate-950"
+        :class="[
+            'flex min-h-screen flex-col items-center pt-6 sm:justify-center sm:pt-0',
+            pageBgClass,
+        ]"
     >
         <div class="mb-2">
             <LanguageSwitcher />

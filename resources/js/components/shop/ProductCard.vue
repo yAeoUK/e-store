@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3';
 import {
-    headingTextClass,
     cardSurfaceClass,
-    mutedTextClass,
+    compactHeadingClass,
+    eyebrowTextClass,
+    subheadingTextClass,
 } from '@/components/classNames';
 import MutedText from '@/components/MutedText.vue';
 import { t } from '@/i18n';
@@ -52,22 +53,16 @@ const imageAlt = props.product.images?.[0]?.alt_text ?? props.product.name;
 
         <div class="space-y-3 p-4">
             <div class="flex items-center justify-between gap-2">
-                <span
-                    v-if="product.category?.name"
-                    :class="[
-                        mutedTextClass,
-                        'text-xs font-medium tracking-wide uppercase',
-                    ]"
-                >
+                <span v-if="product.category?.name" :class="eyebrowTextClass">
                     {{ product.category.name }}
                 </span>
-                <span :class="['text-sm font-semibold', headingTextClass]">
+                <span :class="compactHeadingClass">
                     ${{ Number(product.price).toFixed(2) }}
                 </span>
             </div>
 
             <Link :href="`/products/${product.slug}`" class="block">
-                <h3 :class="['text-lg font-semibold', headingTextClass]">
+                <h3 :class="subheadingTextClass">
                     {{ product.name }}
                 </h3>
             </Link>

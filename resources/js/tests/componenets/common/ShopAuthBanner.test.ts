@@ -30,7 +30,9 @@ describe('ShopAuthBanner', () => {
 
         expect(links).toHaveLength(2);
         expect(links[0].props('href')).toBe('login');
+        expect(links[0].text()).toBe('common.nav.logIn');
         expect(links[1].props('href')).toBe('register');
+        expect(links[1].text()).toBe('common.nav.register');
     });
 
     it('greets the authenticated user by name', () => {
@@ -40,6 +42,7 @@ describe('ShopAuthBanner', () => {
 
         const wrapper = mount(ShopAuthBanner);
 
+        expect(wrapper.text()).toContain('common.nav.greeting');
         expect(wrapper.text()).toContain('Jane Doe');
     });
 

@@ -1,5 +1,11 @@
 <script setup lang="ts">
 import type { PropType } from 'vue';
+import {
+    bodyTextClass,
+    borderColorClass,
+    focusRingClass,
+    legacyButtonBaseClass,
+} from './classNames';
 
 defineProps({
     type: {
@@ -12,7 +18,13 @@ defineProps({
 <template>
     <button
         :type="type"
-        class="inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-xs font-semibold tracking-widest text-gray-700 uppercase shadow-sm transition duration-150 ease-in-out hover:bg-gray-50 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:outline-none disabled:opacity-25 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
+        :class="[
+            legacyButtonBaseClass,
+            borderColorClass,
+            bodyTextClass,
+            focusRingClass,
+            'bg-white shadow-sm hover:bg-slate-50 dark:bg-slate-800 dark:hover:bg-slate-700',
+        ]"
     >
         <slot />
     </button>

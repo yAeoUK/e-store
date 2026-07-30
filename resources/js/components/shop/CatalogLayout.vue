@@ -1,7 +1,13 @@
 <script setup lang="ts">
-import { headingTextClass, interactiveRowClass } from '@/components/classNames';
+import {
+    borderColorClass,
+    headingTextClass,
+    mutedBodyTextClass,
+    surfaceBgClass,
+} from '@/components/classNames';
 import MutedText from '@/components/MutedText.vue';
 import PageContainer from '@/components/PageContainer.vue';
+import Pagination from '@/components/Pagination.vue';
 import type {
     CatalogCategory,
     CatalogFilters,
@@ -69,32 +75,17 @@ function handleApplyFilters(filters: FilterPayload): void {
 
                 <div
                     v-else
-                    class="rounded-xl border border-dashed border-slate-300 bg-white p-8 text-center text-slate-600 dark:border-slate-700 dark:bg-slate-900/90 dark:text-slate-400"
+                    :class="[
+                        borderColorClass,
+                        surfaceBgClass,
+                        mutedBodyTextClass,
+                        'rounded-xl border border-dashed p-8 text-center',
+                    ]"
                 >
                     {{ emptyMessage }}
                 </div>
 
-                <nav
-                    v-if="products.links?.length"
-                    class="flex flex-wrap items-center gap-2"
-                >
-                    <a
-                        v-for="link in products.links"
-                        :key="link.label"
-                        :href="link.url ?? ''"
-                        class="rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700"
-                        :class="
-                            link.active
-                                ? 'bg-slate-900 text-white dark:bg-indigo-600'
-                                : [
-                                      'bg-white dark:bg-slate-900/90',
-                                      interactiveRowClass,
-                                  ]
-                        "
-                    >
-                        <span v-html="link.label"></span>
-                    </a>
-                </nav>
+                <Pagination :links="products.links" />
             </div>
         </div>
     </PageContainer>

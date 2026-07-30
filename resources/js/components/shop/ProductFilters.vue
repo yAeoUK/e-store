@@ -2,9 +2,9 @@
 import { ref } from 'vue';
 import FormField from '@/components/FormField.vue';
 import PrimaryButton from '@/components/PrimaryButton.vue';
+import SelectField from '@/components/SelectField.vue';
 import { t } from '@/i18n';
-import { formFieldClass, cardSurfaceClass } from '../classNames';
-import InputLabel from '../InputLabel.vue';
+import { cardSurfaceClass } from '../classNames';
 
 const props = defineProps<{
     categories?: Array<{ id: number; name: string; slug?: string }>;
@@ -53,26 +53,22 @@ function applyFilters(): void {
                 :placeholder="t('shop.products.filters.searchPlaceholder')"
             />
 
-            <div>
-                <InputLabel for="category_id">{{
-                    t('shop.products.filters.category')
-                }}</InputLabel>
-                <select
-                    v-model="localFilters.category_id"
-                    :class="formFieldClass"
+            <SelectField
+                id="category_id"
+                v-model="localFilters.category_id"
+                :label="t('shop.products.filters.category')"
+            >
+                <option value="">
+                    {{ t('shop.products.filters.allCategories') }}
+                </option>
+                <option
+                    v-for="category in categories"
+                    :key="category.id"
+                    :value="category.id"
                 >
-                    <option value="">
-                        {{ t('shop.products.filters.allCategories') }}
-                    </option>
-                    <option
-                        v-for="category in categories"
-                        :key="category.id"
-                        :value="category.id"
-                    >
-                        {{ category.name }}
-                    </option>
-                </select>
-            </div>
+                    {{ category.name }}
+                </option>
+            </SelectField>
 
             <FormField
                 v-model="localFilters.min_price"

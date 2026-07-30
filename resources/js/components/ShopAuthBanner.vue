@@ -2,7 +2,10 @@
 import { router, usePage } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
 import ButtonLink from '@/components/ButtonLink.vue';
-import { interactiveRowClass } from '@/components/classNames';
+import {
+    dropdownItemBaseClass,
+    interactiveRowClass,
+} from '@/components/classNames';
 import ConfirmationDialog from '@/components/ConfirmationDialog.vue';
 import Dropdown from '@/components/Dropdown.vue';
 import DropdownLink from '@/components/DropdownLink.vue';
@@ -54,10 +57,7 @@ const logout = () => {
                 }}</DropdownLink>
                 <button
                     type="button"
-                    :class="[
-                        'block w-full px-4 py-2 text-start text-sm leading-5 transition duration-150 ease-in-out focus:bg-slate-100 focus:outline-none dark:focus:bg-slate-800',
-                        interactiveRowClass,
-                    ]"
+                    :class="[dropdownItemBaseClass, interactiveRowClass]"
                     @click="confirmLogout"
                 >
                     {{ t('common.nav.logOut') }}

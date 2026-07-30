@@ -1,9 +1,8 @@
 <script setup lang="ts">
-import {
-    interactiveRowClass,
-    cardSurfaceClass,
-    mutedTextClass,
-} from '@/components/classNames';
+import { usePage } from '@inertiajs/vue3';
+import { computed } from 'vue';
+import SidebarNav from '@/components/SidebarNav.vue';
+import type { SidebarNavItem } from '@/components/SidebarNav.vue';
 import { t } from '@/i18n';
 
 interface Category {
@@ -13,53 +12,46 @@ interface Category {
     children?: Category[];
 }
 
-defineProps<{
+const props = defineProps<{
     categories?: Category[];
 }>();
+
+const page = usePage();
+
+// Exact-match (allowing a trailing path segment or query string) rather than
+// a plain prefix match, since sibling category slugs can share a prefix
+// (e.g. "shoes" and "shoes-kids").
+function isCurrent(href: string): boolean {
+    const url = typeof page.url === 'string' ? page.url : '';
+
+    return url === href || url.startsWith(`${href}/`) || url.startsWith(`${href}?`);
+}
+
+function toItem(category: Category): SidebarNavItem {
+    const href = `/categories/${category.slug}`;
+
+    return {
+        key: category.id,
+        label: category.name,
+        href,
+        badge: category.children?.length || undefined,
+        active: isCurrent(href),
+        children: category.children?.map((child) => {
+            const childHref = `/categories/${child.slug}`;
+
+            return {
+                key: child.id,
+                label: child.name,
+                href: childHref,
+                active: isCurrent(childHref),
+            };
+        }),
+    };
+}
+
+const items = computed(() => (props.categories ?? []).map(toItem));
 </script>
 
 <template>
-    <nav :class="[cardSurfaceClass, 'bg-white p-4 shadow-sm dark:shadow-none']">
-        <h3
-            :class="[
-                mutedTextClass,
-                'mb-3 text-sm font-semibold tracking-wide uppercase',
-            ]"
-        >
-            {{ t('common.categories') }}
-        </h3>
-
-        <ul class="space-y-2">
-            <li v-for="category in categories" :key="category.id">
-                <a
-                    :href="`/categories/${category.slug}`"
-                    :class="[
-                        'flex items-center justify-between rounded-lg px-3 py-2 text-sm font-medium',
-                        interactiveRowClass,
-                    ]"
-                >
-                    <span>{{ category.name }}</span>
-                    <span
-                        v-if="category.children?.length"
-                        class="text-xs text-slate-400 dark:text-slate-500"
-                        >{{ category.children.length }}</span
-                    >
-                </a>
-
-                <ul
-                    v-if="category.children?.length"
-                    class="ms-4 mt-2 space-y-1 border-s border-slate-200 ps-3 dark:border-slate-800"
-                >
-                    <li v-for="child in category.children" :key="child.id">
-                        <a
-                            :href="`/categories/${child.slug}`"
-                            class="block rounded-lg px-3 py-2 text-sm text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
-                        >
-                            {{ child.name }}
-                        </a>
-                    </li>
-                </ul>
-            </li>
-        </ul>
-    </nav>
+    <SidebarNav :title="t('common.categories')" :items="items" />
 </template>

@@ -39,7 +39,7 @@ const submit = () => {
             />
 
             <FormActions>
-                <PrimaryButton class="ms-4" :disabled="form.processing">
+                <PrimaryButton :disabled="form.processing">
                     {{ t('auth.confirmPassword.submit') }}
                 </PrimaryButton>
             </FormActions>

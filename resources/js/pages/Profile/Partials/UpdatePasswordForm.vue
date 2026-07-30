@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useForm } from '@inertiajs/vue3';
 import { ref } from 'vue';
-import { headingTextClass } from '@/components/classNames';
+import { dialogTitleClass } from '@/components/classNames';
 import FormField from '@/components/FormField.vue';
 import MutedText from '@/components/MutedText.vue';
 import PrimaryButton from '@/components/PrimaryButton.vue';
@@ -38,7 +38,7 @@ const updatePassword = () => {
 <template>
     <section>
         <header>
-            <h2 :class="['text-lg font-medium', headingTextClass]">
+            <h2 :class="dialogTitleClass">
                 {{ t('profile.password.heading') }}
             </h2>
 

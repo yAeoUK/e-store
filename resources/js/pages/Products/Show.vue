@@ -2,9 +2,12 @@
 import { Head } from '@inertiajs/vue3';
 import { ref } from 'vue';
 import {
-    headingTextClass,
     cardSurfaceClass,
+    errorTextClass,
+    headingTextClass,
+    mutedBodyTextClass,
     mutedTextClass,
+    subheadingTextClass,
 } from '@/components/classNames';
 import LabelText from '@/components/LabelText.vue';
 import MutedText from '@/components/MutedText.vue';
@@ -14,16 +17,13 @@ import { t } from '@/i18n';
 import ShopLayout from '@/Layouts/ShopLayout.vue';
 
 interface ProductImage {
-    id?: number;
     url: string;
     alt_text?: string | null;
 }
 
 interface ProductVariant {
-    id?: number;
     sku: string;
     options?: Record<string, string | number> | null;
-    price?: number | string | null;
     stock?: number | null;
 }
 
@@ -78,7 +78,10 @@ const selectedImage = ref<string | null>(null);
                             {{ product.name }}
                         </h1>
                         <p
-                            class="mt-4 text-base leading-7 text-slate-600 dark:text-slate-400"
+                            :class="[
+                                'mt-4 text-base leading-7',
+                                mutedBodyTextClass,
+                            ]"
                         >
                             {{
                                 product.description || product.short_description
@@ -107,8 +110,8 @@ const selectedImage = ref<string | null>(null);
                                     class="font-semibold"
                                     :class="
                                         product.stock && product.stock > 0
-                                            ? 'text-emerald-600 dark:text-emerald-400'
-                                            : 'text-rose-600 dark:text-rose-400'
+                                            ? 'text-green-600 dark:text-green-400'
+                                            : errorTextClass
                                     "
                                 >
                                     {{
@@ -122,9 +125,7 @@ const selectedImage = ref<string | null>(null);
                     </div>
 
                     <div v-if="product.variants?.length" class="space-y-3">
-                        <h2
-                            :class="['text-lg font-semibold', headingTextClass]"
-                        >
+                        <h2 :class="subheadingTextClass">
                             {{ t('common.variants') }}
                         </h2>
                         <div class="grid gap-3 md:grid-cols-2">

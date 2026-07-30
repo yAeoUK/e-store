@@ -294,6 +294,32 @@ describe('Addresses page', () => {
         expect(wrapper.text()).toContain('The line1 field is required.');
     });
 
+    it('renders both address Cards and the ShopLayout', () => {
+        const wrapper = mount(Addresses, { props: { addresses: [] } });
+
+        expect(wrapper.findAllComponents({ name: 'Card' })).toHaveLength(2);
+        expect(wrapper.findComponent({ name: 'ShopLayout' }).exists()).toBe(
+            true,
+        );
+    });
+
+    it('renders the add-address heading and submit button text', () => {
+        const wrapper = mount(Addresses, { props: { addresses: [] } });
+
+        expect(wrapper.text()).toContain('account.addresses.addHeading');
+        expect(wrapper.text()).toContain('account.addresses.submit');
+    });
+
+    it('renders the edit modal heading and save-changes button text', async () => {
+        const wrapper = mount(Addresses, { props: { addresses: [address] } });
+
+        await findButton(wrapper, 'account.addresses.edit')?.trigger('click');
+
+        const modal = wrapper.findComponent({ name: 'Modal' });
+        expect(modal.text()).toContain('account.addresses.editHeading');
+        expect(modal.text()).toContain('account.addresses.saveChanges');
+    });
+
     it('toggles the is_default checkbox', async () => {
         const wrapper = mount(Addresses, { props: { addresses: [] } });
 

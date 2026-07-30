@@ -1,7 +1,9 @@
-<script setup lang="ts"></script>
+<script setup lang="ts">
+import { mutedBodyTextClass } from './classNames';
+</script>
 
 <template>
-    <p class="text-sm text-slate-600 dark:text-slate-400">
+    <p :class="['text-sm', mutedBodyTextClass]">
         <slot />
     </p>
 </template>

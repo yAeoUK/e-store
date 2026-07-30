@@ -75,7 +75,7 @@ const submit = () => {
                     {{ t('auth.register.alreadyRegistered') }}
                 </TextLink>
 
-                <PrimaryButton class="ms-4" :disabled="form.processing">
+                <PrimaryButton :disabled="form.processing">
                     {{ t('auth.register.submit') }}
                 </PrimaryButton>
             </FormActions>

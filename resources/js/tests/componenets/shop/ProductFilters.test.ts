@@ -24,6 +24,7 @@ describe('ProductFilters', () => {
 
         const options = wrapper.findAll('option');
 
+        expect(options[0].text()).toBe('shop.products.filters.allCategories');
         expect(options[1].text()).toBe('Accessories');
         expect(options[2].text()).toBe('Headphones');
         expect(wrapper.get('input[type="text"]').element).toHaveProperty(
@@ -41,6 +42,14 @@ describe('ProductFilters', () => {
         ).toBe('shop.products.filters.searchPlaceholder');
         expect(fields[1].props('label')).toBe('shop.products.filters.minPrice');
         expect(fields[2].props('label')).toBe('shop.products.filters.maxPrice');
+
+        // Index 1: FormField renders its own InputLabel internally, so the
+        // standalone category InputLabel is the second one in DOM order
+        // (after the search field's).
+        expect(
+            wrapper.findAllComponents({ name: 'InputLabel' })[1].text(),
+        ).toBe('shop.products.filters.category');
+        expect(wrapper.text()).toContain('shop.products.filters.apply');
     });
 
     it('emits apply with null values when fields are empty', async () => {

@@ -69,7 +69,7 @@ describe('Modal', () => {
             props: { show: true, closeable: true },
         });
 
-        await wrapper.find('.bg-gray-500').trigger('click');
+        await wrapper.find('.bg-slate-500').trigger('click');
 
         expect(wrapper.emitted('close')).toBeTruthy();
     });
@@ -79,7 +79,7 @@ describe('Modal', () => {
             props: { show: true, closeable: false },
         });
 
-        await wrapper.find('.bg-gray-500').trigger('click');
+        await wrapper.find('.bg-slate-500').trigger('click');
 
         expect(wrapper.emitted('close')).toBeFalsy();
     });
