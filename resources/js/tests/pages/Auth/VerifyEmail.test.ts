@@ -44,6 +44,7 @@ describe('VerifyEmail page', () => {
         const logoutLink = wrapper.findComponent(TextLink);
 
         expect(logoutLink.props('href')).toBe('logout');
+        expect(logoutLink.text()).toBe('auth.verifyEmail.logOut');
     });
 
     it('renders within GuestLayout', () => {

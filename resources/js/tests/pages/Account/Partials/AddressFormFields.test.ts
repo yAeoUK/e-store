@@ -162,4 +162,10 @@ describe('AddressFormFields', () => {
 
         expect(wrapper.emitted('update:is_default')?.[0]).toEqual([true]);
     });
+
+    it('renders the set-default checkbox label text', () => {
+        const wrapper = mountFields();
+
+        expect(wrapper.text()).toContain('account.addresses.setDefault');
+    });
 });
