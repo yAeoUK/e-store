@@ -219,14 +219,36 @@ section the same as the Boost guidelines above.
   typography wrappers, etc.) and the shared Tailwind class tokens in
   `resources/js/components/classNames.js`.
 - A labeled text/number input with an error slot is `FormField` — not a
-  hand-assembled `InputLabel` + `<input>` + error `<p>` (those don't exist as
-  separate composable pieces anymore; `TextInput`/`InputError` were merged
-  into `FormField`). `InputLabel` is still used on its own only where the
-  form control isn't a `FormField`-compatible text input, e.g. a `<select>`.
+  hand-assembled `InputLabel` + `<input>` + error `<p>`. The same idea extends
+  to the other control types: a labeled `<select>` is `SelectField`
+  (label/error/id-generation handled the same way as `FormField`; pass the
+  `<option>` elements via its default slot), a labeled `<textarea>` is
+  `TextareaField`, and a labeled checkbox row is `CheckboxField` (`label`
+  prop + `v-model:checked`). `InputLabel` is still used on its own directly
+  only where none of these four fit, e.g. a label sitting over a custom,
+  non-native control like `VariantOptionsEditor`.
+- The error message under a field is `InputError` (`message` prop) — used
+  internally by `FormField`/`SelectField`/`TextareaField`/`SlugField` so all
+  four render error text identically; don't hand-roll another
+  `v-show="error"` + `<p>` pair. `InputError` briefly didn't exist as its own
+  component (folded into `FormField`) until the same `v-show`/`<p>` pair
+  turned up duplicated across `SelectField`/`TextareaField`/`SlugField` too —
+  it's back as a shared piece specifically to keep those four in sync.
 - Wrap new pages in the existing layouts rather than duplicating header/nav
   markup: `GuestLayout` for unauthenticated Auth pages, `ShopLayout` for
-  everything else (shop, Account, Profile) — see
-  [docs/frontend/README.md](docs/frontend/README.md).
+  shop/Account/Profile pages, `AdminLayout` for anything under `pages/Admin/`
+  — see [docs/frontend/README.md](docs/frontend/README.md).
+- A new admin list page reuses `DataTable` (columns/rows/pagination props,
+  per-column `#cell-*` slots, `#actions` slot) rather than a hand-rolled
+  `<table>` — see `resources/js/components/admin/` in
+  [docs/design-system/README.md](docs/design-system/README.md). A new
+  Create/Edit page pair for an admin resource shares its field markup via a
+  `<Entity>FormFields` component (see `CategoryFormFields`/`ProductFormFields`)
+  — each page keeps its own `useForm()`/submit route/verb and passes
+  `v-model:<field>`/`errors` down, only the fields themselves are shared.
+  `resources/js/components/ui/` (shadcn-vue `Table`/`Badge` primitives) are
+  building blocks for `DataTable`/status badges specifically — go through
+  `DataTable`, don't reach for `ui/table/*` directly in a new page.
 - Only promote a component-local variant map (e.g. a `variantClasses` object)
   to the shared `classNames.js` once a **second** component actually needs it.
   Don't add a prop "for flexibility" that nothing currently uses — e.g. don't
@@ -242,6 +264,55 @@ section the same as the Boost guidelines above.
 - User-facing copy goes through `t('namespace.key')`
   (`resources/js/i18n/`), not inline strings. Links/redirects go through
   Ziggy's `route('name')`, never a hardcoded path.
+
+## Database query column selection (this repo specifically)
+
+- **Every Eloquent query whose result reaches an `Inertia::render()` prop must
+  explicitly select only the columns the frontend actually needs** — no bare
+  `Model::query()->paginate()`/`->get()`/`->all()`, no unrestricted
+  `->with('relation')`/`->load('relation')`, if a narrower column list would
+  do. This applies to the top-level query (`->select([...])` or
+  `Model::all(['col1', 'col2'])`) and to every eager-loaded relation
+  (`->with('relation:col1,col2')` / `->load('relation:col1,col2')`).
+- **"Needed by the frontend" means matching the prop's TypeScript shape**, not
+  grepping the current template for literal `row.xxx` reads — check
+  `resources/js/components/admin/admin.ts` for admin pages (`AdminProduct`,
+  `AdminCategory`, `AdminUser`, `AdminOrder`, `AdminAdmin`, ...),
+  `resources/js/components/shop/catalog.ts` for the public catalog
+  (`CatalogProduct`, `CatalogCategory`), or the page's own local `interface`
+  otherwise. A field declared on the type is "needed" even if the current
+  template happens not to render it yet — trust the type, don't re-derive it
+  from render call sites every time.
+- **Eager-loaded relation column lists must include the foreign key**
+  Eloquent needs to map the related rows back to their parent (e.g.
+  `images:id,product_id,url,alt_text` — `product_id` isn't used by any Vue
+  page, but dropping it breaks the eager load). The parent side doesn't need
+  the reverse FK re-added if it's already selected for its own sake (e.g.
+  `category_id` on `Product` is normally already needed to filter/relate).
+- **A column filtered or sorted on in the same query doesn't need to be in
+  the `->select()` just because it's in a `->where()`/`->orderBy()`/search
+  clause** — e.g. `Product::query()->select([...])->where('is_active', true)`
+  is fine even though `is_active` isn't in the select list; SQL doesn't
+  require it.
+- **Don't restrict the columns of a route-model-bound top-level model**
+  (e.g. `edit(Product $product)`) — Laravel's implicit binding always fetches
+  the full row before the controller method runs, so trimming it means
+  replacing implicit binding with a manual `Model::select([...])->findOrFail()`,
+  which is disproportionate effort for a single-row fetch. Only trim that
+  model's **eager-loaded relations** (`$product->load(['images:...', ...])`),
+  which are fully controllable and where the multi-row cost actually adds up.
+  See `Admin\ProductController::edit`/`Admin\CategoryController::edit` for
+  the pattern: the bound model's own `select()` is left alone, its relations
+  aren't.
+- **Don't spread a full model into an array response** (`[...$user->toArray(), ...]`)
+  when only a few fields are needed — it silently re-exposes every future
+  column added to that table. Build the response as an explicit array
+  instead (see `Admin\UserController::index`).
+- See `CategoryController`/`ProductController` (public), `Admin\ProductController`,
+  `Admin\OrderController`, `Admin\UserController`, `Admin\AdminController`,
+  `Admin\CategoryController`, and `Account\AddressController` for the applied
+  pattern across every existing listing/detail endpoint — use them as the
+  template for any new query that feeds an Inertia prop.
 
 ## Authorization (this repo specifically)
 
@@ -261,9 +332,39 @@ section the same as the Boost guidelines above.
   `PATCH /account/addresses/{someone_else's_id}` via route-model binding.
   Both are needed; neither substitutes for the other.
 - `Category`/`Product` don't have Policies, and shouldn't get one just for
-  symmetry: they're public read-only endpoints today, and the not-yet-built
-  admin CRUD for them will most likely need a role/admin gate, not a
-  per-record ownership check — the wrong tool for that shape of problem.
+  symmetry: they're public read-only endpoints for shoppers, and their admin
+  CRUD (`app/Http/Controllers/Admin/CategoryController`/`ProductController`)
+  is gated by the `admin` role instead — a role check ("is this user an admin
+  at all"), not a per-record ownership check, so a Policy is the wrong tool.
+  The role check itself is `EnsureUserIsAdmin` (registered as the `admin`
+  middleware alias), backed by spatie/laravel-permission's `HasRoles` trait
+  on `User` — every admin route is `Route::middleware(['auth', 'admin'])`
+  (`auth` first, so a guest gets the login redirect rather than a 403).
+  Bootstrapping the very first admin account (before any admin session
+  exists to promote one via the UI) goes through `php artisan make:admin
+  <email>`, not a manual DB edit.
+- A resource that other rows can reference (a `Category` with children/
+  products, a `Product` with order items) should block `destroy()` at both
+  layers: an app-level existence check in the controller (flash a specific
+  error, e.g. `admin.categories.has_children_or_products`) **and** a
+  `restrictOnDelete()` foreign key in the migration as the backstop — don't
+  rely on just one. See `Admin\CategoryController::destroy`/
+  `Admin\ProductController::destroy` and the restrict-delete migrations
+  referenced in [docs/architecture.md](docs/architecture.md) for the pattern.
+- A model needing a unique, human-editable slug (`Category`, `Product`) uses
+  the `HasUniqueSlug` trait's `generateUniqueSlug($source, $ignoreId)` —
+  don't hand-roll another slug-collision loop. Keep `slug` (and any parent/
+  category FK the slug depends on) out of `$fillable` so it can only be set
+  through the trait/controller, never raw mass-assignment.
+
+## File uploads (this repo specifically)
+
+- An uploaded image goes through Intervention Image before it's stored, not
+  saved verbatim from the request: `Admin\ProductImageController::store` is
+  the reference — `scaleDown(1600, 1600)` (never upscales) then re-encode as
+  JPEG at a fixed quality, regardless of the original format, before writing
+  to the `public` disk. Apply the same "resize + normalize format" pattern to
+  any new upload feature rather than storing whatever the browser sent.
 
 ## TypeScript conventions (this repo specifically)
 
@@ -388,4 +489,99 @@ Full detail in [docs/testing.md](docs/testing.md) — the essentials:
   instead — use `.attributes('x')`), and an inline `global.stubs` object
   needs an explicit `name` field before `findComponent({ name: 'X' })` can
   match it.
+- **Every admin CRUD endpoint — every page render AND every mutating
+  action — needs its own non-admin-forbidden test, co-located in that
+  resource's test file.** This applies to *all* of `index`/`create`/`edit`
+  (`GET`) and `store`/`update`/`destroy` (`POST`/`PATCH`/`DELETE`), for every
+  admin controller, not just the ones a reviewer happens to flag — when
+  adding a new admin resource or a new action on an existing one, add the
+  matching forbidden test in the same pass, don't leave it for later.
+  `AdminMiddlewareTest`'s `admin_routes` dataset gives a generic "guest
+  redirected / non-admin forbidden / admin gets 200" gate for param-less
+  admin `GET` routes (add new `index`/`create`-style routes to that
+  dataset) — but that dataset **does not substitute** for the per-resource
+  tests below, it only covers what it structurally can't skip:
+  - It only asserts `assertOk()`, not which Inertia component came back or
+    which props it received.
+  - It can't reach routes needing a route-bound model (`edit`,
+    `update`, `destroy`, or any `store` needing a related record) since its
+    entries are bare route-name strings with no params.
+  - It only covers `GET` — `store`/`update`/`destroy` aren't in it at all.
+
+  So each admin resource's own test file (e.g. `ProductControllerTest`,
+  `CategoryControllerTest`, `AdminControllerTest`) needs, in addition to the
+  happy-path tests:
+  - Per page (`index`/`create`/`edit`): an admin-rendered test asserting
+    `assertJsonPath('component', 'Admin/X/Y')` plus the key prop (e.g.
+    `props.product.id`), **and** a `non-admin cannot list X` /
+    `non-admin cannot view the X create or edit pages` test asserting
+    `assertForbidden()` on those same `GET` routes.
+  - Per mutating action (`store`/`update`/`destroy`): a
+    `non-admin cannot create update or delete X` test asserting
+    `assertForbidden()` on each, plus a DB assertion that nothing changed
+    (`assertDatabaseHas`/`assertDatabaseMissing` on the untouched record).
+
+  See [ProductControllerTest](tests/Feature/Admin/ProductControllerTest.php)
+  and [CategoryControllerTest](tests/Feature/Admin/CategoryControllerTest.php)
+  for the full pattern applied to one resource.
+
+  This isn't limited to resources with a full `index`/`create`/`edit`/
+  `store`/`update`/`destroy` set — it's **every route any admin controller
+  exposes**. A single-action controller with no CRUD shape at all (e.g.
+  `DashboardController`'s lone `GET /admin/dashboard`) still needs its own
+  `non-admin cannot view the dashboard` test in `DashboardControllerTest`,
+  same as a controller missing just one action's coverage (e.g.
+  `AdminController` had `store`/`promote`/`revoke` covered but was missing
+  `create` — go back and check the *full* action list against the test file
+  before assuming existing coverage is complete, don't just pattern-match on
+  whether *a* non-admin test exists in the file).
+- **Every admin `index` that calls `->paginate()` needs a test proving it's
+  actually paginating, not just returning everything in one response.** All
+  five admin listing endpoints (`Product`, `Category`, `User`, `Order`,
+  `Admin`) call `->paginate(15)`, and every existing happy-path test only
+  creates 1-2 records — that count would pass identically whether the
+  controller used `paginate(15)` or a plain `get()`, so it silently proves
+  nothing about pagination itself. Add a test per resource that creates more
+  than the page size (e.g. 20 records — enough to exceed `paginate(15)`) and
+  asserts the *first page* doesn't contain all of them:
+  `assertJsonCount(15, 'props.X.data')` plus `assertJsonPath('props.X.total',
+  20)` and `assertJsonPath('props.X.per_page', 15)` (Laravel's
+  `LengthAwarePaginator::toArray()` puts `total`/`per_page`/`current_page`/
+  `last_page` at the top level alongside `data`, not nested under a `meta`
+  key). Watch for helpers that add their own row to the same table —
+  `actingAsAdmin()` creates a `User` row, so a `UserControllerTest` seeding
+  20 more must assert `total` 21, and an `AdminControllerTest` test seeding
+  19 more admins (plus the one from `actingAsAdmin()`) asserts `total` 20.
+  Apply the same test to any *new* admin `index` action that paginates, at
+  the same time the action is added.
+- **Every model relationship and cast needs a `tests/Unit/Models/<Model>Test.php`
+  test, added in the same pass as the model change** — not deferred, not
+  left to feature-test coverage to catch incidentally. This project has one
+  test file per model (`CategoryTest`, `ProductTest`, `UserTest`, ...) and
+  they were falling behind: `Order`/`OrderItem` shipped with zero test
+  files, and `User::orders()` was added as a bare relation with no test
+  asserting it resolves or filters correctly.
+  - **New model** → new `tests/Unit/Models/<Model>Test.php` covering every
+    relationship method (one test per `belongsTo`/`hasMany`/etc.) and every
+    cast in `$casts`/`casts()`.
+  - **New relationship or cast on an existing model** → add the matching
+    test to that model's existing test file in the same change, don't wait
+    for a reviewer to notice the gap.
+  - Relationship tests always include **unrelated (noise) data** — see the
+    "Guard relationship tests with unrelated data" rule above; a relation
+    test without a second, unrelated parent/owner in the setup can pass even
+    when the relation silently returns every row instead of filtering.
+  - Cast tests write with the *raw* un-cast value (e.g. `'stock' => '42'`,
+    `'is_primary' => 1`, `'status' => 'completed'`) and re-fetch a fresh
+    model instance (`Model::find($id)` or `->fresh()`) before asserting the
+    cast type/value — asserting against the in-memory instance from
+    `factory()->create()` can pass even if the cast is missing, since Eloquent
+    may already hold the value in the shape you passed it.
+  - A model method that mutates state beyond a simple attribute set (e.g.
+    `ProductImage::makePrimary()`, `Address::makeDefault()`) gets the same
+    unit-test treatment as a relationship: one test for the direct effect,
+    one for "unsets the previous holder of this flag among siblings," one
+    for "does not affect an unrelated sibling group" — see
+    `AddressTest`'s `makeDefault` tests or `ProductImageTest`'s
+    `makePrimary` tests for the three-test shape to copy.
 

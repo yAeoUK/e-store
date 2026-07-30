@@ -75,7 +75,7 @@ i18n (`t()`)
   nested-object dictionary — no external i18n library:
   [resources/js/i18n/index.ts](../../resources/js/i18n/index.ts#L1-L53). Locale
   files live under `resources/js/i18n/locales/{en,ar}/` split by domain
-  (`common`, `shop`, `auth`, `profile`, `account`). If a key isn't found, `t()`
+  (`common`, `shop`, `auth`, `profile`, `account`, `admin`). If a key isn't found, `t()`
   returns the path itself rather than throwing, which is handy for spotting
   missing translations in the rendered UI. Add new copy to **both** the `en`
   and `ar` domain file rather than inlining strings in components.
@@ -137,6 +137,11 @@ Layouts (`resources/js/Layouts/`)
   browsing, Account pages, Profile) with the site header, `ShopAuthBanner`
   (login/register links or the user menu + logout), and an optional `#header`
   slot for a page title.
+- `AdminLayout.vue` — wraps every `pages/Admin/*` page: a header (logo,
+  "back to shop" link, `LanguageSwitcher`, `ShopAuthBanner`) plus a
+  `SidebarNav` (Dashboard/Products/Categories/Users/Orders/Admins, active-item
+  highlighting matched by URL prefix against `usePage().url`) and the same
+  optional `#header` slot convention as `ShopLayout`.
 
 Pages
 
@@ -155,6 +160,23 @@ Pages
   under `Profile/Partials/` (`UpdateProfileInformationForm`,
   `UpdatePasswordForm`, `DeleteUserForm`), backed by Breeze's
   `ProfileController`.
+- Admin pages (`pages/Admin/`), all wrapped in `AdminLayout`, backed by the
+  controllers under `app/Http/Controllers/Admin/` (see
+  [docs/architecture.md](../architecture.md)'s "Admin panel & authorization"
+  section for the backend side): `Dashboard.vue` (stat cards + revenue/category
+  charts); `Products/{Index,Create,Edit}.vue` and `Categories/{Index,Create,Edit}.vue`
+  (list+filter, and Create/Edit pairs that each render a shared
+  `CategoryFormFields`/`ProductFormFields` component — see
+  [docs/design-system/README.md](../design-system/README.md)); `Products/Edit.vue`
+  additionally renders `ProductImageManager` and `ProductVariantManager`
+  below the main form; `Users/Index.vue` and `Admins/{Index,Create}.vue`
+  (list + promote/create/revoke flows, each backed by a `ConfirmationDialog`);
+  `Orders/Index.vue` (read-only list, status rendered via the `Badge`
+  component). All list pages compose `DataTable` for the actual table markup
+  — see [docs/design-system/README.md](../design-system/README.md) for that
+  and the `resources/js/components/admin/admin.ts` shared TypeScript types
+  (`Paginated<Row>`, `DataTableColumn<Row>`, `AdminProduct`, `AdminCategory`,
+  etc.) every admin page/component types its props against.
 
 Shared component library
 
@@ -163,6 +185,23 @@ Shared component library
   `ConfirmationDialog`, typography wrappers, etc. — used across Auth, Account,
   Profile, and shop pages alike. See [docs/design-system/README.md](../design-system/README.md)
   for the full inventory and the shared Tailwind class tokens in `classNames.js`.
+- `resources/js/components/admin/` holds admin-panel-only composites
+  (`DataTable`, `CategoryFormFields`, `ProductFormFields`, `SlugField`,
+  `ProductImageManager`, `ProductVariantManager`, `StatCard`, the chart
+  wrappers, `admin.ts`'s shared types) — not reused outside `pages/Admin/`.
+- `resources/js/components/ui/` holds [shadcn-vue](https://www.shadcn-vue.com/)-style
+  primitives (`table/*`, `badge/*`) generated against the `components.json`
+  config at the repo root, then adapted to import this app's `classNames.js`
+  tokens instead of shadcn's default raw Tailwind literals. `resources/js/lib/utils.ts`'s
+  `cn()` (the standard `clsx` + `tailwind-merge` combinator) is the class-merging
+  helper every `ui/*` component uses for its `class` prop — see
+  [docs/design-system/README.md](../design-system/README.md) for what each
+  primitive does.
+- `resources/js/lib/slug.ts` exports `slugify()`, used by `SlugField.vue` to
+  live-preview a slug as the admin types a name (mirrors the backend's
+  `HasUniqueSlug` trait's own slugification, but doesn't call the backend —
+  it's a client-side preview only; the server always has the final say and
+  appends its own `-1`/`-2` suffix on collision).
 
 Shop-specific components
 

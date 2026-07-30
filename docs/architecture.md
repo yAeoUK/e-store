@@ -20,6 +20,10 @@ Below are direct links to migrations and model definitions referenced in this do
 - Product variants migration: [database/migrations/2026_07_19_000003_create_product_variants_table.php](../database/migrations/2026_07_19_000003_create_product_variants_table.php#L1-L80)
 - Addresses migration (added on `feature/authentication`): [database/migrations/2026_07_21_000000_create_addresses_table.php](../database/migrations/2026_07_21_000000_create_addresses_table.php#L1-L40)
 - Users table: created by the default Laravel scaffold (`0001_01_01_000000_create_users_table.php`); unchanged shape, just the model gained new behavior (see below).
+- Permission tables (added on `feature/admin`, spatie/laravel-permission's stock publish): [database/migrations/2026_07_28_083754_create_permission_tables.php](../database/migrations/2026_07_28_083754_create_permission_tables.php)
+- Orders / order items migrations (added on `feature/admin`): [database/migrations/2026_07_28_084257_create_orders_table.php](../database/migrations/2026_07_28_084257_create_orders_table.php), [database/migrations/2026_07_28_084258_create_order_items_table.php](../database/migrations/2026_07_28_084258_create_order_items_table.php)
+- Restrict-delete FK migrations (added on `feature/admin`): [database/migrations/2026_07_28_112242_restrict_delete_on_category_and_product_foreign_keys.php](../database/migrations/2026_07_28_112242_restrict_delete_on_category_and_product_foreign_keys.php) (Category `parent_id`, Product `category_id`), [database/migrations/2026_07_29_110345_add_product_snapshot_and_restrict_delete_on_order_items.php](../database/migrations/2026_07_29_110345_add_product_snapshot_and_restrict_delete_on_order_items.php) (Order item `product_id`, plus adds `product_snapshot` JSON), [database/migrations/2026_07_29_120000_add_product_variant_id_to_order_items_table.php](../database/migrations/2026_07_29_120000_add_product_variant_id_to_order_items_table.php) (adds `product_variant_id`, also restrict-delete)
+- Product images soft-delete migration (added on `feature/admin`): [database/migrations/2026_07_29_101919_add_deleted_at_to_product_images_table.php](../database/migrations/2026_07_29_101919_add_deleted_at_to_product_images_table.php)
 
 Models
 
@@ -27,10 +31,42 @@ Models
 - Product model: [app/Models/Product.php](../app/Models/Product.php#L1-L200)
 - ProductImage model: [app/Models/ProductImage.php](../app/Models/ProductImage.php#L1-L120)
 - ProductVariant model: [app/Models/ProductVariant.php](../app/Models/ProductVariant.php#L1-L160)
-- User model (added on `feature/authentication`): [app/Models/User.php](../app/Models/User.php#L1-L52) — uses PHP attributes
+- `HasUniqueSlug` trait (added on `feature/admin`): [app/Models/Concerns/HasUniqueSlug.php](../app/Models/Concerns/HasUniqueSlug.php) —
+  a static `generateUniqueSlug(string $source, ?int $ignoreId = null): string`
+  shared by `Category` and `Product`. Slugifies `$source` (`Str::slug()`),
+  then appends `-1`, `-2`, ... until no row with that `slug` exists (excluding
+  `$ignoreId` on update, so a model keeps its own slug during an unrelated
+  edit). Both models deliberately keep `slug` (and `parent_id`/`category_id`)
+  **out of `$fillable`** — slug generation and parent/category assignment
+  must go through the trait/controller, never raw mass-assignment
+  (`Category::create($request->all())` would silently skip `slug` entirely).
+- Order model (added on `feature/admin`): [app/Models/Order.php](../app/Models/Order.php) —
+  `$fillable = ['user_id', 'status', 'total']`; `status` cast to the
+  `OrderStatus` backed enum, `total` cast `decimal:2`. One relation:
+  `user(): BelongsTo<User>`. **Deliberately has no `items()`/`orderItems()`
+  relation** — nothing in the current codebase needs to traverse
+  `Order → OrderItem` (the admin orders list only needs the order's own
+  columns + its `user`), so it wasn't added speculatively. Add it when a real
+  caller needs it, not preemptively.
+- OrderItem model (added on `feature/admin`): [app/Models/OrderItem.php](../app/Models/OrderItem.php) —
+  `$fillable = ['order_id', 'product_id', 'product_variant_id',
+  'product_snapshot', 'quantity', 'unit_price']`; `product_snapshot` cast
+  `array`, `quantity` cast `integer`, `unit_price` cast `decimal:2`. Three
+  `BelongsTo` relations: `order()`, `product()`, `productVariant()`.
+  `product_snapshot` exists so an order line item still shows the product's
+  name/image/category *as it was at order time*, even after the live
+  `Product` row is later edited or (if unreferenced) deleted.
+- `OrderStatus` enum (added on `feature/admin`): [app/Enums/OrderStatus.php](../app/Enums/OrderStatus.php) —
+  backed string enum, four cases (`Pending`, `Processing`, `Completed`,
+  `Cancelled`), no methods. Any status → label/color mapping (e.g. the admin
+  orders page's `Badge` variant) lives on the frontend, not the enum.
+- User model (added on `feature/authentication`, extended on `feature/admin`): [app/Models/User.php](../app/Models/User.php#L1-L52) — uses PHP attributes
   (`#[Fillable(...)]`, `#[Hidden(...)]`) instead of the classic `$fillable`/`$hidden`
   properties, and a `casts()` method (Laravel 11+ style) instead of a `$casts`
-  property. Gained an `addresses()` hasMany relation. Implements
+  property. Has an `addresses()` hasMany relation, an `orders(): HasMany<Order>`
+  relation (added on `feature/admin`), and the `Spatie\Permission\Traits\HasRoles`
+  trait (also `feature/admin` — gives `hasRole()`/`assignRole()`/`removeRole()`
+  and the `role()` query scope used to list admins). Implements
   `Illuminate\Contracts\Auth\MustVerifyEmail` — this import used to be
   commented out and the interface unimplemented, which silently broke the
   email-verification flow's type contract (`VerifyEmailController`'s
@@ -71,7 +107,7 @@ Products
 
 - `category_id` column (foreign key) in the products migration: [database/migrations/2026_07_19_000001_create_products_table.php](../database/migrations/2026_07_19_000001_create_products_table.php#L1-L60)
 - `category()` relation on the `Product` model: [app/Models/Product.php](../app/Models/Product.php#L1-L200)
-- Images and primary image relations: [app/Models/Product.php](../app/Models/Product.php#L1-L200) (see `images()` and `primaryImage()`)
+- Images relation: [app/Models/Product.php](../app/Models/Product.php#L1-L200) (see `images()`)
 - Variants relation and `sku`/`options` fields: [app/Models/ProductVariant.php](../app/Models/ProductVariant.php#L1-L160) and [database/migrations/2026_07_19_000003_create_product_variants_table.php](../database/migrations/2026_07_19_000003_create_product_variants_table.php#L1-L80)
 
 Categories
@@ -81,13 +117,25 @@ Categories
 
 Images
 
-- Product images table and fields: [database/migrations/2026_07_19_000002_create_product_images_table.php](../database/migrations/2026_07_19_000002_create_product_images_table.php#L1-L60)
-- `ProductImage` model and `product()` relation: [app/Models/ProductImage.php](../app/Models/ProductImage.php#L1-L120)
+- Product images table and fields: [database/migrations/2026_07_19_000002_create_product_images_table.php](../database/migrations/2026_07_19_000002_create_product_images_table.php#L1-L60);
+  gained a `deleted_at` column on `feature/admin`
+  ([database/migrations/2026_07_29_101919_add_deleted_at_to_product_images_table.php](../database/migrations/2026_07_29_101919_add_deleted_at_to_product_images_table.php)).
+- `ProductImage` model and `product()` relation: [app/Models/ProductImage.php](../app/Models/ProductImage.php#L1-L120) —
+  gained `SoftDeletes` on `feature/admin`, so deleting an image via the admin
+  UI retains the row (with `deleted_at` set) instead of physically removing
+  it. "Primary" image selection is a plain `is_primary` boolean column, not a
+  separate relation/accessor — `ProductImage::makePrimary()` transactionally
+  unsets `is_primary` on every other image for the same product, then sets it
+  on `$this`. `Admin\ProductImageController::destroy` re-promotes the next
+  image (by `sort_order`) to primary if the deleted one held the flag.
 
 Accounts & authentication (added on `feature/authentication`)
 
 - `user_id` foreign key (cascade delete) in the addresses migration: [database/migrations/2026_07_21_000000_create_addresses_table.php](../database/migrations/2026_07_21_000000_create_addresses_table.php#L1-L40)
-- `addresses()` relation on the `User` model, `user()` relation on `Address`: [app/Models/User.php](../app/Models/User.php#L1-L60), [app/Models/Address.php](../app/Models/Address.php#L1-L40)
+- `addresses()` relation on the `User` model: [app/Models/User.php](../app/Models/User.php#L1-L60) — `Address`
+  has no inverse `user()` relation (removed on `feature/admin` as dead code;
+  nothing in the codebase called `$address->user`). Add it back if a real
+  caller needs the reverse lookup.
 - Address CRUD + "set default" logic: [app/Http/Controllers/Account/AddressController.php](../app/Http/Controllers/Account/AddressController.php#L1-L106),
   validated by [StoreAddressRequest](../app/Http/Requests/StoreAddressRequest.php)/[UpdateAddressRequest](../app/Http/Requests/UpdateAddressRequest.php)
   and authorized by [AddressPolicy](../app/Policies/AddressPolicy.php)
@@ -96,6 +144,107 @@ Accounts & authentication (added on `feature/authentication`)
   routes in [routes/auth.php](../routes/auth.php#L1-L60); account/profile routes,
   gated behind the `auth` middleware, in [routes/web.php](../routes/web.php#L1-L31).
 - Profile edit/update/delete (Breeze's `ProfileController`): [app/Http/Controllers/ProfileController.php](../app/Http/Controllers/ProfileController.php#L1-L64)
+
+Admin panel & authorization (added on `feature/admin`)
+
+- This codebase has **two distinct authorization mechanisms**, deliberately
+  not unified: per-owner Laravel Policies (`AddressPolicy`, added on
+  `feature/authentication`) for resources a specific user owns, and
+  role-based middleware for resources gated by *who the user is* rather than
+  *what they own*. `Category`/`Product` still have no Policy — access to
+  their admin CRUD is a role check (are you an admin at all?), not an
+  ownership check (do you own this specific row?), so a Policy would be the
+  wrong tool.
+- Role-based gating uses [spatie/laravel-permission](https://spatie.be/docs/laravel-permission)
+  (`config/permission.php` is its stock published config — unmodified,
+  `teams` disabled, standard table names). Only a single `admin` role is
+  actually used; the package's finer-grained `permissions` tables/gate exist
+  but nothing in the app currently checks individual permissions, only
+  `hasRole('admin')`.
+- [app/Http/Middleware/EnsureUserIsAdmin.php](../app/Http/Middleware/EnsureUserIsAdmin.php) —
+  `abort_unless($request->user()?->hasRole('admin'), 403)`. Registered as the
+  `admin` middleware alias in [bootstrap/app.php](../bootstrap/app.php)
+  (not appended to the `web` group — opt-in per route). Every admin route in
+  [routes/admin.php](../routes/admin.php) is `Route::middleware(['auth', 'admin'])`:
+  `auth` runs first so a guest gets the normal login redirect, then `admin`
+  403s an authenticated non-admin. `EnsureUserIsAdmin` alone would 403 a
+  guest too (`null?->hasRole()` is falsy), so the `auth` middleware always
+  has to come first in the stack.
+- Admin controllers, all under `app/Http/Controllers/Admin/`, all
+  `prefix('admin')->name('admin.')`:
+  - `AdminController` — manage who holds the `admin` role: `index`/`create`
+    (list/add-admin form), `store` (create a brand-new admin user), `promote`
+    (grant the role to an existing user by email), `revoke` (remove the role
+    — blocked from revoking yourself, and blocked from dropping the last
+    remaining admin).
+  - `CategoryController` / `ProductController` — full CRUD except `show`
+    (there's no public-style detail page in the admin panel). `store`/`update`
+    build the model manually rather than mass-assigning, so `slug`/`parent_id`/
+    `category_id` go through `HasUniqueSlug` explicitly. `destroy` is blocked
+    (with a flashed error) if the category has children/products, or the
+    product has order items — backed at the DB layer by the restrict-delete
+    FK migrations above, not just an app-level check.
+  - `DashboardController` — one `index` action: aggregate stats (product/
+    category/user/order counts, low-stock/out-of-stock counts, total revenue
+    from `Completed` orders only), a 30-day revenue-by-day series (**not**
+    filtered by status — includes pending/cancelled order totals, unlike the
+    `total_revenue` stat), and the top 5 categories by product count.
+  - `OrderController` — read-only, `index` only: no create/edit/store/destroy,
+    since orders aren't admin-editable.
+  - `ProductImageController` / `ProductVariantController` — nested under a
+    product (`admin.products.images.*` / no dedicated variant route prefix),
+    not their own top-level resource. See "Image uploads & processing" below
+    for the image side.
+  - `UserController` — read-only `index`: lists users with an `orders_count`
+    and `is_admin` flag, built as an explicit array response per user rather
+    than spreading `$user->toArray()` (see "Don't spread a full model into an
+    array response" in AGENTS.md's DB column-selection conventions).
+- Bootstrapping the *first* admin is a chicken-and-egg problem — `AdminController::store`/
+  `promote` both require the caller to already be an authenticated admin.
+  [app/Console/Commands/MakeAdmin.php](../app/Console/Commands/MakeAdmin.php)
+  (`php artisan make:admin <email>`) is the escape hatch: promotes an existing
+  user by email from the CLI, no admin session required.
+- Seeding: [database/seeders/RoleSeeder.php](../database/seeders/RoleSeeder.php)
+  just ensures the `admin` role row exists (`Role::findOrCreate('admin')`) —
+  it does **not** assign the role to anyone. `DatabaseSeeder` runs it first,
+  then the default `test@example.com` user, then `CatalogSeeder`, then
+  [database/seeders/OrderSeeder.php](../database/seeders/OrderSeeder.php)
+  (creates 15 more users and 150 backdated orders/order-items against
+  whatever products already exist — requires `CatalogSeeder` to have run
+  first, and silently does nothing if the products table is empty). The
+  default seeded user is **not** an admin; use `make:admin` or the UI to
+  promote one.
+
+Image uploads & processing (added on `feature/admin`)
+
+- `Admin\ProductImageController::store` accepts `images[]` (validated by
+  [StoreProductImageRequest](../app/Http/Requests/Admin/StoreProductImageRequest.php):
+  jpeg/png/webp, 5MB max each) and re-encodes every upload server-side via
+  [Intervention Image](https://image.intervention.io/) (GD driver):
+  `scaleDown(1600, 1600)` (never upscales a smaller image) then re-encodes as
+  JPEG at quality 80 regardless of the original format, before storing to the
+  `public` disk at `products/{productId}/{uuid}.jpg`. This is the app's first
+  and only image-processing dependency — if a future feature needs uploaded
+  images, follow this same "resize + normalize format" pattern rather than
+  storing whatever the browser sent verbatim.
+- The first image ever uploaded for a product is automatically marked
+  `is_primary`; later uploads append to `sort_order` (`max(sort_order) + 1`)
+  without changing which one is primary.
+
+Orders (added on `feature/admin`)
+
+- `orders`/`order_items` tables (see migrations above) back the `Order`/
+  `OrderItem` models described in "Models" above. There is currently no
+  cart/checkout flow in the app that creates these rows through normal user
+  action — they exist for the admin orders list and dashboard stats to have
+  real data to show, seeded via `OrderSeeder`. `OrderItemFactory` builds a
+  realistic `product_snapshot` (name/slug/primary-image URL/category/variant
+  info) from whatever product/variant it's attached to, mirroring what a real
+  checkout would need to snapshot at purchase time.
+- Deleting a `Product`/`ProductVariant` that has existing `order_items`
+  referencing it is blocked at the DB layer (`restrictOnDelete()`) — this is
+  why `ProductController::destroy` checks `$product->orderItems()->exists()`
+  before attempting the delete, rather than letting the FK constraint throw.
 
 Routing bridge (Ziggy)
 
@@ -135,9 +284,9 @@ Locale & RTL (Arabic support)
   `php artisan lang:publish`) and `lang/ar/{validation,auth,passwords,pagination}.php`.
   `validation.php`'s `attributes` array translates every field name actually
   used across the app's Form Requests and inline `validate()` calls (auth,
-  profile, address, plus the not-yet-wired-up product/category admin
-  requests) so errors read naturally — e.g. "حقل الاسم مطلوب." rather than
-  "حقل name مطلوب." Both this and the Vue `t()` system key off the same
+  profile, address, and the admin product/category/user/admin requests) so
+  errors read naturally — e.g. "حقل الاسم مطلوب." rather than "حقل name
+  مطلوب." Both this and the Vue `t()` system key off the same
   `locale` cookie but are otherwise independent; a new field/rule needs a
   translation added in both places if it should read naturally in Arabic.
 

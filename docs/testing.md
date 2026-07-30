@@ -56,14 +56,18 @@ tests/
 resources/js/tests/
   setup.ts                       # global Vitest setup (see below)
   utils.ts                       # small shared fixtures (e.g. defaultProducts)
+  lib/                           # slugify(), cn() unit tests
   componenets/                   # note: repo's existing typo, kept for consistency
     shop/                        # shop-specific components (ProductCard, CatalogLayout, ...)
     common/                      # shared/generic components (Modal, Dropdown, buttons, ...)
+    admin/                       # admin-only composites (DataTable, *FormFields, SlugField, ...)
+    ui/                          # shadcn-vue primitives (Table, Badge)
   pages/
     Auth/                        # Login, Register, ForgotPassword, ResetPassword, ...
     Account/                     # Addresses, Orders
     Products/, Categories/       # shop pages
-  Layouts/                       # ShopLayout, GuestLayout
+    Admin/                       # Dashboard, Products, Categories, Users, Admins, Orders
+  Layouts/                       # ShopLayout, AdminLayout, GuestLayout
 ```
 
 ## Backend (Pest) conventions
