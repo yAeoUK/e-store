@@ -14,6 +14,8 @@ class Product extends Model
     /** @use HasFactory<ProductFactory> */
     use HasFactory, HasUniqueSlug;
 
+    public const LOW_STOCK_THRESHOLD = 5;
+
     // `category_id` and `slug` are deliberately excluded: category_id is a
     // foreign key that must be set only after the FormRequest's `exists`
     // check has run, and slug must be set only via generateUniqueSlug() -
