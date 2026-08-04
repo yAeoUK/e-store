@@ -18,7 +18,13 @@
       "Bash(echo \"LINT_EXIT:$?\")",
       "Bash(vendor/bin/pint --parallel --test)",
       "Bash(composer show *)",
-      "Read(//d//**)"
+      "Read(//d//**)",
+      "Bash(composer lint:check)",
+      "Bash(./vendor/bin/phpstan analyse *)",
+      "Bash(composer require *)",
+      "Bash(npm test *)",
+      "Bash(vendor/bin/pint --test app/Http/Controllers/CartController.php tests/Feature/CartControllerTest.php routes/web.php)",
+      "Bash(./vendor/bin/pest tests/Unit/Models/ProductTest.php tests/Feature/Admin/ProductControllerTest.php tests/Feature/Admin/DashboardControllerTest.php)"
     ]
   }
 }
