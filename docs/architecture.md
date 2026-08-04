@@ -22,6 +22,7 @@ Below are direct links to migrations and model definitions referenced in this do
 - Users table: created by the default Laravel scaffold (`0001_01_01_000000_create_users_table.php`); unchanged shape, just the model gained new behavior (see below).
 - Permission tables (added on `feature/admin`, spatie/laravel-permission's stock publish): [database/migrations/2026_07_28_083754_create_permission_tables.php](../database/migrations/2026_07_28_083754_create_permission_tables.php)
 - Orders / order items migrations (added on `feature/admin`): [database/migrations/2026_07_28_084257_create_orders_table.php](../database/migrations/2026_07_28_084257_create_orders_table.php), [database/migrations/2026_07_28_084258_create_order_items_table.php](../database/migrations/2026_07_28_084258_create_order_items_table.php)
+- Shipping address snapshot / payment fields migrations (added on `feature/order`): [database/migrations/2026_08_01_000000_add_shipping_address_snapshot_to_orders_table.php](../database/migrations/2026_08_01_000000_add_shipping_address_snapshot_to_orders_table.php) (nullable `shipping_address_snapshot` JSON column), [database/migrations/2026_08_01_000001_add_payment_fields_to_orders_table.php](../database/migrations/2026_08_01_000001_add_payment_fields_to_orders_table.php) (`payment_method` nullable, `payment_status` defaulting to `PaymentStatus::Unpaid`, unique `stripe_checkout_session_id`, `stripe_payment_intent_id`, `paid_at`) — see "Cart, checkout & payments" below.
 - Restrict-delete FK migrations (added on `feature/admin`): [database/migrations/2026_07_28_112242_restrict_delete_on_category_and_product_foreign_keys.php](../database/migrations/2026_07_28_112242_restrict_delete_on_category_and_product_foreign_keys.php) (Category `parent_id`, Product `category_id`), [database/migrations/2026_07_29_110345_add_product_snapshot_and_restrict_delete_on_order_items.php](../database/migrations/2026_07_29_110345_add_product_snapshot_and_restrict_delete_on_order_items.php) (Order item `product_id`, plus adds `product_snapshot` JSON), [database/migrations/2026_07_29_120000_add_product_variant_id_to_order_items_table.php](../database/migrations/2026_07_29_120000_add_product_variant_id_to_order_items_table.php) (adds `product_variant_id`, also restrict-delete)
 - Product images soft-delete migration (added on `feature/admin`): [database/migrations/2026_07_29_101919_add_deleted_at_to_product_images_table.php](../database/migrations/2026_07_29_101919_add_deleted_at_to_product_images_table.php)
 
@@ -40,14 +41,19 @@ Models
   **out of `$fillable`** — slug generation and parent/category assignment
   must go through the trait/controller, never raw mass-assignment
   (`Category::create($request->all())` would silently skip `slug` entirely).
-- Order model (added on `feature/admin`): [app/Models/Order.php](../app/Models/Order.php) —
-  `$fillable = ['user_id', 'status', 'total']`; `status` cast to the
-  `OrderStatus` backed enum, `total` cast `decimal:2`. One relation:
-  `user(): BelongsTo<User>`. **Deliberately has no `items()`/`orderItems()`
-  relation** — nothing in the current codebase needs to traverse
-  `Order → OrderItem` (the admin orders list only needs the order's own
-  columns + its `user`), so it wasn't added speculatively. Add it when a real
-  caller needs it, not preemptively.
+- Order model (added on `feature/admin`, extended on `feature/order`):
+  [app/Models/Order.php](../app/Models/Order.php) — `$fillable = ['user_id',
+  'status', 'total', 'payment_method', 'payment_status',
+  'stripe_checkout_session_id', 'stripe_payment_intent_id', 'paid_at']`;
+  `status` cast to `OrderStatus`, `total` cast `decimal:2`,
+  `shipping_address_snapshot` cast `array`, `payment_method` cast
+  `PaymentMethod`, `payment_status` cast `PaymentStatus`, `paid_at` cast
+  `datetime`. Two relations: `user(): BelongsTo<User>` and
+  `orderItems(): HasMany<OrderItem>` — the latter used to deliberately not
+  exist ("nothing traverses `Order → OrderItem`"), but the cart/checkout flow
+  added the first real caller (`CartController`/`CheckoutController` both
+  operate on a cart's `orderItems`), so it was added for real use, not
+  speculatively.
 - OrderItem model (added on `feature/admin`): [app/Models/OrderItem.php](../app/Models/OrderItem.php) —
   `$fillable = ['order_id', 'product_id', 'product_variant_id',
   'product_snapshot', 'quantity', 'unit_price']`; `product_snapshot` cast
@@ -56,10 +62,18 @@ Models
   `product_snapshot` exists so an order line item still shows the product's
   name/image/category *as it was at order time*, even after the live
   `Product` row is later edited or (if unreferenced) deleted.
-- `OrderStatus` enum (added on `feature/admin`): [app/Enums/OrderStatus.php](../app/Enums/OrderStatus.php) —
-  backed string enum, four cases (`Pending`, `Processing`, `Completed`,
-  `Cancelled`), no methods. Any status → label/color mapping (e.g. the admin
-  orders page's `Badge` variant) lives on the frontend, not the enum.
+- `OrderStatus` enum (added on `feature/admin`, gained a case on
+  `feature/order`): [app/Enums/OrderStatus.php](../app/Enums/OrderStatus.php) —
+  backed string enum, five cases: `Cart` (added on `feature/order` — an
+  in-progress order that hasn't been through checkout yet; see "Cart,
+  checkout & payments" below), `Pending`, `Processing`, `Completed`,
+  `Cancelled`. No methods. Any status → label/color mapping (e.g.
+  `OrderStatusBadge`'s variant) lives on the frontend, not the enum.
+- `PaymentMethod` / `PaymentStatus` enums (added on `feature/order`):
+  [app/Enums/PaymentMethod.php](../app/Enums/PaymentMethod.php) (`Cod`,
+  `Stripe`), [app/Enums/PaymentStatus.php](../app/Enums/PaymentStatus.php)
+  (`Unpaid`, `Paid`, `Failed`, `Refunded`) — both backed string enums, no
+  methods, cast on the `Order` model.
 - User model (added on `feature/authentication`, extended on `feature/admin`): [app/Models/User.php](../app/Models/User.php#L1-L52) — uses PHP attributes
   (`#[Fillable(...)]`, `#[Hidden(...)]`) instead of the classic `$fillable`/`$hidden`
   properties, and a `casts()` method (Laravel 11+ style) instead of a `$casts`
@@ -149,9 +163,11 @@ Admin panel & authorization (added on `feature/admin`)
 
 - This codebase has **two distinct authorization mechanisms**, deliberately
   not unified: per-owner Laravel Policies (`AddressPolicy`, added on
-  `feature/authentication`) for resources a specific user owns, and
-  role-based middleware for resources gated by *who the user is* rather than
-  *what they own*. `Category`/`Product` still have no Policy — access to
+  `feature/authentication`; `OrderPolicy`/`OrderItemPolicy`, added on
+  `feature/order` — see "Cart, checkout & payments" below) for resources a
+  specific user owns, and role-based middleware for resources gated by *who
+  the user is* rather than *what they own*. `Category`/`Product` still have
+  no Policy — access to
   their admin CRUD is a role check (are you an admin at all?), not an
   ownership check (do you own this specific row?), so a Policy would be the
   wrong tool.
@@ -189,8 +205,18 @@ Admin panel & authorization (added on `feature/admin`)
     from `Completed` orders only), a 30-day revenue-by-day series (**not**
     filtered by status — includes pending/cancelled order totals, unlike the
     `total_revenue` stat), and the top 5 categories by product count.
+    `total_orders`/`revenueByDay` are also **not** filtered to exclude
+    `OrderStatus::Cart` rows (unlike `Admin\OrderController::index` and
+    `Account\OrderController::index`, which both do) — in practice this
+    doesn't skew the numbers, since a cart's `total` stays unset until
+    checkout writes it, but it's worth knowing if a cart-abandonment stat is
+    ever added here: the existing counts already include abandoned carts.
   - `OrderController` — read-only, `index` only: no create/edit/store/destroy,
-    since orders aren't admin-editable.
+    since orders aren't admin-editable. Excludes `OrderStatus::Cart` rows (an
+    in-progress cart isn't a "placed" order yet), selects
+    `payment_method`/`payment_status` alongside the original columns, and
+    (added on `feature/order`) supports a `search` filter (matches against
+    the order's `user`'s name/email) and a `user_id` filter.
   - `ProductImageController` / `ProductVariantController` — nested under a
     product (`admin.products.images.*` / no dedicated variant route prefix),
     not their own top-level resource. See "Image uploads & processing" below
@@ -234,17 +260,111 @@ Image uploads & processing (added on `feature/admin`)
 Orders (added on `feature/admin`)
 
 - `orders`/`order_items` tables (see migrations above) back the `Order`/
-  `OrderItem` models described in "Models" above. There is currently no
-  cart/checkout flow in the app that creates these rows through normal user
-  action — they exist for the admin orders list and dashboard stats to have
-  real data to show, seeded via `OrderSeeder`. `OrderItemFactory` builds a
-  realistic `product_snapshot` (name/slug/primary-image URL/category/variant
-  info) from whatever product/variant it's attached to, mirroring what a real
-  checkout would need to snapshot at purchase time.
+  `OrderItem` models described in "Models" above. `OrderSeeder` still seeds
+  15 users and 150 backdated orders/order-items directly (bypassing the cart/
+  checkout flow entirely) purely so the admin orders list and dashboard stats
+  have realistic historical data — `OrderItemFactory` builds a realistic
+  `product_snapshot` (name/slug/primary-image URL/category/variant info) from
+  whatever product/variant it's attached to, mirroring what a real checkout
+  needs to snapshot at purchase time. As of `feature/order`, orders are also
+  created through normal user action — see "Cart, checkout & payments" below.
 - Deleting a `Product`/`ProductVariant` that has existing `order_items`
   referencing it is blocked at the DB layer (`restrictOnDelete()`) — this is
   why `ProductController::destroy` checks `$product->orderItems()->exists()`
   before attempting the delete, rather than letting the FK constraint throw.
+
+Cart, checkout & payments (added on `feature/order`)
+
+- **There is no separate `Cart` model or table.** A user's cart *is* an
+  `Order` row with `status === OrderStatus::Cart` — `User::cart(): Order`
+  ([app/Models/User.php](../app/Models/User.php)) is
+  `$this->orders()->firstOrCreate(['status' => OrderStatus::Cart])`, so the
+  first call for a given user creates the row and every later call reuses it.
+  Checkout doesn't create a new `Order`; it mutates this same row in place
+  (fills in `total`/`payment_method`/`shipping_address_snapshot`, flips
+  `status` to `Pending`). Every place that reads a user's *placed* orders
+  (`Account\OrderController`, `Admin\OrderController`,
+  `Admin\DashboardController`'s per-status stats) has to explicitly exclude
+  `OrderStatus::Cart` — there's no separate table boundary doing that for
+  free.
+- [app/Http/Controllers/CartController.php](../app/Http/Controllers/CartController.php) —
+  `index`/`store`/`update`/`destroy`/`clear`, all operating on
+  `$request->user()->cart()->orderItems()`. `store` increments the quantity
+  of an existing line (same `product_id` + `product_variant_id` pair) rather
+  than inserting a duplicate row. `update`/`destroy` are authorized by
+  `OrderItemPolicy` (ownership **and** the parent order still being
+  `Cart` — see "Admin panel & authorization" above); there's no policy check
+  on `store`/`clear` since those always operate on the current user's own
+  `cart()`, never a route-bound `OrderItem`/`Order` id.
+- [app/Http/Controllers/CheckoutController.php](../app/Http/Controllers/CheckoutController.php) —
+  `index` renders the cart plus the user's saved addresses. `store` runs
+  inside `DB::transaction()`: for every cart line item it locks the
+  `Product`/`ProductVariant` row (`lockForUpdate()`), aborts with 422 if
+  requested quantity exceeds current stock, decrements stock, and writes that
+  item's final `unit_price` + `product_snapshot` (same shape `OrderItemFactory`
+  produces) — then sums the order total with `bcadd`/`bcmul` (string-based
+  arbitrary-precision math) rather than float arithmetic, to avoid
+  cent-level rounding drift on money. The cart `Order` itself is then
+  `forceFill()`-ed to `status: Pending`, `payment_method`, `payment_status:
+  Unpaid`, and a `shipping_address_snapshot` copied from the selected
+  `Address` (so the order keeps its own delivery address even if the
+  `Address` row is later edited or deleted — the same snapshot rationale as
+  `OrderItem::product_snapshot`). After the transaction commits: a `cod`
+  order redirects straight to `account.orders.show`; a `stripe` order instead
+  creates a Stripe Checkout Session (see below) and does an
+  `Inertia::location()` redirect to Stripe's hosted checkout page.
+- **Payments**: `PaymentMethod` (`Cod`/`Stripe`) and `PaymentStatus`
+  (`Unpaid`/`Paid`/`Failed`/`Refunded`) enums, both cast on `Order` (see
+  "Models" above). A `stripe` order's `payment_status` only ever becomes
+  `Paid` through one of the two paths below — never optimistically on
+  checkout submission.
+- **Stripe integration**: [config/services.php](../config/services.php)'s
+  `stripe` block (`STRIPE_KEY`/`STRIPE_SECRET`/`STRIPE_WEBHOOK_SECRET`) backs
+  a `StripeClient` singleton registered in
+  [app/Providers/AppServiceProvider.php](../app/Providers/AppServiceProvider.php)
+  (`register()`, built from `config('services.stripe.secret')` — resolved
+  fresh from the container on every injection, not cached across requests
+  beyond the singleton binding itself).
+  [app/Services/Stripe/CheckoutSessionCreator.php](../app/Services/Stripe/CheckoutSessionCreator.php)
+  wraps the two Stripe Checkout Session calls the app needs:
+  `createForOrder(Order $order)` (line items priced from the order's own
+  `orderItems`, `success_url` pointing at `checkout.stripe.return` with a
+  `{CHECKOUT_SESSION_ID}` placeholder, `cancel_url` back to
+  `checkout.index`, `metadata.order_id` for cross-referencing) and
+  `retrieve(string $sessionId)`. Any controller method type-hinting
+  `CheckoutSessionCreator` resolves this singleton (and therefore
+  `StripeClient`) via the container on *every* call to that method, even down
+  a code path that never touches Stripe (e.g. a `cod` checkout) — see the
+  Playwright gotchas in [docs/testing.md](testing.md) for why this matters
+  for any environment missing Stripe config.
+- **Two independent paths mark a Stripe order paid**, both idempotency-guarded
+  the same way (only act if `payment_status !== PaymentStatus::Paid`):
+  - `CheckoutController::stripeReturn` — the `success_url` landing route the
+    shopper's browser hits after paying. Re-authorizes via
+    `OrderPolicy::view` (the `order` route param could be tampered with),
+    checks the returned `session_id` matches
+    `$order->stripe_checkout_session_id`, then calls
+    `CheckoutSessionCreator::retrieve()` to confirm `payment_status ===
+    'paid'` before flipping the order to `Paid`/`Processing`.
+  - [app/Http/Controllers/StripeWebhookController.php](../app/Http/Controllers/StripeWebhookController.php) —
+    the authoritative, server-to-server confirmation path (a shopper closing
+    the tab before the redirect fires shouldn't leave an order stuck
+    `Unpaid` forever). Verifies the `Stripe-Signature` header against
+    `config('services.stripe.webhook_secret')` via Stripe SDK's
+    `Webhook::constructEvent()`, then handles `checkout.session.completed`
+    (mark paid, also stores `stripe_payment_intent_id`) and
+    `checkout.session.expired` (mark `Failed`, only if still `Unpaid`).
+    Registered as `POST /stripe/webhook` in
+    [routes/web.php](../routes/web.php) **outside** the `auth` middleware
+    group (Stripe's servers call it directly, with no user session) and
+    **CSRF-exempted** (`$middleware->validateCsrfTokens(except:
+    ['stripe/webhook'])` in [bootstrap/app.php](../bootstrap/app.php) — a
+    server-to-server POST has no CSRF token to send).
+- Account order history:
+  [app/Http/Controllers/Account/OrderController.php](../app/Http/Controllers/Account/OrderController.php) —
+  `index` (paginated, excludes `OrderStatus::Cart`) and `show` (404s on a
+  `Cart`-status order, since it isn't a "placed" order the URL should be
+  able to reach), both authorized via `OrderPolicy::view`.
 
 Routing bridge (Ziggy)
 

@@ -6,7 +6,7 @@ The shared UI layer under `resources/js/components/` (top level — not the
 consistent look, replacing what used to be ad-hoc repeated Tailwind class
 strings in each page.
 
-## Shared class tokens (`resources/js/components/classNames.js`)
+## Shared class tokens (`resources/js/components/classNames.ts`)
 
 A small registry of Tailwind class strings shared across components — the
 "design tokens" for this project (no CSS variables or Tailwind theme config
@@ -38,11 +38,14 @@ already exists:
   `SidebarNav`'s nested-list divider, `ui/table`'s `TableFooter`/`TableRow`,
   and the bordered tiles in `ProductImageManager`/`ProductVariantManager`.
 - `headingTextClass` — heading text color (light/dark aware); `compactHeadingClass`/
-  `subheadingTextClass`/`pageTitleClass`/`dialogTitleClass` layer a fixed
-  font-size/weight on top of it for, respectively, a small inline heading (a
-  layout's logo caption), a card/section heading, a page `<h1>`, and a
-  `ConfirmationDialog`'s title — reuse whichever size matches the role instead
-  of restating `headingTextClass` plus ad-hoc `text-*`/`font-*` utilities.
+  `subheadingTextClass`/`pageTitleClass` layer a fixed font-size/weight on top
+  of it for, respectively, a small inline heading (a layout's logo caption), a
+  card/section heading, and a page `<h1>` — reuse whichever size matches the
+  role instead of restating `headingTextClass` plus ad-hoc `text-*`/`font-*`
+  utilities. `FormSectionHeader`'s `dialogTitleClass` (used by
+  `ConfirmationDialog`'s title, its only caller) is the same pattern but
+  declared locally in the component instead — see the single-caller note
+  below.
 - `mutedTextClass` — de-emphasized text color (`text-slate-500 dark:text-slate-400`);
   extracted after the same pair turned up inline in four different components.
   `mutedBodyTextClass` is the slightly-darker sibling (`text-slate-600
@@ -79,21 +82,22 @@ already exists:
 - `legacyButtonBaseClass` — shape/padding/transition/disabled-state base
   shared by `SecondaryButton` and `DangerButton` (the two buttons that still
   use the older uppercase/tracked-letter-spacing button style, as opposed to
-  `buttonVariants`). `dropdownItemBaseClass` is the equivalent base for a
-  full-width dropdown-menu-item row (`DropdownLink`, `ShopAuthBanner`'s
-  logout button).
+  `buttonVariants`). `ShopAuthBanner`'s equivalent base for its full-width
+  dropdown-menu-item row (account-menu links and logout button) is declared
+  locally as `dropdownItemBaseClass` in that component instead, since
+  `ShopAuthBanner` is its only caller — see the single-caller note below.
 - A few tokens (`controlPaddingClass`, `transitionClass`, `disabledClass`)
-  are declared in `classNames.js` but **not exported** — they exist only to
-  compose the tokens above (`legacyButtonBaseClass`, `dropdownItemBaseClass`,
-  `buttonVariants`) and have no consumer outside the file itself. If you find
-  yourself wanting to import one of these three, check whether the composed
-  token you actually need already exists first.
+  are declared in `classNames.ts` but **not exported** — they exist only to
+  compose the tokens above (`legacyButtonBaseClass`, `buttonVariants`) and
+  have no consumer outside the file itself. If you find yourself wanting to
+  import one of these two, check whether the composed token you actually need
+  already exists first.
 
 Note: `TextLink`'s `textLinkVariants` (`muted`/`slate`) live *inside*
-`TextLink.vue` itself rather than in `classNames.js` — they were moved there
+`TextLink.vue` itself rather than in `classNames.ts` — they were moved there
 after confirming `TextLink` was the only consumer, so keeping them local
 avoided an unnecessary shared-file dependency for a single caller. Only
-promote a variant map to `classNames.js` once more than one component
+promote a variant map to `classNames.ts` once more than one component
 actually needs it.
 
 **Typing a `variant` prop that indexes a class-variant map**: a runtime
@@ -114,9 +118,10 @@ plain `string`/`object`).
   forward `$attrs` (so `type`, `disabled`, etc. pass straight through).
 - `ButtonLink` — an Inertia `Link` styled as a button (`variant: primary | secondary`).
 - `TextLink` — an Inertia `Link` styled as inline text (`variant: muted | slate`).
-- `DropdownLink` — an Inertia `Link` styled as a full-width dropdown menu item
-  (distinct look from `TextLink`/`ButtonLink` — don't reuse those for menu
-  items; see the reasoning captured when this was last questioned).
+  `ShopAuthBanner`'s account-menu links use `dropdownItemBaseClass` directly on
+  a plain `Link` instead (distinct look from `TextLink`/`ButtonLink` — don't
+  reuse those for menu items) — see the note below on why this isn't its own
+  component.
 
 **Form inputs**
 - `FormField` — the standard way to render a labeled text/number input with
@@ -147,6 +152,13 @@ plain `string`/`object`).
   `is_default` checkbox keeps its own distinct `MutedText`-based look rather
   than using this, since it's visually different, not just a copy of the same
   pattern.
+- `PasswordConfirmationFields` — the password + password-confirmation
+  `FormField` pair repeated across Register/ResetPassword/
+  `UpdatePasswordForm`/`Admin/Admins/Create`
+  (`v-model:password`/`v-model:confirmation`,
+  `passwordLabel`/`confirmLabel`, `passwordError`/`confirmError`); exposes
+  `focus()` (via `defineExpose`) so a caller can refocus the password field
+  the same way a lone `FormField` ref would.
 - `InputError` — the field error `<p>` (`message` prop, `v-show`s itself when
   empty). Used internally by `FormField`, `SelectField`, `TextareaField`, and
   `SlugField` so all four render validation errors identically. This one has
@@ -177,10 +189,19 @@ plain `string`/`object`).
   optional `message`, a `danger` prop that swaps the confirm button between
   `PrimaryButton` and `DangerButton`, and a `processing` prop that disables
   the confirm button (the cancel button is intentionally *not* disabled while
-  processing).
-- `Dropdown` — a menu trigger (down-arrow chevron button, built in — not
-  slot-provided) + `content` slot for the menu items; `align: left | right`
-  controls which corner it opens from.
+  processing). The `confirmingId`/`deleting` state feeding a delete
+  `ConfirmationDialog` no longer needs to be hand-rolled per page — the
+  `useDeleteConfirmation<T = number>(buildRoute)` composable
+  (`resources/js/composables/useDeleteConfirmation.ts`) owns
+  `confirmingId`/`deleting` plus `confirmDelete(id)`/`cancel()`/`destroy()`
+  (an Inertia `router.delete(buildRoute(id), { preserveScroll: true, ... })`
+  call), and is generic over the id type so a route needing no id at all
+  (`Cart/Index.vue`'s "clear cart") can instantiate it as
+  `useDeleteConfirmation<true>(() => route('cart.clear'))`. Used by
+  `Admin/Categories/Index.vue`, `Admin/Products/Index.vue`,
+  `Account/Addresses.vue`, `Cart/Index.vue`, `ProductVariantManager`, and
+  `ProductImageManager` — reach for this rather than re-declaring the same
+  `confirmingId ref` + `confirmDelete`/`cancel`/`destroy` trio again.
 
 **Typography / layout**
 - `Card` — bordered surface wrapper (`cardSurfaceClass`).
@@ -191,12 +212,55 @@ plain `string`/`object`).
   plain inline text) — used for the "can't delete/revoke" messages on the
   admin categories and admins index pages.
 - `ApplicationLogo` — the inline SVG site logo.
+- `FormSectionHeader` — a `heading` + optional `description` header for a
+  form section (`Profile/Edit.vue`'s three partial forms); declares its own
+  local `dialogTitleClass` rather than importing one from `classNames.ts`,
+  since it's `ConfirmationDialog`'s title's only other caller — see the
+  single-caller note in "Conventions" below.
+- `SaveButton` — a `PrimaryButton` (default slot text falls back to
+  `t('common.save')`) paired with a fade-in/out "Saved." `MutedText`, gated
+  by a `saved` prop; `processing` disables the button. Used by the three
+  `Profile/Partials/*Form.vue` components so each doesn't hand-roll its own
+  save-confirmation transition.
+- `RadioCardOption` — a `<li>`-wrapped radio input styled as a clickable
+  card row (`v-model`/`value`, generic over `string | number`), an `align:
+  start | center` prop for whether the input aligns with the first line or
+  vertically centers against multi-line slot content. Used by
+  `Checkout/Index.vue` for the shipping-address and payment-method pickers.
+
+**Order & address display**
+- `AddressLines` — renders an address (or address snapshot) as stacked
+  `MutedText` lines (label/name, street, city/postal/state, optional
+  country via `showCountry`); takes an `AddressSnapshot` shape so it works
+  equally against a live `Address` record (`Checkout/Index.vue`) and a
+  frozen `shipping_address_snapshot` JSON blob on a placed order
+  (`Account/Orders/Show.vue`) — see
+  [docs/architecture.md](../architecture.md)'s "Cart, checkout & payments"
+  section for why orders snapshot the address instead of referencing it live.
+- `OrderItemsSummary` — a heading + line-item list (name, variant options via
+  `formatVariantOptions`, quantity, line total) + a total row; used by both
+  `Checkout/Index.vue` (against live cart items) and
+  `Account/Orders/Show.vue` (against a placed order's items). Callers build
+  its `items` prop via `resources/js/lib/format.ts`'s `toSummaryItems()`
+  helper rather than mapping the shape inline, so both pages stay in sync if
+  the summary item shape ever changes.
+- `OrderStatusBadge` / `PaymentStatusBadge` — thin wrappers around `Badge`
+  (see the `ui/badge/` primitive below) that map an `OrderStatus`/
+  `PaymentStatus` string to a `Badge` variant and an already-translated
+  label. Both take a `namespace: 'account.orders' | 'admin.orders'` prop
+  since the same status strings are shown to a shopper and an admin but read
+  from different i18n domains (`account.orders.statuses.*` vs
+  `admin.orders.statuses.*`, and the `paymentStatuses.*` sibling key) —
+  don't hardcode a single namespace into either component.
 
 **Auth/shop-specific composite**
 - `ShopAuthBanner` — the header-right auth widget used by `ShopLayout`:
-  login/register `ButtonLink`s for guests, or a greeting + `Dropdown` (profile/
-  addresses/orders/logout) + `ConfirmationDialog` for the logout prompt when
-  authenticated.
+  login/register `ButtonLink`s for guests, or a greeting + an inline account
+  menu (profile/addresses/orders/logout — trigger button, escape/overlay-close
+  behavior, and menu links all live directly in this component; there used to
+  be a separate `Dropdown`/`DropdownLink` pair, but `ShopAuthBanner` was their
+  only caller, so they were folded in — see the note below) +
+  `ConfirmationDialog` for the logout prompt when authenticated.
 - `LanguageSwitcher` — EN/AR toggle mounted in both `ShopLayout` and
   `GuestLayout`. Deliberately plain `<a>` tags, not Inertia `Link`s — see
   [docs/frontend/README.md](../frontend/README.md) for why switching locale
@@ -204,6 +268,39 @@ plain `string`/`object`).
 
 **Admin panel composites** (`resources/js/components/admin/`, only used
 under `pages/Admin/` — not part of the general-purpose top-level inventory)
+- `AdminPageHeader` — wraps `AdminLayout`, renders `Head`, and the page
+  `<h1>` (`heading` prop, falls back to `title`) — with an `#actions` slot
+  that, when used, switches the header to `wrapBetweenClass`'s
+  heading-plus-button-row layout instead of a bare heading. Every admin page
+  wraps this instead of `AdminLayout` directly now, except `Dashboard.vue`
+  (no actions slot to share there) — see
+  [docs/frontend/README.md](../frontend/README.md).
+- `AdminResourceForm` — the Create/Edit page chrome one level above
+  `AdminPageHeader`: the `Card` + `<form>` + `FormActions` (cancel
+  `ButtonLink` + submit `PrimaryButton`) wrapper every admin resource form
+  shares, emitting `submit` and taking `title`/`cancelHref`/`saveLabel`/
+  `processing` — the page supplies its own field markup via the default
+  slot (the shared `<Entity>FormFields` component) and an `#after` slot for
+  anything that renders below the form card (none currently use it). Pairs
+  with the `useAdminResourceForm` composable — see
+  [docs/frontend/README.md](../frontend/README.md)'s "Form validation"
+  section.
+- `AdminSection` — a plain `title` + `<h2>` + slot wrapper
+  (`sectionHeadingClass`) for grouping a page into labeled sections; no
+  other logic.
+- `ChartCard` — the `Card`-wrapped, fixed-height (`h-64`) shell around a
+  chart (`title` prop + default slot for the actual chart component);
+  `RevenueChart`/`CategoryChart` render inside one rather than each
+  wrapping its own `Card` individually.
+- `VariantFormFields` — the shared field markup (SKU, price, stock,
+  `VariantOptionsEditor`, active checkbox) for `ProductVariantManager`'s add
+  form and edit modal, the same "shared fields component, each caller keeps
+  its own `useForm()`/submit" pattern as `CategoryFormFields`/
+  `ProductFormFields`. Its `optionsResetKey` prop forces
+  `VariantOptionsEditor` to remount with a fresh value — needed because that
+  editor deliberately doesn't watch its `v-model` after mount, so switching
+  which variant is being edited without a remount would leave stale options
+  on screen.
 - `DataTable` — the composition wrapper around the `ui/table/*` primitives
   below: generic over a `Row` type, takes `columns: DataTableColumn<Row>[]`
   and `rows: Row[]`, an `emptyMessage`, and optional pagination metadata
@@ -230,9 +327,16 @@ under `pages/Admin/` — not part of the general-purpose top-level inventory)
   form, edit (variant only — images have no separate fields to edit besides
   "which one is primary") and delete flows, each delete going through a
   `ConfirmationDialog`.
-- `StatCard`, `RevenueChart`, `CategoryChart` — the Dashboard's stat tiles
-  and the two chart wrappers (revenue-by-day, top categories by product
-  count).
+- `StatCard` — the Dashboard's stat tiles. `RevenueChart`/`CategoryChart` —
+  the two Chart.js (`vue-chartjs`) wrappers (revenue-by-day, top categories
+  by product count); each is now just the bare chart component, wrapped in
+  `ChartCard` by `Dashboard.vue` rather than owning its own `Card`/title.
+  Both pull their line/bar color from the `useChartColor(cssVariable,
+  fallback)` composable (reads a CSS custom property off
+  `document.documentElement` on mount, so the chart picks up the current
+  light/dark theme's color instead of a hardcoded hex) and share
+  `admin/chartOptions.ts`'s `chartOptions` object for the common Chart.js
+  config rather than each declaring its own.
 - `admin.ts` (a plain `.ts` file, not a component) — the shared TypeScript
   types every admin page/component props against: `Paginated<Row>`,
   `DataTableColumn<Row>`, `PaginationLink`, and the `AdminProduct`/
@@ -242,9 +346,9 @@ under `pages/Admin/` — not part of the general-purpose top-level inventory)
 **shadcn-vue primitives** (`resources/js/components/ui/`) — generated against
 the `components.json` config at the repo root (style `new-york-v4`,
 `@/lib/utils`'s `cn()` for class merging), then adapted to import this app's
-`classNames.js` tokens instead of shadcn's default raw Tailwind literals. Not
+`classNames.ts` tokens instead of shadcn's default raw Tailwind literals. Not
 meant to be hand-written from scratch for a new primitive — regenerate via
-the shadcn-vue CLI against `components.json` and re-apply the `classNames.js`
+the shadcn-vue CLI against `components.json` and re-apply the `classNames.ts`
 substitution, matching the existing files' pattern.
 - `ui/table/*` — `Table`/`TableHeader`/`TableBody`/`TableFooter`/`TableRow`/
   `TableHead`/`TableCell`/`TableCaption` are the standard shadcn-vue table
@@ -303,9 +407,26 @@ Established pairings, reuse these rather than inventing new ones:
   one value anyway — it was removed and the width hardcoded. Keep component
   APIs matched to real, current usage; add configurability when a second real
   use case actually needs it, not preemptively.
-- **A component's classes only need to be extracted to `classNames.js` once a
+- **A component with exactly one caller isn't automatically "shared" — check
+  whether it's really being reused, or just living in a shared folder.**
+  `Dropdown`/`DropdownLink` were fully generic (an `align: left | right |
+  center` prop, `method`/`as` forwarding) but `ShopAuthBanner` was their only
+  consumer and only ever used the defaults; both got inlined into
+  `ShopAuthBanner` and deleted. Compare this to `admin/ProductImageManager.vue`
+  or `shop/ProductCard.vue`, which also currently have one caller each but stay
+  as their own files — those exist to keep an already-large page/component
+  readable (decomposition), not to offer reuse that isn't happening. Inline a
+  single-caller component when it's small and self-contained; keep it split
+  out when merging it back would just bloat the caller.
+- **A component's classes only need to be extracted to `classNames.ts` once a
   second component needs them.** Single-use variant maps (like `TextLink`'s)
-  belong in the component itself.
+  belong in the component itself. `dialogTitleClass` (only ever used by
+  `FormSectionHeader.vue`) and `dropdownItemBaseClass` (its second caller,
+  `DropdownLink`, got inlined away — see above) both got pulled out of
+  `classNames.ts` for exactly this reason and now live as local consts in
+  their one remaining caller. This isn't a one-way door: re-promote a token
+  back to `classNames.ts` the moment a second component actually needs it
+  again.
 
 See [docs/frontend/README.md](../frontend/README.md) for how these components
 fit into pages/layouts, and [docs/testing.md](../testing.md) for how they're
