@@ -22,6 +22,8 @@ export default {
         postalCodePlaceholder: 'الرمز البريدي',
         country: 'الدولة',
         countryPlaceholder: 'الدولة',
+        phone: 'رقم الهاتف',
+        phonePlaceholder: 'رقم الهاتف',
         setDefault: 'تعيين كافتراضي',
         defaultLabel: 'العنوان الافتراضي',
         edit: 'تعديل',

@@ -15,6 +15,7 @@ const props = defineProps<{
     error?: string;
     labelClass?: string;
     selectClass?: string;
+    required?: boolean;
 }>();
 
 const model = defineModel<string | number>({ default: '' });
@@ -25,11 +26,17 @@ const id = computed(() => props.id ?? generatedId);
 
 <template>
     <div>
-        <InputLabel :for="id" :value="label" :class="labelClass" />
+        <InputLabel
+            :for="id"
+            :value="label"
+            :class="labelClass"
+            :required="required"
+        />
         <select
             :id="id"
             v-model="model"
             v-bind="$attrs"
+            :required="required"
             :class="[formFieldClass, selectClass]"
         >
             <slot />

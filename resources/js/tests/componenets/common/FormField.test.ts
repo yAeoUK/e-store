@@ -144,6 +144,22 @@ describe('FormField', () => {
         expect(wrapper.text()).not.toContain('undefined');
     });
 
+    it('shows an asterisk on the label when required is true', () => {
+        const wrapper = mount(FormField, {
+            props: { label: 'Email', modelValue: '', required: true },
+        });
+
+        expect(wrapper.findComponent(InputLabel).text()).toBe('Email*');
+    });
+
+    it('does not show an asterisk on the label when required is omitted', () => {
+        const wrapper = mount(FormField, {
+            props: { label: 'Email', modelValue: '' },
+        });
+
+        expect(wrapper.findComponent(InputLabel).text()).toBe('Email');
+    });
+
     it('applies labelClass to the label and inputClass to the input', () => {
         const wrapper = mount(FormField, {
             props: {

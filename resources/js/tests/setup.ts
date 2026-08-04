@@ -4,6 +4,7 @@ import { reactive } from 'vue';
 
 const routerGet = vi.fn();
 const routerPost = vi.fn();
+const routerPatch = vi.fn();
 const routerDelete = vi.fn();
 
 type FormOptions = {
@@ -115,6 +116,7 @@ vi.mock('@inertiajs/vue3', () => ({
     router: {
         get: routerGet,
         post: routerPost,
+        patch: routerPatch,
         delete: routerDelete,
     },
     useForm,
@@ -123,6 +125,7 @@ vi.mock('@inertiajs/vue3', () => ({
 
 vi.mock('@/i18n', () => ({
     t: (key: string) => key,
+    tp: (key: string) => key,
 }));
 
 // Params kept (though unused) so calls with route()'s full (name, params,

@@ -71,6 +71,18 @@ describe('SelectField', () => {
         expect(wrapper.text()).toContain('This field is required.');
     });
 
+    it('shows an asterisk on the label when required is true', () => {
+        const wrapper = mountField({ required: true });
+
+        expect(wrapper.findComponent(InputLabel).text()).toBe('Category*');
+    });
+
+    it('does not show an asterisk on the label when required is omitted', () => {
+        const wrapper = mountField();
+
+        expect(wrapper.findComponent(InputLabel).text()).toBe('Category');
+    });
+
     it('applies labelClass to the label and selectClass to the select', () => {
         const wrapper = mountField({
             labelClass: 'sr-only',

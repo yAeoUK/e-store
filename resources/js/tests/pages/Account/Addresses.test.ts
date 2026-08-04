@@ -192,13 +192,17 @@ describe('Addresses page', () => {
         expect(modal.props('show')).toBe(true);
 
         const editFields = modal.findComponent(AddressFormFields);
-        expect(editFields.props('label')).toBe(address.label);
-        expect(editFields.props('name')).toBe(address.name);
-        expect(editFields.props('line1')).toBe(address.line1);
-        expect(editFields.props('city')).toBe(address.city);
-        expect(editFields.props('postal_code')).toBe(address.postal_code);
-        expect(editFields.props('country')).toBe(address.country);
-        expect(editFields.props('is_default')).toBe(address.is_default);
+        const editForm = editFields.props('form');
+        expect(editForm.label).toBe(address.label);
+        expect(editForm.name).toBe(address.name);
+        expect(editForm.line1).toBe(address.line1);
+        expect(editForm.line2).toBe(address.line2 ?? '');
+        expect(editForm.city).toBe(address.city);
+        expect(editForm.state).toBe(address.state ?? '');
+        expect(editForm.postal_code).toBe(address.postal_code);
+        expect(editForm.country).toBe(address.country);
+        expect(editForm.phone).toBe(address.phone ?? '');
+        expect(editForm.is_default).toBe(address.is_default);
         expect(editFields.props('errors')).toEqual({});
 
         expect(
@@ -258,6 +262,26 @@ describe('Addresses page', () => {
         await wrapper.findAll('form')[0].trigger('submit');
 
         expect(routeMock).toHaveBeenCalledWith('account.addresses.store');
+        expect(getMockForm(0).lastPostUrl).toBe('account.addresses.store');
+        expect(wrapper.text()).not.toContain('validation.required');
+    });
+
+    it('wires AddressFormFields with the new-address form values and errors props', () => {
+        const wrapper = mount(Addresses, { props: { addresses: [] } });
+
+        const fields = wrapper.findComponent(AddressFormFields);
+        const form = fields.props('form');
+        expect(form.label).toBe('');
+        expect(form.name).toBe('');
+        expect(form.line1).toBe('');
+        expect(form.line2).toBe('');
+        expect(form.city).toBe('');
+        expect(form.state).toBe('');
+        expect(form.postal_code).toBe('');
+        expect(form.country).toBe('US');
+        expect(form.phone).toBe('');
+        expect(form.is_default).toBe(false);
+        expect(fields.props('errors')).toEqual({});
     });
 
     it('clears the new address form after a successful submission', async () => {
@@ -318,6 +342,81 @@ describe('Addresses page', () => {
         const modal = wrapper.findComponent({ name: 'Modal' });
         expect(modal.text()).toContain('account.addresses.editHeading');
         expect(modal.text()).toContain('account.addresses.saveChanges');
+    });
+
+    it('blocks the new-address submission and shows required errors when required fields are left empty', async () => {
+        const wrapper = mount(Addresses, { props: { addresses: [] } });
+
+        await wrapper.findAll('form')[0].trigger('submit');
+
+        expect(getMockForm(0).lastPostUrl).toBeUndefined();
+        expect(wrapper.text()).toContain('validation.required');
+    });
+
+    it('blocks the new-address submission and shows a max-length error for an over-long value', async () => {
+        const wrapper = mount(Addresses, { props: { addresses: [] } });
+
+        const textInputs = wrapper.findAll('input');
+        await textInputs[2].setValue('a'.repeat(256));
+        await textInputs[4].setValue('Springfield');
+        await textInputs[6].setValue('62704');
+
+        await wrapper.findAll('form')[0].trigger('submit');
+
+        expect(getMockForm(0).lastPostUrl).toBeUndefined();
+        expect(wrapper.text()).toContain('validation.maxLength');
+    });
+
+    it('blocks the new-address submission and shows a max-length error for an over-long phone value', async () => {
+        const wrapper = mount(Addresses, { props: { addresses: [] } });
+
+        const textInputs = wrapper.findAll('input');
+        await textInputs[2].setValue('123 Main St');
+        await textInputs[4].setValue('Springfield');
+        await textInputs[6].setValue('62704');
+        await textInputs[8].setValue('1'.repeat(65));
+
+        await wrapper.findAll('form')[0].trigger('submit');
+
+        expect(getMockForm(0).lastPostUrl).toBeUndefined();
+        expect(wrapper.text()).toContain('validation.maxLength');
+    });
+
+    it('binds the phone field to the form and submits without blocking', async () => {
+        const wrapper = mount(Addresses, { props: { addresses: [] } });
+
+        const textInputs = wrapper.findAll('input');
+        await textInputs[2].setValue('123 Main St');
+        await textInputs[4].setValue('Springfield');
+        await textInputs[6].setValue('62704');
+        await textInputs[8].setValue('555-0100');
+
+        expect(getMockForm(0).phone).toBe('555-0100');
+
+        await wrapper.findAll('form')[0].trigger('submit');
+
+        expect(getMockForm(0).lastPostUrl).toBe('account.addresses.store');
+        expect(wrapper.text()).not.toContain('validation.maxLength');
+    });
+
+    it('blocks the edit-modal submission and shows required errors when a required field is cleared', async () => {
+        const wrapper = mount(Addresses, { props: { addresses: [address] } });
+
+        await findButton(wrapper, 'account.addresses.edit')?.trigger('click');
+
+        const modal = wrapper.findComponent({ name: 'Modal' });
+        const modalInputs = modal.findAll('input');
+        await modalInputs[2].setValue('');
+
+        await modal.find('form').trigger('submit');
+
+        expect(getMockForm(1).lastPostUrl).toBeUndefined();
+        expect(routeMock).not.toHaveBeenCalledWith(
+            'account.addresses.update',
+            address.id,
+        );
+        expect(wrapper.text()).toContain('validation.required');
+        expect(modal.props('show')).toBe(true);
     });
 
     it('toggles the is_default checkbox', async () => {

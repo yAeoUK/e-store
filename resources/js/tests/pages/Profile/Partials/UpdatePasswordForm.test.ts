@@ -1,5 +1,6 @@
 import { mount } from '@vue/test-utils';
 import { describe, expect, it } from 'vitest';
+import FormField from '@/components/FormField.vue';
 import UpdatePasswordForm from '@/pages/Profile/Partials/UpdatePasswordForm.vue';
 import { getMockForm, routeMock } from '../../../setup';
 
@@ -28,6 +29,23 @@ describe('UpdatePasswordForm', () => {
         expect(wrapper.text()).toContain('common.saved');
     });
 
+    it('renders a FormField for current password, new password and confirmation with the right labels', () => {
+        const wrapper = mount(UpdatePasswordForm);
+        const fields = wrapper.findAllComponents(FormField);
+
+        expect(fields).toHaveLength(3);
+        expect(fields[0].props('label')).toBe(
+            'profile.password.currentPassword',
+        );
+        expect(fields[1].props('label')).toBe('profile.password.newPassword');
+        expect(fields[2].props('label')).toBe(
+            'profile.password.confirmPassword',
+        );
+        expect(fields[0].props('required')).toBe(true);
+        expect(fields[1].props('required')).toBe(true);
+        expect(fields[2].props('required')).toBe(true);
+    });
+
     it('binds the current password, new password and confirmation fields', async () => {
         const wrapper = mount(UpdatePasswordForm);
         const inputs = passwordInputs(wrapper);
@@ -43,6 +61,11 @@ describe('UpdatePasswordForm', () => {
 
     it('submits to the password update route', async () => {
         const wrapper = mount(UpdatePasswordForm);
+        const inputs = passwordInputs(wrapper);
+
+        await inputs[0].setValue('old-secret');
+        await inputs[1].setValue('new-secret');
+        await inputs[2].setValue('new-secret');
 
         await wrapper.find('form').trigger('submit');
 
@@ -67,6 +90,11 @@ describe('UpdatePasswordForm', () => {
 
     it('resets the new-password fields on a password validation error', async () => {
         const wrapper = mount(UpdatePasswordForm);
+        const inputs = passwordInputs(wrapper);
+
+        await inputs[0].setValue('old-secret');
+        await inputs[1].setValue('new-secret');
+        await inputs[2].setValue('new-secret');
 
         await wrapper.find('form').trigger('submit');
 
@@ -82,6 +110,11 @@ describe('UpdatePasswordForm', () => {
 
     it('resets the current password field on a current_password validation error', async () => {
         const wrapper = mount(UpdatePasswordForm);
+        const inputs = passwordInputs(wrapper);
+
+        await inputs[0].setValue('old-secret');
+        await inputs[1].setValue('new-secret');
+        await inputs[2].setValue('new-secret');
 
         await wrapper.find('form').trigger('submit');
 
@@ -104,5 +137,28 @@ describe('UpdatePasswordForm', () => {
         await wrapper.vm.$nextTick();
 
         expect(wrapper.text()).toContain('The password is too short.');
+    });
+
+    it('blocks submission and shows required errors when the fields are left empty', async () => {
+        const wrapper = mount(UpdatePasswordForm);
+
+        await wrapper.find('form').trigger('submit');
+
+        expect(getMockForm().lastPostUrl).toBeUndefined();
+        expect(wrapper.text()).toContain('validation.required');
+    });
+
+    it('blocks submission and shows a confirmation error when password and confirmation do not match', async () => {
+        const wrapper = mount(UpdatePasswordForm);
+        const inputs = passwordInputs(wrapper);
+
+        await inputs[0].setValue('old-secret');
+        await inputs[1].setValue('new-secret');
+        await inputs[2].setValue('different-secret');
+
+        await wrapper.find('form').trigger('submit');
+
+        expect(getMockForm().lastPostUrl).toBeUndefined();
+        expect(wrapper.text()).toContain('validation.confirmed');
     });
 });

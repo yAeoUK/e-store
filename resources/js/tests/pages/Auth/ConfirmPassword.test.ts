@@ -46,6 +46,7 @@ describe('ConfirmPassword page', () => {
 
         expect(field.exists()).toBe(true);
         expect(field.props('label')).toBe('auth.confirmPassword.password');
+        expect(field.props('required')).toBe(true);
     });
 
     it('passes validation errors through to the field', async () => {
@@ -91,5 +92,14 @@ describe('ConfirmPassword page', () => {
         expect(
             (wrapper.find('#password').element as HTMLInputElement).value,
         ).toBe('');
+    });
+
+    it('blocks submission and shows a client-side error when password is empty', async () => {
+        const wrapper = mount(ConfirmPassword);
+
+        await wrapper.find('form').trigger('submit');
+
+        expect(getMockForm().lastPostUrl).toBeUndefined();
+        expect(wrapper.text()).toContain('validation.required');
     });
 });

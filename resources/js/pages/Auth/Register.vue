@@ -1,24 +1,37 @@
 <script setup lang="ts">
-import { Head, useForm } from '@inertiajs/vue3';
+import { Head } from '@inertiajs/vue3';
 import FormActions from '@/components/FormActions.vue';
 import FormField from '@/components/FormField.vue';
+import PasswordConfirmationFields from '@/components/PasswordConfirmationFields.vue';
 import PrimaryButton from '@/components/PrimaryButton.vue';
 import TextLink from '@/components/TextLink.vue';
+import { useValidatedSubmit } from '@/composables/useValidatedSubmit';
 import { t } from '@/i18n';
 import GuestLayout from '@/Layouts/GuestLayout.vue';
+import { confirmedBy, isEmail, maxLength, required } from '@/lib/validation';
 
-const form = useForm({
-    name: '',
-    email: '',
-    password: '',
-    password_confirmation: '',
-});
-
-const submit = () => {
-    form.post(route('register'), {
-        onFinish: () => form.reset('password', 'password_confirmation'),
-    });
-};
+const { form, errors, submit } = useValidatedSubmit(
+    { name: '', email: '', password: '', password_confirmation: '' },
+    {
+        name: [
+            required(t('auth.register.name')),
+            maxLength(t('auth.register.name'), 255),
+        ],
+        email: [
+            required(t('auth.register.email')),
+            isEmail(t('auth.register.email')),
+            maxLength(t('auth.register.email'), 255),
+        ],
+        password: [required(t('auth.register.password'))],
+        password_confirmation: [
+            confirmedBy(t('auth.register.confirmPassword'), 'password'),
+        ],
+    },
+    (form) =>
+        form.post(route('register'), {
+            onFinish: () => form.reset('password', 'password_confirmation'),
+        }),
+);
 </script>
 
 <template>
@@ -31,7 +44,7 @@ const submit = () => {
                 v-model="form.name"
                 type="text"
                 :label="t('auth.register.name')"
-                :error="form.errors.name"
+                :error="errors.name"
                 required
                 autofocus
                 autocomplete="name"
@@ -43,31 +56,19 @@ const submit = () => {
                 type="email"
                 class="mt-4"
                 :label="t('auth.register.email')"
-                :error="form.errors.email"
+                :error="errors.email"
                 required
                 autocomplete="username"
             />
 
-            <FormField
-                id="password"
-                v-model="form.password"
-                type="password"
-                class="mt-4"
-                :label="t('auth.register.password')"
-                :error="form.errors.password"
-                required
-                autocomplete="new-password"
-            />
-
-            <FormField
-                id="password_confirmation"
-                v-model="form.password_confirmation"
-                type="password"
-                class="mt-4"
-                :label="t('auth.register.confirmPassword')"
-                :error="form.errors.password_confirmation"
-                required
-                autocomplete="new-password"
+            <PasswordConfirmationFields
+                v-model:password="form.password"
+                v-model:confirmation="form.password_confirmation"
+                field-class="mt-4"
+                :password-label="t('auth.register.password')"
+                :confirm-label="t('auth.register.confirmPassword')"
+                :password-error="errors.password"
+                :confirm-error="errors.password_confirmation"
             />
 
             <FormActions class="mt-4">

@@ -1,11 +1,15 @@
 <script setup lang="ts">
-import { Head, router, useForm } from '@inertiajs/vue3';
-import { ref } from 'vue';
+import { Head, router } from '@inertiajs/vue3';
+import AddressLines from '@/components/AddressLines.vue';
 import Card from '@/components/Card.vue';
 import {
     accentBadgeTextClass,
-    headingTextClass,
+    cardPaddingClass,
+    listItemCardClass,
+    narrowPageWidthClass,
+    pageHeaderTextClass,
     rowActionsClass,
+    sectionHeadingClass,
 } from '@/components/classNames';
 import ConfirmationDialog from '@/components/ConfirmationDialog.vue';
 import DangerButton from '@/components/DangerButton.vue';
@@ -14,72 +18,102 @@ import Modal from '@/components/Modal.vue';
 import MutedText from '@/components/MutedText.vue';
 import PrimaryButton from '@/components/PrimaryButton.vue';
 import SecondaryButton from '@/components/SecondaryButton.vue';
+import { useDeleteConfirmation } from '@/composables/useDeleteConfirmation';
+import { useEditableForm } from '@/composables/useEditableForm';
 import { t } from '@/i18n';
 import ShopLayout from '@/Layouts/ShopLayout.vue';
+import { maxLength, required } from '@/lib/validation';
+import type { Address } from '@/types/address';
 import AddressFormFields from './Partials/AddressFormFields.vue';
-
-interface Address {
-    id: number;
-    label: string | null;
-    name: string | null;
-    line1: string;
-    line2: string | null;
-    city: string;
-    state: string | null;
-    postal_code: string;
-    country: string;
-    phone: string | null;
-    is_default: boolean;
-}
 
 defineProps<{
     addresses: Address[];
 }>();
 
-const form = useForm({
-    label: '',
-    name: '',
-    line1: '',
-    line2: '',
-    city: '',
-    state: '',
-    postal_code: '',
-    country: 'US',
-    phone: '',
-    is_default: false,
-});
+const addressRules = {
+    label: [maxLength(t('account.addresses.label'), 255)],
+    name: [maxLength(t('account.addresses.name'), 255)],
+    line1: [
+        required(t('account.addresses.line1')),
+        maxLength(t('account.addresses.line1'), 255),
+    ],
+    line2: [maxLength(t('account.addresses.line2'), 255)],
+    city: [
+        required(t('account.addresses.city')),
+        maxLength(t('account.addresses.city'), 255),
+    ],
+    state: [maxLength(t('account.addresses.state'), 255)],
+    postal_code: [
+        required(t('account.addresses.postalCode')),
+        maxLength(t('account.addresses.postalCode'), 64),
+    ],
+    country: [
+        required(t('account.addresses.country')),
+        maxLength(t('account.addresses.country'), 64),
+    ],
+    phone: [maxLength(t('account.addresses.phone'), 64)],
+};
+
+const {
+    form,
+    clientErrors,
+    attemptSubmit,
+    resetAttempted,
+    editingId: editingAddressId,
+    editForm,
+    editClientErrors,
+    attemptEditSubmit,
+    edit,
+    closeEdit,
+} = useEditableForm(
+    () => ({
+        label: '',
+        name: '',
+        line1: '',
+        line2: '',
+        city: '',
+        state: '',
+        postal_code: '',
+        country: 'US',
+        phone: '',
+        is_default: false,
+    }),
+    addressRules,
+    (target, addr: Address) => {
+        target.label = addr.label ?? '';
+        target.name = addr.name ?? '';
+        target.line1 = addr.line1;
+        target.line2 = addr.line2 ?? '';
+        target.city = addr.city;
+        target.state = addr.state ?? '';
+        target.postal_code = addr.postal_code;
+        target.country = addr.country;
+        target.phone = addr.phone ?? '';
+        target.is_default = addr.is_default;
+    },
+);
 
 function submit() {
-    form.post(route('account.addresses.store'), {
-        onSuccess: () => form.reset(),
-    });
-}
-
-const confirmingDeleteId = ref<number | null>(null);
-const deleting = ref(false);
-
-function confirmDelete(id: number) {
-    confirmingDeleteId.value = id;
-}
-
-function destroy() {
-    if (confirmingDeleteId.value === null) {
+    if (!attemptSubmit()) {
         return;
     }
 
-    deleting.value = true;
-
-    router.delete(
-        route('account.addresses.destroy', confirmingDeleteId.value),
-        {
-            preserveScroll: true,
-            onFinish: () => {
-                deleting.value = false;
-                confirmingDeleteId.value = null;
-            },
+    form.post(route('account.addresses.store'), {
+        onSuccess: () => {
+            resetAttempted();
+            form.reset();
         },
-    );
+    });
 }
+
+const {
+    confirmingId: confirmingDeleteId,
+    deleting,
+    confirmDelete,
+    destroy,
+} = useDeleteConfirmation((id: number) =>
+    route('account.addresses.destroy', id),
+);
 
 function setDefault(id: number) {
     router.post(
@@ -89,44 +123,12 @@ function setDefault(id: number) {
     );
 }
 
-const editingAddressId = ref<number | null>(null);
-
-const editForm = useForm({
-    label: '',
-    name: '',
-    line1: '',
-    line2: '',
-    city: '',
-    state: '',
-    postal_code: '',
-    country: 'US',
-    phone: '',
-    is_default: false,
-});
-
-function edit(addr: Address) {
-    editingAddressId.value = addr.id;
-    editForm.clearErrors();
-    editForm.label = addr.label ?? '';
-    editForm.name = addr.name ?? '';
-    editForm.line1 = addr.line1;
-    editForm.line2 = addr.line2 ?? '';
-    editForm.city = addr.city;
-    editForm.state = addr.state ?? '';
-    editForm.postal_code = addr.postal_code;
-    editForm.country = addr.country;
-    editForm.phone = addr.phone ?? '';
-    editForm.is_default = addr.is_default;
-}
-
-function closeEdit() {
-    editingAddressId.value = null;
-    editForm.clearErrors();
-    editForm.reset();
-}
-
 function submitEdit() {
     if (editingAddressId.value === null) {
+        return;
+    }
+
+    if (!attemptEditSubmit()) {
         return;
     }
 
@@ -142,20 +144,15 @@ function submitEdit() {
         <Head :title="t('account.addresses.pageTitle')" />
 
         <template #header>
-            <h2
-                :class="[
-                    'text-xl leading-tight font-semibold',
-                    headingTextClass,
-                ]"
-            >
+            <h2 :class="pageHeaderTextClass">
                 {{ t('account.addresses.pageTitle') }}
             </h2>
         </template>
 
         <div class="py-12">
-            <div class="mx-auto max-w-4xl sm:px-6 lg:px-8">
+            <div :class="narrowPageWidthClass">
                 <div class="space-y-6">
-                    <Card class="overflow-hidden p-6">
+                    <Card :class="cardPaddingClass">
                         <MutedText v-if="addresses.length === 0" class="mb-4">
                             {{ t('account.addresses.empty') }}
                         </MutedText>
@@ -164,7 +161,7 @@ function submitEdit() {
                             <li
                                 v-for="addr in addresses"
                                 :key="addr.id"
-                                class="rounded border border-slate-200 p-4 dark:border-slate-800"
+                                :class="listItemCardClass"
                             >
                                 <div
                                     class="flex flex-col gap-3 sm:flex-row sm:justify-between"
@@ -185,14 +182,10 @@ function submitEdit() {
                                                 }}
                                             </span>
                                         </div>
-                                        <MutedText>
-                                            {{ addr.line1 }} {{ addr.line2 }}
-                                        </MutedText>
-                                        <MutedText>
-                                            {{ addr.city }}
-                                            {{ addr.postal_code }}
-                                            {{ addr.state }}
-                                        </MutedText>
+                                        <AddressLines
+                                            :address="addr"
+                                            :show-label="false"
+                                        />
                                     </div>
                                     <div :class="rowActionsClass">
                                         <SecondaryButton
@@ -223,22 +216,14 @@ function submitEdit() {
                         </ul>
                     </Card>
 
-                    <Card class="overflow-hidden p-6">
-                        <h3 class="mb-4 text-lg font-semibold">
+                    <Card :class="cardPaddingClass">
+                        <h3 :class="['mb-4', sectionHeadingClass]">
                             {{ t('account.addresses.addHeading') }}
                         </h3>
                         <form @submit.prevent="submit" class="space-y-4">
                             <AddressFormFields
-                                v-model:label="form.label"
-                                v-model:name="form.name"
-                                v-model:line1="form.line1"
-                                v-model:line2="form.line2"
-                                v-model:city="form.city"
-                                v-model:state="form.state"
-                                v-model:postal_code="form.postal_code"
-                                v-model:country="form.country"
-                                v-model:is_default="form.is_default"
-                                :errors="form.errors"
+                                :form="form"
+                                :errors="{ ...clientErrors, ...form.errors }"
                             />
                             <div>
                                 <PrimaryButton :disabled="form.processing">
@@ -253,21 +238,13 @@ function submitEdit() {
 
         <Modal :show="editingAddressId !== null" @close="closeEdit">
             <div class="p-6">
-                <h3 class="mb-4 text-lg font-semibold">
+                <h3 :class="['mb-4', sectionHeadingClass]">
                     {{ t('account.addresses.editHeading') }}
                 </h3>
                 <form @submit.prevent="submitEdit" class="space-y-4">
                     <AddressFormFields
-                        v-model:label="editForm.label"
-                        v-model:name="editForm.name"
-                        v-model:line1="editForm.line1"
-                        v-model:line2="editForm.line2"
-                        v-model:city="editForm.city"
-                        v-model:state="editForm.state"
-                        v-model:postal_code="editForm.postal_code"
-                        v-model:country="editForm.country"
-                        v-model:is_default="editForm.is_default"
-                        :errors="editForm.errors"
+                        :form="editForm"
+                        :errors="{ ...editClientErrors, ...editForm.errors }"
                     />
                     <FormActions>
                         <SecondaryButton type="button" @click="closeEdit">

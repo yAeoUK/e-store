@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Head } from '@inertiajs/vue3';
 import Card from '@/components/Card.vue';
-import { headingTextClass } from '@/components/classNames';
+import { narrowPageWidthClass, pageHeaderTextClass } from '@/components/classNames';
 import { t } from '@/i18n';
 import ShopLayout from '@/Layouts/ShopLayout.vue';
 import DeleteUserForm from './Partials/DeleteUserForm.vue';
@@ -23,18 +23,13 @@ defineProps({
 
     <ShopLayout>
         <template #header>
-            <h2
-                :class="[
-                    'text-xl leading-tight font-semibold',
-                    headingTextClass,
-                ]"
-            >
+            <h2 :class="pageHeaderTextClass">
                 {{ t('profile.title') }}
             </h2>
         </template>
 
         <div class="py-12">
-            <div class="mx-auto max-w-7xl space-y-6 sm:px-6 lg:px-8">
+            <div :class="[narrowPageWidthClass, 'space-y-6']">
                 <Card class="p-4 sm:p-8">
                     <UpdateProfileInformationForm
                         :must-verify-email="mustVerifyEmail"

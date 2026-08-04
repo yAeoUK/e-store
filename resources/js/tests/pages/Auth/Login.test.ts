@@ -89,6 +89,8 @@ describe('Login page', () => {
         expect(fields).toHaveLength(2);
         expect(fields[0].props('label')).toBe('auth.login.email');
         expect(fields[1].props('label')).toBe('auth.login.password');
+        expect(fields[0].props('required')).toBe(true);
+        expect(fields[1].props('required')).toBe(true);
     });
 
     it('passes validation errors through to the email and password fields', async () => {
@@ -149,5 +151,25 @@ describe('Login page', () => {
         await wrapper.find('input[type="checkbox"]').setValue(true);
 
         expect(getMockForm().remember).toBe(true);
+    });
+
+    it('blocks submission and shows client-side errors when required fields are empty', async () => {
+        const wrapper = mountLogin();
+
+        await wrapper.find('form').trigger('submit');
+
+        expect(getMockForm().lastPostUrl).toBeUndefined();
+        expect(wrapper.text()).toContain('validation.required');
+    });
+
+    it('blocks submission and shows a client-side error for an invalid email format', async () => {
+        const wrapper = mountLogin();
+
+        await wrapper.find('#email').setValue('not-an-email');
+        await wrapper.find('#password').setValue('secret');
+        await wrapper.find('form').trigger('submit');
+
+        expect(getMockForm().lastPostUrl).toBeUndefined();
+        expect(wrapper.text()).toContain('validation.email');
     });
 });

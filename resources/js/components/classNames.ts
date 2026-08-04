@@ -18,6 +18,8 @@ export const wrapBetweenClass =
 
 export const headerRowClass = `${pageWidthClass} ${wrapBetweenClass} py-3`;
 
+export const narrowPageWidthClass = 'mx-auto max-w-4xl sm:px-6 lg:px-8';
+
 const controlPaddingClass = 'px-4 py-2';
 
 const transitionClass = 'transition duration-150 ease-in-out';
@@ -25,8 +27,6 @@ const transitionClass = 'transition duration-150 ease-in-out';
 const disabledClass = 'disabled:opacity-25';
 
 export const legacyButtonBaseClass = `inline-flex items-center rounded-md border ${controlPaddingClass} text-xs font-semibold tracking-widest uppercase ${transitionClass} ${disabledClass}`;
-
-export const dropdownItemBaseClass = `block w-full ${controlPaddingClass} text-start text-sm leading-5 ${transitionClass} focus:outline-none`;
 
 export const interactiveRowClass = `${bodyTextClass} hover:bg-slate-100 focus:bg-slate-100 dark:hover:bg-slate-800 dark:focus:bg-slate-800`;
 
@@ -43,12 +43,16 @@ export const formFieldBlockClass = `${formFieldClass} mt-1 block`;
 
 export const formGridClass = 'grid gap-4 sm:grid-cols-2';
 
+export const formGrid3Class = 'grid gap-4 sm:grid-cols-3';
+
 export const filterFormClass =
     'grid gap-4 sm:grid-cols-[1fr_auto] sm:items-end';
 
 export const headingTextClass = 'text-slate-900 dark:text-slate-100';
 
 export const mutedTextClass = 'text-slate-500 dark:text-slate-400';
+
+export const hintTextClass = `${mutedTextClass} mt-1 text-xs`;
 
 export const mutedBodyTextClass = 'text-slate-600 dark:text-slate-400';
 
@@ -58,9 +62,11 @@ export const compactHeadingClass = `text-sm font-semibold ${headingTextClass}`;
 
 export const subheadingTextClass = `text-lg font-semibold ${headingTextClass}`;
 
-export const pageTitleClass = `text-2xl font-semibold ${headingTextClass}`;
+export const sectionHeadingClass = 'text-lg font-semibold';
 
-export const dialogTitleClass = `text-lg font-medium ${headingTextClass}`;
+export const pageHeaderTextClass = `text-xl leading-tight font-semibold ${headingTextClass}`;
+
+export const pageTitleClass = `text-2xl font-semibold ${headingTextClass}`;
 
 export const accentBadgeTextClass =
     'text-xs font-medium text-indigo-600 dark:text-indigo-400';
@@ -68,11 +74,21 @@ export const accentBadgeTextClass =
 export const rowActionsClass =
     'flex flex-wrap items-start gap-2 sm:justify-end';
 
+export const endRowClass = 'flex items-center justify-end gap-3';
+
 export const mutedLinkClass =
     'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200';
 
 export const linkClass = 'text-indigo-600 hover:underline dark:text-indigo-400';
 
 export const cardSurfaceClass = `rounded-xl border ${mutedBorderClass} dark:bg-slate-900/90`;
+
+export const cardPaddingClass = 'overflow-hidden p-6';
+
+export const listItemCardClass = `rounded border ${mutedBorderClass} p-4`;
+
+export const stackedRowCardClass = `flex flex-col gap-3 rounded border ${mutedBorderClass} p-4 sm:flex-row sm:items-center sm:justify-between`;
+
+export const totalRowClass = `flex items-center justify-between border-t ${mutedBorderClass} pt-4`;
 
 export const errorTextClass = 'text-red-600 dark:text-red-400';

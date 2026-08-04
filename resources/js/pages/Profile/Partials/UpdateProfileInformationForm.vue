@@ -1,12 +1,14 @@
 <script setup lang="ts">
-import { useForm, usePage } from '@inertiajs/vue3';
-import { bodyTextClass, dialogTitleClass } from '@/components/classNames';
+import { usePage } from '@inertiajs/vue3';
+import { bodyTextClass } from '@/components/classNames';
 import FormField from '@/components/FormField.vue';
-import MutedText from '@/components/MutedText.vue';
-import PrimaryButton from '@/components/PrimaryButton.vue';
+import FormSectionHeader from '@/components/FormSectionHeader.vue';
+import SaveButton from '@/components/SaveButton.vue';
 import SuccessText from '@/components/SuccessText.vue';
 import TextLink from '@/components/TextLink.vue';
+import { useValidatedSubmit } from '@/composables/useValidatedSubmit';
 import { t } from '@/i18n';
+import { isEmail, maxLength, required } from '@/lib/validation';
 
 defineProps({
     mustVerifyEmail: {
@@ -20,34 +22,37 @@ defineProps({
 // Non-null: this page is only reachable behind the `auth` middleware.
 const user = usePage().props.auth.user!;
 
-const form = useForm({
-    name: user.name,
-    email: user.email,
-});
+const { form, errors, submit } = useValidatedSubmit(
+    { name: user.name, email: user.email },
+    {
+        name: [
+            required(t('profile.information.name')),
+            maxLength(t('profile.information.name'), 255),
+        ],
+        email: [
+            required(t('profile.information.email')),
+            isEmail(t('profile.information.email')),
+            maxLength(t('profile.information.email'), 255),
+        ],
+    },
+    (form) => form.patch(route('profile.update')),
+);
 </script>
 
 <template>
     <section>
-        <header>
-            <h2 :class="dialogTitleClass">
-                {{ t('profile.information.heading') }}
-            </h2>
+        <FormSectionHeader
+            :heading="t('profile.information.heading')"
+            :description="t('profile.information.description')"
+        />
 
-            <MutedText class="mt-1">
-                {{ t('profile.information.description') }}
-            </MutedText>
-        </header>
-
-        <form
-            @submit.prevent="form.patch(route('profile.update'))"
-            class="mt-6 space-y-6"
-        >
+        <form @submit.prevent="submit" class="mt-6 space-y-6">
             <FormField
                 id="name"
                 v-model="form.name"
                 type="text"
                 :label="t('profile.information.name')"
-                :error="form.errors.name"
+                :error="errors.name"
                 required
                 autofocus
                 autocomplete="name"
@@ -58,7 +63,7 @@ const form = useForm({
                 v-model="form.email"
                 type="email"
                 :label="t('profile.information.email')"
-                :error="form.errors.email"
+                :error="errors.email"
                 required
                 autocomplete="username"
             />
@@ -83,22 +88,10 @@ const form = useForm({
                 </SuccessText>
             </div>
 
-            <div class="flex items-center gap-4">
-                <PrimaryButton :disabled="form.processing">{{
-                    t('common.save')
-                }}</PrimaryButton>
-
-                <Transition
-                    enter-active-class="transition ease-in-out"
-                    enter-from-class="opacity-0"
-                    leave-active-class="transition ease-in-out"
-                    leave-to-class="opacity-0"
-                >
-                    <MutedText v-if="form.recentlySuccessful">
-                        {{ t('common.saved') }}
-                    </MutedText>
-                </Transition>
-            </div>
+            <SaveButton
+                :processing="form.processing"
+                :saved="form.recentlySuccessful"
+            />
         </form>
     </section>
 </template>

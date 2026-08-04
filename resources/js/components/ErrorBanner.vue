@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { errorTextClass } from './classNames.js';
+import { errorTextClass } from './classNames';
 </script>
 
 <template>

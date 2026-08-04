@@ -19,4 +19,28 @@ describe('InputLabel', () => {
 
         expect(wrapper.text()).toBe('Fallback');
     });
+
+    it('renders an asterisk when required is true', () => {
+        const wrapper = mount(InputLabel, {
+            props: { value: 'Email', required: true },
+        });
+
+        expect(wrapper.text()).toBe('Email*');
+    });
+
+    it('does not render an asterisk when required is false', () => {
+        const wrapper = mount(InputLabel, {
+            props: { value: 'Email', required: false },
+        });
+
+        expect(wrapper.text()).toBe('Email');
+    });
+
+    it('does not render an asterisk when required is omitted', () => {
+        const wrapper = mount(InputLabel, {
+            props: { value: 'Email' },
+        });
+
+        expect(wrapper.text()).toBe('Email');
+    });
 });

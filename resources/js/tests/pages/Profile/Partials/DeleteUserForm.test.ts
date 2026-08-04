@@ -1,5 +1,6 @@
 import { mount } from '@vue/test-utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import FormField from '@/components/FormField.vue';
 import DeleteUserForm from '@/pages/Profile/Partials/DeleteUserForm.vue';
 import { getMockForm, routeMock } from '../../../setup';
 
@@ -55,6 +56,22 @@ describe('DeleteUserForm', () => {
         );
     });
 
+    it('renders a required FormField for the password in the modal', async () => {
+        const wrapper = mount(DeleteUserForm);
+
+        await findButton(wrapper, 'profile.deleteAccount.heading')?.trigger(
+            'click',
+        );
+
+        const fields = wrapper.findAllComponents(FormField);
+
+        expect(fields).toHaveLength(1);
+        expect(fields[0].props('label')).toBe(
+            'profile.deleteAccount.passwordPlaceholder',
+        );
+        expect(fields[0].props('required')).toBe(true);
+    });
+
     it('submits the password to the destroy route and closes the modal on success', async () => {
         const wrapper = mount(DeleteUserForm);
 
@@ -95,5 +112,24 @@ describe('DeleteUserForm', () => {
             (wrapper.find('input[type="password"]').element as HTMLInputElement)
                 .value,
         ).toBe('');
+    });
+
+    it('blocks submission and shows a required error when the password is left empty', async () => {
+        const wrapper = mount(DeleteUserForm);
+
+        await findButton(wrapper, 'profile.deleteAccount.heading')?.trigger(
+            'click',
+        );
+
+        const modal = wrapper.findComponent({ name: 'Modal' });
+        const confirmButton = modal
+            .findAll('button')
+            .find(
+                (button) => button.text() === 'profile.deleteAccount.heading',
+            );
+        await confirmButton?.trigger('click');
+
+        expect(getMockForm().lastPostUrl).toBeUndefined();
+        expect(wrapper.text()).toContain('validation.required');
     });
 });

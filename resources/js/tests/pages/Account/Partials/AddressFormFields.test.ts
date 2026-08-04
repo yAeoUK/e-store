@@ -1,24 +1,28 @@
+import { useForm } from '@inertiajs/vue3';
 import { mount } from '@vue/test-utils';
 import { describe, expect, it } from 'vitest';
 import FormField from '@/components/FormField.vue';
 import AddressFormFields from '@/pages/Account/Partials/AddressFormFields.vue';
 
-const baseProps = {
-    label: '',
-    name: '',
-    line1: '',
-    line2: '',
-    city: '',
-    state: '',
-    postal_code: '',
-    country: '',
-    is_default: false,
-    errors: {},
-};
+function makeForm(overrides = {}) {
+    return useForm({
+        label: '',
+        name: '',
+        line1: '',
+        line2: '',
+        city: '',
+        state: '',
+        postal_code: '',
+        country: '',
+        phone: '',
+        is_default: false,
+        ...overrides,
+    });
+}
 
 function mountFields(props = {}) {
     return mount(AddressFormFields, {
-        props: { ...baseProps, ...props },
+        props: { form: makeForm(), errors: {}, ...props },
     });
 }
 
@@ -71,6 +75,12 @@ const fieldsInOrder = [
         placeholder: 'account.addresses.countryPlaceholder',
         required: true,
     },
+    {
+        key: 'phone',
+        label: 'account.addresses.phone',
+        placeholder: 'account.addresses.phonePlaceholder',
+        required: false,
+    },
 ];
 
 describe('AddressFormFields', () => {
@@ -78,7 +88,7 @@ describe('AddressFormFields', () => {
         const wrapper = mountFields();
         const fields = wrapper.findAllComponents(FormField);
 
-        expect(fields).toHaveLength(8);
+        expect(fields).toHaveLength(9);
 
         fieldsInOrder.forEach((expected, i) => {
             expect(fields[i].props('label')).toBe(expected.label);
@@ -97,22 +107,27 @@ describe('AddressFormFields', () => {
 
             if (expected.required) {
                 expect(requiredAttr).not.toBeUndefined();
+                expect(fields[i].props('required')).toBe(true);
             } else {
                 expect(requiredAttr).toBeUndefined();
+                expect(fields[i].props('required')).toBeFalsy();
             }
         });
     });
 
-    it('pre-fills each field from its model prop', () => {
+    it('pre-fills each field from the form values', () => {
         const wrapper = mountFields({
-            label: 'Home',
-            name: 'Jane Doe',
-            line1: '123 Main St',
-            line2: 'Apt 4',
-            city: 'Springfield',
-            state: 'IL',
-            postal_code: '62704',
-            country: 'US',
+            form: makeForm({
+                label: 'Home',
+                name: 'Jane Doe',
+                line1: '123 Main St',
+                line2: 'Apt 4',
+                city: 'Springfield',
+                state: 'IL',
+                postal_code: '62704',
+                country: 'US',
+                phone: '555-0100',
+            }),
         });
 
         const inputs = wrapper.findAll('input');
@@ -123,14 +138,18 @@ describe('AddressFormFields', () => {
             '123 Main St',
         );
         expect((inputs[6].element as HTMLInputElement).value).toBe('62704');
+        expect((inputs[8].element as HTMLInputElement).value).toBe(
+            '555-0100',
+        );
     });
 
-    it('emits update:<field> when a field is edited', async () => {
-        const wrapper = mountFields();
+    it('updates the form field when an input changes', async () => {
+        const form = makeForm();
+        const wrapper = mountFields({ form });
 
         await wrapper.findAll('input')[2].setValue('456 Oak Ave');
 
-        expect(wrapper.emitted('update:line1')?.[0]).toEqual(['456 Oak Ave']);
+        expect(form.line1).toBe('456 Oak Ave');
     });
 
     it('passes each error to its matching field', () => {
@@ -139,6 +158,7 @@ describe('AddressFormFields', () => {
                 line1: 'The line1 field is required.',
                 city: 'The city field is required.',
                 postal_code: 'The postal code field is required.',
+                phone: 'The phone field must not exceed 64 characters.',
             },
         });
 
@@ -149,18 +169,22 @@ describe('AddressFormFields', () => {
         expect(fields[6].props('error')).toBe(
             'The postal code field is required.',
         );
+        expect(fields[8].props('error')).toBe(
+            'The phone field must not exceed 64 characters.',
+        );
         expect(fields[0].props('error')).toBeUndefined();
     });
 
-    it('binds the default checkbox to is_default and emits changes', async () => {
-        const wrapper = mountFields({ is_default: false });
+    it('binds the default checkbox to is_default and updates the form when toggled', async () => {
+        const form = makeForm({ is_default: false });
+        const wrapper = mountFields({ form });
         const checkbox = wrapper.findComponent({ name: 'Checkbox' });
 
         expect(checkbox.props('checked')).toBe(false);
 
         await checkbox.get('input').setValue(true);
 
-        expect(wrapper.emitted('update:is_default')?.[0]).toEqual([true]);
+        expect(form.is_default).toBe(true);
     });
 
     it('renders the set-default checkbox label text', () => {

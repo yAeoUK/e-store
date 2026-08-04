@@ -1,21 +1,24 @@
 <script setup lang="ts">
-import { Head, useForm } from '@inertiajs/vue3';
+import { Head } from '@inertiajs/vue3';
 import FormActions from '@/components/FormActions.vue';
 import FormField from '@/components/FormField.vue';
 import MutedText from '@/components/MutedText.vue';
 import PrimaryButton from '@/components/PrimaryButton.vue';
+import { useValidatedSubmit } from '@/composables/useValidatedSubmit';
 import { t } from '@/i18n';
 import GuestLayout from '@/Layouts/GuestLayout.vue';
+import { required } from '@/lib/validation';
 
-const form = useForm({
-    password: '',
-});
-
-const submit = () => {
-    form.post(route('password.confirm'), {
-        onFinish: () => form.reset(),
-    });
-};
+const { form, errors, submit } = useValidatedSubmit(
+    { password: '' },
+    {
+        password: [required(t('auth.confirmPassword.password'))],
+    },
+    (form) =>
+        form.post(route('password.confirm'), {
+            onFinish: () => form.reset(),
+        }),
+);
 </script>
 
 <template>
@@ -32,7 +35,7 @@ const submit = () => {
                 v-model="form.password"
                 type="password"
                 :label="t('auth.confirmPassword.password')"
-                :error="form.errors.password"
+                :error="errors.password"
                 required
                 autocomplete="current-password"
                 autofocus

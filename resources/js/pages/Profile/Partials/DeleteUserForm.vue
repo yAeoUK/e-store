@@ -1,21 +1,34 @@
 <script setup lang="ts">
-import { useForm } from '@inertiajs/vue3';
 import { nextTick, ref } from 'vue';
-import { dialogTitleClass } from '@/components/classNames';
+import ConfirmationDialog from '@/components/ConfirmationDialog.vue';
 import DangerButton from '@/components/DangerButton.vue';
-import FormActions from '@/components/FormActions.vue';
 import FormField from '@/components/FormField.vue';
-import Modal from '@/components/Modal.vue';
-import MutedText from '@/components/MutedText.vue';
-import SecondaryButton from '@/components/SecondaryButton.vue';
+import FormSectionHeader from '@/components/FormSectionHeader.vue';
+import { useValidatedSubmit } from '@/composables/useValidatedSubmit';
 import { t } from '@/i18n';
+import { required } from '@/lib/validation';
 
 const confirmingUserDeletion = ref(false);
 const passwordInput = ref<{ focus: () => void } | null>(null);
 
-const form = useForm({
-    password: '',
-});
+const {
+    form,
+    errors,
+    submit: deleteUser,
+    reset: resetAttempted,
+} = useValidatedSubmit(
+    { password: '' },
+    {
+        password: [required(t('profile.deleteAccount.passwordPlaceholder'))],
+    },
+    (form) =>
+        form.delete(route('profile.destroy'), {
+            preserveScroll: true,
+            onSuccess: () => closeModal(),
+            onError: () => passwordInput.value?.focus(),
+            onFinish: () => form.reset(),
+        }),
+);
 
 const confirmUserDeletion = () => {
     confirmingUserDeletion.value = true;
@@ -23,18 +36,10 @@ const confirmUserDeletion = () => {
     nextTick(() => passwordInput.value?.focus());
 };
 
-const deleteUser = () => {
-    form.delete(route('profile.destroy'), {
-        preserveScroll: true,
-        onSuccess: () => closeModal(),
-        onError: () => passwordInput.value?.focus(),
-        onFinish: () => form.reset(),
-    });
-};
-
 const closeModal = () => {
     confirmingUserDeletion.value = false;
 
+    resetAttempted();
     form.clearErrors();
     form.reset();
 };
@@ -42,59 +47,39 @@ const closeModal = () => {
 
 <template>
     <section class="space-y-6">
-        <header>
-            <h2 :class="dialogTitleClass">
-                {{ t('profile.deleteAccount.heading') }}
-            </h2>
-
-            <MutedText class="mt-1">
-                {{ t('profile.deleteAccount.description') }}
-            </MutedText>
-        </header>
+        <FormSectionHeader
+            :heading="t('profile.deleteAccount.heading')"
+            :description="t('profile.deleteAccount.description')"
+        />
 
         <DangerButton @click="confirmUserDeletion">{{
             t('profile.deleteAccount.heading')
         }}</DangerButton>
 
-        <Modal :show="confirmingUserDeletion" @close="closeModal">
-            <div class="p-6">
-                <h2 :class="dialogTitleClass">
-                    {{ t('profile.deleteAccount.confirmTitle') }}
-                </h2>
-
-                <MutedText class="mt-1">
-                    {{ t('profile.deleteAccount.confirmDescription') }}
-                </MutedText>
-
-                <FormField
-                    id="password"
-                    ref="passwordInput"
-                    v-model="form.password"
-                    type="password"
-                    class="mt-6"
-                    label-class="sr-only"
-                    input-class="w-3/4"
-                    :label="t('profile.deleteAccount.passwordPlaceholder')"
-                    :error="form.errors.password"
-                    :placeholder="
-                        t('profile.deleteAccount.passwordPlaceholder')
-                    "
-                    @keyup.enter="deleteUser"
-                />
-
-                <FormActions class="mt-6">
-                    <SecondaryButton @click="closeModal">
-                        {{ t('common.cancel') }}
-                    </SecondaryButton>
-
-                    <DangerButton
-                        :disabled="form.processing"
-                        @click="deleteUser"
-                    >
-                        {{ t('profile.deleteAccount.heading') }}
-                    </DangerButton>
-                </FormActions>
-            </div>
-        </Modal>
+        <ConfirmationDialog
+            :show="confirmingUserDeletion"
+            :title="t('profile.deleteAccount.confirmTitle')"
+            :message="t('profile.deleteAccount.confirmDescription')"
+            :confirm-label="t('profile.deleteAccount.heading')"
+            danger
+            :processing="form.processing"
+            @confirm="deleteUser"
+            @cancel="closeModal"
+        >
+            <FormField
+                id="password"
+                ref="passwordInput"
+                v-model="form.password"
+                type="password"
+                class="mt-6"
+                label-class="sr-only"
+                input-class="w-3/4"
+                :label="t('profile.deleteAccount.passwordPlaceholder')"
+                :error="errors.password"
+                :placeholder="t('profile.deleteAccount.passwordPlaceholder')"
+                required
+                @keyup.enter="deleteUser"
+            />
+        </ConfirmationDialog>
     </section>
 </template>

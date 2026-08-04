@@ -20,6 +20,8 @@ const account = {
         postalCodePlaceholder: 'Postal code',
         country: 'Country',
         countryPlaceholder: 'Country',
+        phone: 'Phone',
+        phonePlaceholder: 'Phone number',
         setDefault: 'Set as default',
         defaultLabel: 'Default',
         edit: 'Edit',
