@@ -9,9 +9,11 @@ import {
     PointElement,
     Tooltip,
 } from 'chart.js';
-import { computed, onMounted, ref } from 'vue';
+import { computed } from 'vue';
 import { Line } from 'vue-chartjs';
+import { useChartColor } from '@/composables/useChartColor';
 import type { RevenueByDayPoint } from './admin';
+import { chartOptions } from './chartOptions';
 
 ChartJS.register(
     LineController,
@@ -27,17 +29,7 @@ const props = defineProps<{
     data: RevenueByDayPoint[];
 }>();
 
-const lineColor = ref('rgb(99, 102, 241)');
-
-onMounted(() => {
-    const value = getComputedStyle(document.documentElement)
-        .getPropertyValue('--color-chart-1')
-        .trim();
-
-    if (value) {
-        lineColor.value = value;
-    }
-});
+const lineColor = useChartColor('--color-chart-1', 'rgb(99, 102, 241)');
 
 const chartData = computed(() => ({
     labels: props.data.map((point) => point.date),
@@ -51,21 +43,8 @@ const chartData = computed(() => ({
         },
     ],
 }));
-
-const chartOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-        legend: { display: false },
-    },
-    scales: {
-        y: { beginAtZero: true },
-    },
-};
 </script>
 
 <template>
-    <div class="h-64">
-        <Line :data="chartData" :options="chartOptions" />
-    </div>
+    <Line :data="chartData" :options="chartOptions" />
 </template>

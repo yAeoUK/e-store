@@ -7,9 +7,11 @@ import {
     LinearScale,
     Tooltip,
 } from 'chart.js';
-import { computed, onMounted, ref } from 'vue';
+import { computed } from 'vue';
 import { Bar } from 'vue-chartjs';
+import { useChartColor } from '@/composables/useChartColor';
 import type { TopCategoryStat } from './admin';
+import { chartOptions } from './chartOptions';
 
 ChartJS.register(
     BarController,
@@ -23,17 +25,7 @@ const props = defineProps<{
     data: TopCategoryStat[];
 }>();
 
-const barColor = ref('rgb(99, 102, 241)');
-
-onMounted(() => {
-    const value = getComputedStyle(document.documentElement)
-        .getPropertyValue('--color-chart-2')
-        .trim();
-
-    if (value) {
-        barColor.value = value;
-    }
-});
+const barColor = useChartColor('--color-chart-2', 'rgb(99, 102, 241)');
 
 const chartData = computed(() => ({
     labels: props.data.map((category) => category.name),
@@ -44,21 +36,8 @@ const chartData = computed(() => ({
         },
     ],
 }));
-
-const chartOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-        legend: { display: false },
-    },
-    scales: {
-        y: { beginAtZero: true },
-    },
-};
 </script>
 
 <template>
-    <div class="h-64">
-        <Bar :data="chartData" :options="chartOptions" />
-    </div>
+    <Bar :data="chartData" :options="chartOptions" />
 </template>

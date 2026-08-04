@@ -1,3 +1,4 @@
+import { useForm } from '@inertiajs/vue3';
 import { mount } from '@vue/test-utils';
 import { describe, expect, it } from 'vitest';
 import ProductFormFields from '@/components/admin/ProductFormFields.vue';
@@ -5,22 +6,28 @@ import SlugField from '@/components/admin/SlugField.vue';
 import Checkbox from '@/components/Checkbox.vue';
 import FormField from '@/components/FormField.vue';
 
-const baseProps = {
-    categories: [],
-    errors: {},
-    name: '',
-    slug: '',
-    category_id: '' as number | '',
-    price: '' as number | string,
-    stock: 0,
-    short_description: '',
-    description: '',
-    is_active: true,
-};
+function makeForm(overrides = {}) {
+    return useForm({
+        category_id: '' as number | '',
+        name: '',
+        slug: '',
+        price: '' as number | string,
+        stock: 0,
+        short_description: '',
+        description: '',
+        is_active: true,
+        ...overrides,
+    });
+}
+
+const categories = [
+    { id: 1, name: 'Electronics' },
+    { id: 2, name: 'Furniture' },
+];
 
 function mountFields(props = {}) {
     return mount(ProductFormFields, {
-        props: { ...baseProps, ...props },
+        props: { form: makeForm(), categories: [], errors: {}, ...props },
     });
 }
 
@@ -51,15 +58,18 @@ describe('ProductFormFields', () => {
         expect(text).toContain('admin.products.isActive');
     });
 
-    it('pre-fills each field from its model prop', () => {
+    it('pre-fills each field from the form values', () => {
         const wrapper = mountFields({
-            name: 'Wireless Mouse',
-            slug: 'wireless-mouse',
-            price: '29.99',
-            stock: 10,
-            short_description: 'A great mouse.',
-            description: 'Full details here.',
-            is_active: false,
+            form: makeForm({
+                name: 'Wireless Mouse',
+                slug: 'wireless-mouse',
+                category_id: 1,
+                price: '29.99',
+                stock: 10,
+                short_description: 'A great mouse.',
+                description: 'Full details here.',
+                is_active: false,
+            }),
         });
 
         const inputs = wrapper.findAll(
@@ -76,26 +86,22 @@ describe('ProductFormFields', () => {
     });
 
     it('lists the categories prop as select options', () => {
-        const wrapper = mountFields({
-            categories: [
-                { id: 1, name: 'Electronics' },
-                { id: 2, name: 'Furniture' },
-            ],
-        });
+        const wrapper = mountFields({ categories });
 
         expect(wrapper.text()).toContain('Electronics');
         expect(wrapper.text()).toContain('Furniture');
     });
 
-    it('emits update:<field> when a field is edited', async () => {
-        const wrapper = mountFields();
+    it('updates the form fields when inputs change', async () => {
+        const form = makeForm();
+        const wrapper = mountFields({ form });
 
         const nameInput = wrapper.find('input[type="text"]');
         await nameInput.setValue('Wireless Mouse');
-        expect(wrapper.emitted('update:name')?.[0]).toEqual(['Wireless Mouse']);
+        expect(form.name).toBe('Wireless Mouse');
 
         await wrapper.findComponent(Checkbox).get('input').setValue(false);
-        expect(wrapper.emitted('update:is_active')?.[0]).toEqual([false]);
+        expect(form.is_active).toBe(false);
     });
 
     it('passes each error to its matching field', () => {
@@ -113,14 +119,40 @@ describe('ProductFormFields', () => {
         expect(fields[2].props('error')).toBe('The stock field is required.');
     });
 
+    it('marks only the name and price fields as required', () => {
+        const wrapper = mountFields();
+
+        const fields = wrapper.findAllComponents(FormField);
+        expect(fields[0].props('required')).toBe(true);
+        expect(fields[1].props('required')).toBe(true);
+        expect(fields[2].props('required')).toBeFalsy();
+        expect(fields[3].props('required')).toBeFalsy();
+
+        const inputs = wrapper.findAll(
+            'input[type="text"], input[type="number"]',
+        );
+        expect((inputs[0].element as HTMLInputElement).required).toBe(true);
+        expect((inputs[1].element as HTMLInputElement).required).toBe(true);
+        expect((inputs[2].element as HTMLInputElement).required).toBe(false);
+        expect(
+            (wrapper.find('select').element as HTMLSelectElement).required,
+        ).toBe(false);
+        expect(
+            (wrapper.find('textarea').element as HTMLTextAreaElement)
+                .required,
+        ).toBe(false);
+    });
+
     it('only passes a slug source when autoSlug is enabled', () => {
-        const withoutAutoSlug = mountFields({ name: 'Wireless Mouse' });
+        const withoutAutoSlug = mountFields({
+            form: makeForm({ name: 'Wireless Mouse' }),
+        });
         expect(
             withoutAutoSlug.findComponent(SlugField).props('source'),
         ).toBeUndefined();
 
         const withAutoSlug = mountFields({
-            name: 'Wireless Mouse',
+            form: makeForm({ name: 'Wireless Mouse' }),
             autoSlug: true,
         });
         expect(withAutoSlug.findComponent(SlugField).props('source')).toBe(

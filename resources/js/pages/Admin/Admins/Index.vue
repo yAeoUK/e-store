@@ -1,19 +1,18 @@
 <script setup lang="ts">
-import { Head, router, usePage } from '@inertiajs/vue3';
+import { router, usePage } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
 import type {
     AdminAdmin,
     DataTableColumn,
     Paginated,
 } from '@/components/admin/admin.ts';
+import AdminPageHeader from '@/components/admin/AdminPageHeader.vue';
 import DataTable from '@/components/admin/DataTable.vue';
 import ButtonLink from '@/components/ButtonLink.vue';
-import { pageTitleClass, wrapBetweenClass } from '@/components/classNames';
 import ConfirmationDialog from '@/components/ConfirmationDialog.vue';
 import DangerButton from '@/components/DangerButton.vue';
 import ErrorBanner from '@/components/ErrorBanner.vue';
 import { t } from '@/i18n';
-import AdminLayout from '@/Layouts/AdminLayout.vue';
 
 defineProps<{
     admins: Paginated<AdminAdmin>;
@@ -59,21 +58,14 @@ function revoke(): void {
 </script>
 
 <template>
-    <AdminLayout>
-        <Head :title="t('admin.admins.pageTitle')" />
-
-        <template #header>
-            <div :class="wrapBetweenClass">
-                <h1 :class="pageTitleClass">
-                    {{ t('admin.admins.heading') }}
-                </h1>
-                <ButtonLink
-                    variant="primary"
-                    :href="route('admin.admins.create')"
-                >
-                    {{ t('admin.admins.addAdmin') }}
-                </ButtonLink>
-            </div>
+    <AdminPageHeader
+        :title="t('admin.admins.pageTitle')"
+        :heading="t('admin.admins.heading')"
+    >
+        <template #actions>
+            <ButtonLink variant="primary" :href="route('admin.admins.create')">
+                {{ t('admin.admins.addAdmin') }}
+            </ButtonLink>
         </template>
 
         <ErrorBanner v-if="revokeBlockedMessage">
@@ -109,5 +101,5 @@ function revoke(): void {
             @confirm="revoke"
             @cancel="revokingAdmin = null"
         />
-    </AdminLayout>
+    </AdminPageHeader>
 </template>

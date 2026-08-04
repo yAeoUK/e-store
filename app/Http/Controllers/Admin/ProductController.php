@@ -35,8 +35,8 @@ class ProductController extends Controller
 
         if ($request->filled('stock_status')) {
             match ($request->string('stock_status')->value()) {
-                'low' => $query->where('stock', '>', 0)->where('stock', '<=', Product::LOW_STOCK_THRESHOLD),
-                'out' => $query->where('stock', 0),
+                'low' => $query->lowStock(),
+                'out' => $query->outOfStock(),
                 default => null,
             };
         }

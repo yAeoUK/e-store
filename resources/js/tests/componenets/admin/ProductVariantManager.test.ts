@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import ProductVariantManager from '@/components/admin/ProductVariantManager.vue';
 import VariantOptionsEditor from '@/components/admin/VariantOptionsEditor.vue';
 import Card from '@/components/Card.vue';
+import FormField from '@/components/FormField.vue';
 import { getMockForm, routeMock } from '../../setup';
 
 const variant = {
@@ -76,6 +77,46 @@ describe('ProductVariantManager', () => {
         expect(submitButton?.exists()).toBe(true);
     });
 
+    it('marks only the sku field as required in the add-variant form', () => {
+        const wrapper = mount(ProductVariantManager, {
+            props: { productId: 1, variants: [] },
+        });
+
+        const addForm = wrapper.findAll('form')[0];
+        const fields = addForm.findAllComponents(FormField);
+        expect(fields[0].props('required')).toBe(true);
+        expect(fields[1].props('required')).toBeFalsy();
+        expect(fields[2].props('required')).toBeFalsy();
+
+        const inputs = addForm.findAll(
+            'input[type="text"], input[type="number"]',
+        );
+        expect((inputs[0].element as HTMLInputElement).required).toBe(true);
+        expect((inputs[1].element as HTMLInputElement).required).toBe(false);
+        expect((inputs[2].element as HTMLInputElement).required).toBe(false);
+    });
+
+    it('marks only the sku field as required in the edit-variant form', async () => {
+        const wrapper = mount(ProductVariantManager, {
+            props: { productId: 1, variants: [variant] },
+        });
+
+        await findButton(wrapper, 'admin.actions.edit')?.trigger('click');
+
+        const editForm = wrapper.findComponent({ name: 'Modal' }).find('form');
+        const fields = editForm.findAllComponents(FormField);
+        expect(fields[0].props('required')).toBe(true);
+        expect(fields[1].props('required')).toBeFalsy();
+        expect(fields[2].props('required')).toBeFalsy();
+
+        const inputs = editForm.findAll(
+            'input[type="text"], input[type="number"]',
+        );
+        expect((inputs[0].element as HTMLInputElement).required).toBe(true);
+        expect((inputs[1].element as HTMLInputElement).required).toBe(false);
+        expect((inputs[2].element as HTMLInputElement).required).toBe(false);
+    });
+
     it('shows an inactive marker for an inactive variant', () => {
         const wrapper = mount(ProductVariantManager, {
             props: {
@@ -92,7 +133,9 @@ describe('ProductVariantManager', () => {
             props: { productId: 7, variants: [] },
         });
 
-        await wrapper.findAll('form')[0].trigger('submit');
+        const addForm = wrapper.findAll('form')[0];
+        await addForm.find('input[type="text"]').setValue('SKU-NEW-1');
+        await addForm.trigger('submit');
 
         expect(routeMock).toHaveBeenCalledWith(
             'admin.products.variants.store',
@@ -100,10 +143,29 @@ describe('ProductVariantManager', () => {
         );
     });
 
+    it('blocks the add-variant submission and shows a validation error when sku is empty', async () => {
+        const wrapper = mount(ProductVariantManager, {
+            props: { productId: 7, variants: [] },
+        });
+
+        await wrapper.findAll('form')[0].trigger('submit');
+
+        expect(routeMock).not.toHaveBeenCalledWith(
+            'admin.products.variants.store',
+            expect.anything(),
+        );
+        expect(wrapper.text()).toContain('validation.required');
+    });
+
     it('clears the options editor after a successful add submission', async () => {
         const wrapper = mount(ProductVariantManager, {
             props: { productId: 7, variants: [] },
         });
+
+        await wrapper
+            .findAll('form')[0]
+            .find('input[type="text"]')
+            .setValue('SKU-NEW-1');
 
         const optionsEditor = wrapper.findComponent(VariantOptionsEditor);
         const addOptionButton = optionsEditor
@@ -170,6 +232,27 @@ describe('ProductVariantManager', () => {
         );
         expect(wrapper.findComponent({ name: 'Modal' }).props('show')).toBe(
             false,
+        );
+    });
+
+    it('blocks the edit submission and shows a validation error when sku is emptied', async () => {
+        const wrapper = mount(ProductVariantManager, {
+            props: { productId: 3, variants: [variant] },
+        });
+
+        await findButton(wrapper, 'admin.actions.edit')?.trigger('click');
+
+        const modal = wrapper.findComponent({ name: 'Modal' });
+        await modal.find('input[type="text"]').setValue('');
+        await modal.find('form').trigger('submit');
+
+        expect(routeMock).not.toHaveBeenCalledWith(
+            'admin.products.variants.update',
+            expect.anything(),
+        );
+        expect(modal.text()).toContain('validation.required');
+        expect(wrapper.findComponent({ name: 'Modal' }).props('show')).toBe(
+            true,
         );
     });
 

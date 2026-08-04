@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { InertiaForm } from '@inertiajs/vue3';
 import type { AdminCategoryRef } from '@/components/admin/admin.ts';
 import SlugField from '@/components/admin/SlugField.vue';
 import { formGridClass } from '@/components/classNames';
@@ -7,7 +8,15 @@ import SelectField from '@/components/SelectField.vue';
 import TextareaField from '@/components/TextareaField.vue';
 import { t } from '@/i18n';
 
+interface CategoryFormValues {
+    parent_id: number | '';
+    name: string;
+    slug: string;
+    description: string;
+}
+
 defineProps<{
+    form: InertiaForm<CategoryFormValues>;
     categories: AdminCategoryRef[];
     errors: Partial<
         Record<'name' | 'slug' | 'parent_id' | 'description', string>
@@ -17,30 +26,26 @@ defineProps<{
     // name was edited.
     autoSlug?: boolean;
 }>();
-
-const name = defineModel<string>('name', { default: '' });
-const slug = defineModel<string>('slug', { default: '' });
-const parentId = defineModel<number | ''>('parent_id', { default: '' });
-const description = defineModel<string>('description', { default: '' });
 </script>
 
 <template>
     <div :class="formGridClass">
         <FormField
-            v-model="name"
+            v-model="form.name"
             type="text"
             :label="t('admin.categories.name')"
             :error="errors.name"
+            required
         />
         <SlugField
-            v-model="slug"
+            v-model="form.slug"
             :label="t('admin.categories.slug')"
-            :source="autoSlug ? name : undefined"
+            :source="autoSlug ? form.name : undefined"
             :error="errors.slug"
         />
     </div>
 
-    <SelectField v-model="parentId" :label="t('admin.categories.parent')">
+    <SelectField v-model="form.parent_id" :label="t('admin.categories.parent')">
         <option value="">
             {{ t('admin.categories.none') }}
         </option>
@@ -54,7 +59,7 @@ const description = defineModel<string>('description', { default: '' });
     </SelectField>
 
     <TextareaField
-        v-model="description"
+        v-model="form.description"
         :label="t('admin.categories.description')"
         rows="4"
     />

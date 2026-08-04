@@ -1,16 +1,4 @@
-export interface PaginationLink {
-    url?: string | null;
-    label: string;
-    active: boolean;
-}
-
-export interface Paginated<Row> {
-    data: Row[];
-    links?: PaginationLink[];
-    from?: number | null;
-    to?: number | null;
-    total?: number;
-}
+export type { PaginationLink, Paginated } from '@/components/Pagination.vue';
 
 export interface DataTableColumn<Row> {
     key: string;
