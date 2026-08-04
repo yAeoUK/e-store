@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\OrderStatus;
 use Database\Factories\UserFactory;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -57,5 +58,13 @@ class User extends Authenticatable implements MustVerifyEmail
     public function orders(): HasMany
     {
         return $this->hasMany(Order::class);
+    }
+
+    /**
+     * Get (or create) the user's single in-progress cart order.
+     */
+    public function cart(): Order
+    {
+        return $this->orders()->firstOrCreate(['status' => OrderStatus::Cart]);
     }
 }
