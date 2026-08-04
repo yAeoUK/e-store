@@ -71,6 +71,8 @@ export interface AdminOrder {
     id: number;
     total: number | string;
     status: string;
+    payment_method: string | null;
+    payment_status: string;
     created_at: string;
     user?: { id: number; name: string; email: string } | null;
 }

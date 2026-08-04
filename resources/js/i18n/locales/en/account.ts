@@ -33,8 +33,34 @@ const account = {
     },
     orders: {
         pageTitle: 'Order History',
-        placeholder:
-            "This page is a placeholder for the user's order history. Orders will be implemented later.",
+        empty: 'You have not placed any orders yet.',
+        columns: {
+            id: 'Order #',
+            date: 'Date',
+            total: 'Total',
+            status: 'Status',
+        },
+        viewDetails: 'View details',
+        statuses: {
+            pending: 'Pending',
+            processing: 'Processing',
+            completed: 'Completed',
+            cancelled: 'Cancelled',
+        },
+        paymentStatuses: {
+            unpaid: 'Unpaid',
+            paid: 'Paid',
+            failed: 'Payment Failed',
+            refunded: 'Refunded',
+        },
+        detail: {
+            pageTitle: 'Order Details',
+            backToOrders: 'Back to orders',
+            items: 'Items',
+            shippingAddress: 'Shipping Address',
+            placedOn: 'Placed on',
+            total: 'Total',
+        },
     },
 };
 

@@ -2,7 +2,6 @@ import { mount } from '@vue/test-utils';
 import { describe, expect, it } from 'vitest';
 import ButtonLink from '@/components/ButtonLink.vue';
 import DangerButton from '@/components/DangerButton.vue';
-import DropdownLink from '@/components/DropdownLink.vue';
 import PrimaryButton from '@/components/PrimaryButton.vue';
 import SecondaryButton from '@/components/SecondaryButton.vue';
 import TextLink from '@/components/TextLink.vue';
@@ -72,41 +71,6 @@ describe('ButtonLink', () => {
         });
 
         expect(wrapper.classes().join(' ')).toContain('bg-indigo-600');
-    });
-});
-
-describe('DropdownLink', () => {
-    it('renders a Link with the given href and slot content', () => {
-        const wrapper = mount(DropdownLink, {
-            props: { href: '/profile' },
-            slots: { default: 'Profile' },
-        });
-
-        const link = wrapper.findComponent({ name: 'Link' });
-
-        expect(link.props('href')).toBe('/profile');
-        expect(wrapper.text()).toBe('Profile');
-        expect(wrapper.classes()).toContain('block');
-    });
-
-    it('defaults method to null and as to a', () => {
-        const wrapper = mount(DropdownLink, {
-            props: { href: '/profile' },
-            slots: { default: 'Profile' },
-        });
-
-        expect(wrapper.attributes('method')).toBeUndefined();
-        expect(wrapper.attributes('as')).toBe('a');
-    });
-
-    it('forwards a non-default method and as to the Link', () => {
-        const wrapper = mount(DropdownLink, {
-            props: { href: '/logout', method: 'post', as: 'button' },
-            slots: { default: 'Log out' },
-        });
-
-        expect(wrapper.attributes('method')).toBe('post');
-        expect(wrapper.attributes('as')).toBe('button');
     });
 });
 

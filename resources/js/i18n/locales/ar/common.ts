@@ -20,6 +20,7 @@ export default {
         greeting: 'مرحباً،',
         profile: 'الملف الشخصي',
         addresses: 'العناوين',
+        cart: 'سلة التسوق',
         orderHistory: 'سجل الطلبات',
         logIn: 'تسجيل الدخول',
         logOut: 'تسجيل الخروج',

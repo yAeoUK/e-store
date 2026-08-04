@@ -147,6 +147,7 @@ export default {
             customer: 'العميل',
             total: 'الإجمالي',
             status: 'الحالة',
+            payment: 'الدفع',
             date: 'التاريخ',
         },
         statuses: {
@@ -154,6 +155,16 @@ export default {
             processing: 'قيد المعالجة',
             completed: 'مكتمل',
             cancelled: 'ملغى',
+        },
+        paymentMethods: {
+            cod: 'الدفع عند الاستلام',
+            stripe: 'بطاقة ائتمان',
+        },
+        paymentStatuses: {
+            unpaid: 'غير مدفوع',
+            paid: 'مدفوع',
+            failed: 'فشل الدفع',
+            refunded: 'مسترد',
         },
     },
     table: {

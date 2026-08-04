@@ -34,7 +34,33 @@ export default {
     },
     orders: {
         pageTitle: 'سجل الطلبات',
-        placeholder:
-            'هذه الصفحة عنصر نائب لسجل طلبات المستخدم. سيتم تفعيل الطلبات لاحقاً.',
+        empty: 'لم تقم بأي طلبات بعد.',
+        columns: {
+            id: 'رقم الطلب',
+            date: 'التاريخ',
+            total: 'الإجمالي',
+            status: 'الحالة',
+        },
+        viewDetails: 'عرض التفاصيل',
+        statuses: {
+            pending: 'قيد الانتظار',
+            processing: 'قيد المعالجة',
+            completed: 'مكتمل',
+            cancelled: 'ملغى',
+        },
+        paymentStatuses: {
+            unpaid: 'غير مدفوع',
+            paid: 'مدفوع',
+            failed: 'فشل الدفع',
+            refunded: 'مسترد',
+        },
+        detail: {
+            pageTitle: 'تفاصيل الطلب',
+            backToOrders: 'العودة إلى الطلبات',
+            items: 'العناصر',
+            shippingAddress: 'عنوان الشحن',
+            placedOn: 'تاريخ الطلب',
+            total: 'الإجمالي',
+        },
     },
 } satisfies AccountTranslations;
