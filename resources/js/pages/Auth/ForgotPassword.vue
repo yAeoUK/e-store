@@ -1,12 +1,14 @@
 <script setup lang="ts">
-import { Head, useForm } from '@inertiajs/vue3';
+import { Head } from '@inertiajs/vue3';
 import FormActions from '@/components/FormActions.vue';
 import FormField from '@/components/FormField.vue';
 import MutedText from '@/components/MutedText.vue';
 import PrimaryButton from '@/components/PrimaryButton.vue';
 import SuccessText from '@/components/SuccessText.vue';
+import { useValidatedSubmit } from '@/composables/useValidatedSubmit';
 import { t } from '@/i18n';
 import GuestLayout from '@/Layouts/GuestLayout.vue';
+import { emailField } from '@/lib/validation';
 
 defineProps({
     status: {
@@ -14,13 +16,13 @@ defineProps({
     },
 });
 
-const form = useForm({
-    email: '',
-});
-
-const submit = () => {
-    form.post(route('password.email'));
-};
+const { form, errors, submit } = useValidatedSubmit(
+    { email: '' },
+    {
+        email: emailField(t('auth.forgotPassword.email')),
+    },
+    (form) => form.post(route('password.email')),
+);
 </script>
 
 <template>
@@ -41,7 +43,7 @@ const submit = () => {
                 v-model="form.email"
                 type="email"
                 :label="t('auth.forgotPassword.email')"
-                :error="form.errors.email"
+                :error="errors.email"
                 required
                 autofocus
                 autocomplete="username"

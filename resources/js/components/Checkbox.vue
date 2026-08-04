@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import type { PropType } from 'vue';
-import { borderColorClass } from './classNames.js';
+import { borderColorClass } from './classNames';
 
 const emit = defineEmits(['update:checked']);
 

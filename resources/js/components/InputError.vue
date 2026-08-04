@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { errorTextClass } from './classNames';
+
 defineProps<{
     message?: string;
 }>();
@@ -6,7 +8,7 @@ defineProps<{
 
 <template>
     <div v-show="message">
-        <p class="mt-2 text-sm text-red-600 dark:text-red-400">
+        <p class="mt-2 text-sm" :class="errorTextClass">
             {{ message }}
         </p>
     </div>

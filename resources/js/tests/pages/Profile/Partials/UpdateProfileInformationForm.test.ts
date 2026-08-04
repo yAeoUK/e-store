@@ -1,6 +1,7 @@
 import { usePage } from '@inertiajs/vue3';
 import { mount } from '@vue/test-utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import FormField from '@/components/FormField.vue';
 import UpdateProfileInformationForm from '@/pages/Profile/Partials/UpdateProfileInformationForm.vue';
 import { getMockForm, routeMock } from '../../../setup';
 
@@ -42,6 +43,17 @@ describe('UpdateProfileInformationForm', () => {
         await wrapper.vm.$nextTick();
 
         expect(wrapper.text()).toContain('common.saved');
+    });
+
+    it('renders a FormField for name and email with the right labels', () => {
+        const wrapper = mount(UpdateProfileInformationForm);
+        const fields = wrapper.findAllComponents(FormField);
+
+        expect(fields).toHaveLength(2);
+        expect(fields[0].props('label')).toBe('profile.information.name');
+        expect(fields[1].props('label')).toBe('profile.information.email');
+        expect(fields[0].props('required')).toBe(true);
+        expect(fields[1].props('required')).toBe(true);
     });
 
     it('pre-fills the form with the current user name and email', () => {
@@ -98,5 +110,25 @@ describe('UpdateProfileInformationForm', () => {
         expect(wrapper.text()).toContain(
             'profile.information.verificationSent',
         );
+    });
+
+    it('blocks submission and shows a required error when the name is cleared', async () => {
+        const wrapper = mount(UpdateProfileInformationForm);
+
+        await wrapper.find('input#name').setValue('');
+        await wrapper.find('form').trigger('submit');
+
+        expect(getMockForm().lastPostUrl).toBeUndefined();
+        expect(wrapper.text()).toContain('validation.required');
+    });
+
+    it('blocks submission and shows an email format error for an invalid email', async () => {
+        const wrapper = mount(UpdateProfileInformationForm);
+
+        await wrapper.find('input#email').setValue('not-an-email');
+        await wrapper.find('form').trigger('submit');
+
+        expect(getMockForm().lastPostUrl).toBeUndefined();
+        expect(wrapper.text()).toContain('validation.email');
     });
 });

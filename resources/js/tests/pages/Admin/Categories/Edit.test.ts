@@ -138,5 +138,34 @@ describe('Admin Categories edit page', () => {
         expect(fields.props('categories')).toEqual(categories);
         expect(fields.props('errors')).toEqual({});
         expect(fields.props('autoSlug')).toBeFalsy();
+        expect(fields.props('form').name).toBe(category.name);
+        expect(fields.props('form').slug).toBe(category.slug);
+        expect(fields.props('form').parent_id).toBe('');
+        expect(fields.props('form').description).toBe(category.description);
+    });
+
+    it('binds the parent_id and description fields to the form', async () => {
+        const categories = [{ id: 2, name: 'Electronics' }];
+        const wrapper = mount(CategoriesEditPage, {
+            props: { category, categories },
+        });
+
+        await wrapper.find('select').setValue(2);
+        await wrapper.find('textarea').setValue('Updated description.');
+
+        expect(getMockForm().parent_id).toBe(2);
+        expect(getMockForm().description).toBe('Updated description.');
+    });
+
+    it('blocks submit and renders the required message when the name is empty', async () => {
+        const wrapper = mount(CategoriesEditPage, {
+            props: { category, categories: [] },
+        });
+
+        await wrapper.find('input[type="text"]').setValue('');
+        await wrapper.find('form').trigger('submit');
+
+        expect(getMockForm().lastPostUrl).toBeUndefined();
+        expect(wrapper.text()).toContain('validation.required');
     });
 });

@@ -1,14 +1,27 @@
 <script setup lang="ts">
+import type { InertiaForm } from '@inertiajs/vue3';
 import type { AdminCategoryRef } from '@/components/admin/admin.ts';
 import SlugField from '@/components/admin/SlugField.vue';
 import CheckboxField from '@/components/CheckboxField.vue';
-import { formGridClass } from '@/components/classNames';
+import { formGrid3Class, formGridClass } from '@/components/classNames';
 import FormField from '@/components/FormField.vue';
 import SelectField from '@/components/SelectField.vue';
 import TextareaField from '@/components/TextareaField.vue';
 import { t } from '@/i18n';
 
+interface ProductFormValues {
+    category_id: number | '';
+    name: string;
+    slug: string;
+    price: number | string;
+    stock: number;
+    short_description: string;
+    description: string;
+    is_active: boolean;
+}
+
 defineProps<{
+    form: InertiaForm<ProductFormValues>;
     categories: AdminCategoryRef[];
     errors: Partial<
         Record<
@@ -27,37 +40,30 @@ defineProps<{
     // name was edited.
     autoSlug?: boolean;
 }>();
-
-const name = defineModel<string>('name', { default: '' });
-const slug = defineModel<string>('slug', { default: '' });
-const categoryId = defineModel<number | ''>('category_id', { default: '' });
-const price = defineModel<number | string>('price', { default: '' });
-const stock = defineModel<number>('stock', { default: 0 });
-const shortDescription = defineModel<string>('short_description', {
-    default: '',
-});
-const description = defineModel<string>('description', { default: '' });
-const isActive = defineModel<boolean>('is_active', { default: true });
 </script>
 
 <template>
     <div :class="formGridClass">
         <FormField
-            v-model="name"
+            v-model="form.name"
             type="text"
             :label="t('admin.products.name')"
             :error="errors.name"
+            required
         />
         <SlugField
-            v-model="slug"
+            v-model="form.slug"
             :label="t('admin.products.slug')"
-            :source="autoSlug ? name : undefined"
+            :source="autoSlug ? form.name : undefined"
             :error="errors.slug"
         />
     </div>
 
-    <div class="grid gap-4 sm:grid-cols-3">
-        <SelectField v-model="categoryId" :label="t('admin.products.category')">
+    <div :class="formGrid3Class">
+        <SelectField
+            v-model="form.category_id"
+            :label="t('admin.products.category')"
+        >
             <option value="">
                 {{ t('admin.products.noCategory') }}
             </option>
@@ -70,15 +76,16 @@ const isActive = defineModel<boolean>('is_active', { default: true });
             </option>
         </SelectField>
         <FormField
-            v-model="price"
+            v-model="form.price"
             type="number"
             min="0"
             step="0.01"
             :label="t('admin.products.price')"
             :error="errors.price"
+            required
         />
         <FormField
-            v-model="stock"
+            v-model="form.stock"
             type="number"
             min="0"
             :label="t('admin.products.stock')"
@@ -87,20 +94,20 @@ const isActive = defineModel<boolean>('is_active', { default: true });
     </div>
 
     <FormField
-        v-model="shortDescription"
+        v-model="form.short_description"
         type="text"
         :label="t('admin.products.shortDescription')"
         :error="errors.short_description"
     />
 
     <TextareaField
-        v-model="description"
+        v-model="form.description"
         :label="t('admin.products.description')"
         rows="4"
     />
 
     <CheckboxField
-        v-model:checked="isActive"
+        v-model:checked="form.is_active"
         :label="t('admin.products.isActive')"
     />
 </template>

@@ -1,6 +1,6 @@
 import { Head } from '@inertiajs/vue3';
 import { mount } from '@vue/test-utils';
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import ProductFormFields from '@/components/admin/ProductFormFields.vue';
 import ProductImageManager from '@/components/admin/ProductImageManager.vue';
 import ProductVariantManager from '@/components/admin/ProductVariantManager.vue';
@@ -40,6 +40,10 @@ const product = {
 };
 
 describe('Admin Products edit page', () => {
+    beforeEach(() => {
+        routeMock.mockClear();
+    });
+
     it('pre-fills the form from the product prop', () => {
         mount(ProductsEditPage, {
             props: { product, categories: [] },
@@ -180,5 +184,70 @@ describe('Admin Products edit page', () => {
         expect(fields.props('categories')).toEqual(categories);
         expect(fields.props('errors')).toEqual({});
         expect(fields.props('autoSlug')).toBeFalsy();
+        expect(fields.props('form').name).toBe(product.name);
+        expect(fields.props('form').slug).toBe(product.slug);
+        expect(fields.props('form').category_id).toBe(2);
+        expect(fields.props('form').price).toBe(product.price);
+        expect(fields.props('form').stock).toBe(product.stock);
+        expect(fields.props('form').short_description).toBe(
+            product.short_description,
+        );
+        expect(fields.props('form').description).toBe(product.description);
+        expect(fields.props('form').is_active).toBe(true);
+    });
+
+    it('binds category, stock, short description, description and active status to the form', async () => {
+        const categories = [
+            { id: 2, name: 'Electronics' },
+            { id: 5, name: 'Toys' },
+        ];
+        const wrapper = mount(ProductsEditPage, {
+            props: { product, categories },
+        });
+
+        await wrapper.find('select').setValue(5);
+        await wrapper.findAll('input[type="number"]')[1].setValue(7);
+        await wrapper
+            .findAll('input[type="text"]')[1]
+            .setValue('Great for travel.');
+        await wrapper.find('textarea').setValue('Full description.');
+        await wrapper.find('input[type="checkbox"]').setValue(false);
+
+        expect(getMockForm().category_id).toBe(5);
+        expect(getMockForm().stock).toBe(7);
+        expect(getMockForm().short_description).toBe('Great for travel.');
+        expect(getMockForm().description).toBe('Full description.');
+        expect(getMockForm().is_active).toBe(false);
+    });
+
+    it('blocks submission and shows a validation error when name is empty', async () => {
+        const wrapper = mount(ProductsEditPage, {
+            props: { product, categories: [] },
+        });
+
+        await wrapper.find('input[type="text"]').setValue('');
+        await wrapper.find('form').trigger('submit');
+
+        expect(routeMock).not.toHaveBeenCalledWith(
+            'admin.products.update',
+            expect.anything(),
+        );
+        expect(wrapper.text()).toContain('validation.required');
+    });
+
+    it('blocks submission and shows a validation error when price is negative', async () => {
+        const wrapper = mount(ProductsEditPage, {
+            props: { product, categories: [] },
+        });
+
+        const priceInput = wrapper.find('input[type="number"]');
+        await priceInput.setValue(-5);
+        await wrapper.find('form').trigger('submit');
+
+        expect(routeMock).not.toHaveBeenCalledWith(
+            'admin.products.update',
+            expect.anything(),
+        );
+        expect(wrapper.text()).toContain('validation.min');
     });
 });

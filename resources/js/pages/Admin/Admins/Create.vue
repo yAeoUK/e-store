@@ -1,63 +1,85 @@
 <script setup lang="ts">
-import { Head, useForm } from '@inertiajs/vue3';
+import AdminPageHeader from '@/components/admin/AdminPageHeader.vue';
 import Card from '@/components/Card.vue';
-import { pageTitleClass } from '@/components/classNames';
 import FormActions from '@/components/FormActions.vue';
 import FormField from '@/components/FormField.vue';
-import MutedText from '@/components/MutedText.vue';
+import FormSectionHeader from '@/components/FormSectionHeader.vue';
+import PasswordConfirmationFields from '@/components/PasswordConfirmationFields.vue';
 import PrimaryButton from '@/components/PrimaryButton.vue';
+import { useAdminResourceForm } from '@/composables/useAdminResourceForm';
 import { t } from '@/i18n';
-import AdminLayout from '@/Layouts/AdminLayout.vue';
+import { confirmedBy, isEmail, maxLength, required } from '@/lib/validation';
 
-const promoteForm = useForm({
-    email: '',
-});
+const {
+    form: promoteForm,
+    clientErrors: promoteClientErrors,
+    submit: submitPromote,
+} = useAdminResourceForm(
+    { email: '' },
+    {
+        email: [
+            required(t('admin.admins.promoteEmailLabel')),
+            isEmail(t('admin.admins.promoteEmailLabel')),
+        ],
+    },
+    (form) =>
+        form.post(route('admin.admins.promote'), {
+            onSuccess: () => form.reset(),
+        }),
+);
 
-function submitPromote(): void {
-    promoteForm.post(route('admin.admins.promote'), {
-        onSuccess: () => promoteForm.reset(),
-    });
-}
-
-const createForm = useForm({
-    name: '',
-    email: '',
-    password: '',
-    password_confirmation: '',
-});
-
-function submitCreate(): void {
-    createForm.post(route('admin.admins.store'), {
-        onSuccess: () => createForm.reset(),
-    });
-}
+const {
+    form: createForm,
+    clientErrors: createClientErrors,
+    submit: submitCreate,
+} = useAdminResourceForm(
+    {
+        name: '',
+        email: '',
+        password: '',
+        password_confirmation: '',
+    },
+    {
+        name: [
+            required(t('admin.admins.createNameLabel')),
+            maxLength(t('admin.admins.createNameLabel'), 255),
+        ],
+        email: [
+            required(t('admin.admins.createEmailLabel')),
+            isEmail(t('admin.admins.createEmailLabel')),
+            maxLength(t('admin.admins.createEmailLabel'), 255),
+        ],
+        password: [required(t('admin.admins.createPasswordLabel'))],
+        password_confirmation: [
+            confirmedBy(
+                t('admin.admins.createPasswordConfirmationLabel'),
+                'password',
+            ),
+        ],
+    },
+    (form) =>
+        form.post(route('admin.admins.store'), {
+            onSuccess: () => form.reset(),
+        }),
+);
 </script>
 
 <template>
-    <AdminLayout>
-        <Head :title="t('admin.admins.addAdmin')" />
-
-        <template #header>
-            <h1 :class="pageTitleClass">
-                {{ t('admin.admins.addAdmin') }}
-            </h1>
-        </template>
-
+    <AdminPageHeader :title="t('admin.admins.addAdmin')">
         <div class="grid gap-6 md:grid-cols-2">
             <Card class="p-6">
-                <h2 class="mb-1 text-lg font-semibold">
-                    {{ t('admin.admins.promoteHeading') }}
-                </h2>
-                <MutedText class="mb-4">
-                    {{ t('admin.admins.promoteDescription') }}
-                </MutedText>
+                <FormSectionHeader
+                    :heading="t('admin.admins.promoteHeading')"
+                    :description="t('admin.admins.promoteDescription')"
+                />
 
-                <form @submit.prevent="submitPromote" class="space-y-4">
+                <form @submit.prevent="submitPromote" class="mt-4 space-y-4">
                     <FormField
                         v-model="promoteForm.email"
                         type="email"
                         :label="t('admin.admins.promoteEmailLabel')"
-                        :error="promoteForm.errors.email"
+                        :error="promoteClientErrors.email || promoteForm.errors.email"
+                        required
                     />
 
                     <FormActions>
@@ -69,37 +91,39 @@ function submitCreate(): void {
             </Card>
 
             <Card class="p-6">
-                <h2 class="mb-1 text-lg font-semibold">
-                    {{ t('admin.admins.createHeading') }}
-                </h2>
-                <MutedText class="mb-4">
-                    {{ t('admin.admins.createDescription') }}
-                </MutedText>
+                <FormSectionHeader
+                    :heading="t('admin.admins.createHeading')"
+                    :description="t('admin.admins.createDescription')"
+                />
 
-                <form @submit.prevent="submitCreate" class="space-y-4">
+                <form @submit.prevent="submitCreate" class="mt-4 space-y-4">
                     <FormField
                         v-model="createForm.name"
                         type="text"
                         :label="t('admin.admins.createNameLabel')"
-                        :error="createForm.errors.name"
+                        :error="createClientErrors.name || createForm.errors.name"
+                        required
                     />
                     <FormField
                         v-model="createForm.email"
                         type="email"
                         :label="t('admin.admins.createEmailLabel')"
-                        :error="createForm.errors.email"
+                        :error="createClientErrors.email || createForm.errors.email"
+                        required
                     />
-                    <FormField
-                        v-model="createForm.password"
-                        type="password"
-                        :label="t('admin.admins.createPasswordLabel')"
-                        :error="createForm.errors.password"
-                    />
-                    <FormField
-                        v-model="createForm.password_confirmation"
-                        type="password"
-                        :label="
+                    <PasswordConfirmationFields
+                        v-model:password="createForm.password"
+                        v-model:confirmation="createForm.password_confirmation"
+                        :password-label="t('admin.admins.createPasswordLabel')"
+                        :confirm-label="
                             t('admin.admins.createPasswordConfirmationLabel')
+                        "
+                        :password-error="
+                            createClientErrors.password || createForm.errors.password
+                        "
+                        :confirm-error="
+                            createClientErrors.password_confirmation ||
+                            createForm.errors.password_confirmation
                         "
                     />
 
@@ -111,5 +135,5 @@ function submitCreate(): void {
                 </form>
             </Card>
         </div>
-    </AdminLayout>
+    </AdminPageHeader>
 </template>

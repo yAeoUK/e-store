@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Models\Concerns\HasUniqueSlug;
 use Database\Factories\ProductFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -68,5 +69,23 @@ class Product extends Model
     public function orderItems(): HasMany
     {
         return $this->hasMany(OrderItem::class);
+    }
+
+    /**
+     * @param  Builder<Product>  $query
+     * @return Builder<Product>
+     */
+    public function scopeLowStock(Builder $query): Builder
+    {
+        return $query->where('stock', '>', 0)->where('stock', '<=', self::LOW_STOCK_THRESHOLD);
+    }
+
+    /**
+     * @param  Builder<Product>  $query
+     * @return Builder<Product>
+     */
+    public function scopeOutOfStock(Builder $query): Builder
+    {
+        return $query->where('stock', 0);
     }
 }

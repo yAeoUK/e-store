@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { dialogTitleClass } from '@/components/classNames';
 import DangerButton from '@/components/DangerButton.vue';
+import FormActions from '@/components/FormActions.vue';
+import FormSectionHeader from '@/components/FormSectionHeader.vue';
 import Modal from '@/components/Modal.vue';
-import MutedText from '@/components/MutedText.vue';
 import PrimaryButton from '@/components/PrimaryButton.vue';
 import SecondaryButton from '@/components/SecondaryButton.vue';
 import { t } from '@/i18n';
@@ -44,17 +44,11 @@ const emit = defineEmits(['confirm', 'cancel']);
 <template>
     <Modal :show="show" max-width="sm" @close="emit('cancel')">
         <div class="p-6">
-            <h2 :class="dialogTitleClass">
-                {{ title }}
-            </h2>
-
-            <MutedText v-if="message" class="mt-1">
-                {{ message }}
-            </MutedText>
+            <FormSectionHeader :heading="title" :description="message" />
 
             <slot />
 
-            <div class="mt-6 flex justify-end gap-3">
+            <FormActions class="mt-6">
                 <SecondaryButton @click="emit('cancel')">
                     {{ cancelLabel }}
                 </SecondaryButton>
@@ -73,7 +67,7 @@ const emit = defineEmits(['confirm', 'cancel']);
                 >
                     {{ confirmLabel }}
                 </PrimaryButton>
-            </div>
+            </FormActions>
         </div>
     </Modal>
 </template>

@@ -75,3 +75,19 @@ test('non-admin cannot list orders', function () {
 
     $this->actingAs($user)->get(route('admin.orders.index'))->assertForbidden();
 });
+
+test('guests cannot list orders', function () {
+    $this->get(route('admin.orders.index'))->assertRedirect(route('login'));
+});
+
+test('admin orders index excludes carts', function () {
+    $admin = actingAsAdmin();
+    $customer = User::factory()->create();
+    $customer->cart();
+    Order::factory()->create(['user_id' => $customer->id]);
+
+    $response = $this->actingAs($admin)->withHeaders(inertiaHeaders())->get(route('admin.orders.index'));
+
+    $response->assertOk();
+    $response->assertJsonCount(1, 'props.orders.data');
+});

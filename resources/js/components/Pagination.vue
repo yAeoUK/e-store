@@ -12,6 +12,14 @@ export interface PaginationLink {
     active: boolean;
 }
 
+export interface Paginated<Row> {
+    data: Row[];
+    links?: PaginationLink[];
+    from?: number | null;
+    to?: number | null;
+    total?: number;
+}
+
 defineProps<{
     links?: PaginationLink[];
 }>();

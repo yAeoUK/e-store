@@ -53,6 +53,17 @@ test('product controller index filters products by price range', function () {
     $response->assertJsonPath('props.products.data.0.name', 'Basic Speaker');
 });
 
+test('product controller index excludes inactive products', function () {
+    Product::factory()->create(['name' => 'Active Product', 'is_active' => true]);
+    Product::factory()->create(['name' => 'Inactive Product', 'is_active' => false]);
+
+    $response = $this->withHeaders(inertiaHeaders())->get(route('home'));
+
+    $response->assertOk();
+    $response->assertJsonCount(1, 'props.products.data');
+    $response->assertJsonPath('props.products.data.0.name', 'Active Product');
+});
+
 test('product controller show returns the product detail page', function () {
     $product = Product::factory()->create(['name' => 'Smart Watch', 'is_active' => true]);
 
@@ -61,4 +72,12 @@ test('product controller show returns the product detail page', function () {
     $response->assertOk();
     $response->assertJsonPath('component', 'Products/Show');
     $response->assertJsonPath('props.product.name', 'Smart Watch');
+});
+
+test('product controller show returns a 404 for an inactive product', function () {
+    $product = Product::factory()->create(['is_active' => false]);
+
+    $response = $this->withHeaders(inertiaHeaders())->get(route('products.show', ['product' => $product]));
+
+    $response->assertNotFound();
 });

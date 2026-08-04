@@ -1,26 +1,22 @@
 <script setup lang="ts">
-import { Head, Link, router, usePage } from '@inertiajs/vue3';
+import { Link, router, usePage } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
 import type {
     AdminCategory,
     DataTableColumn,
     Paginated,
 } from '@/components/admin/admin.ts';
+import AdminPageHeader from '@/components/admin/AdminPageHeader.vue';
 import DataTable from '@/components/admin/DataTable.vue';
 import ButtonLink from '@/components/ButtonLink.vue';
-import {
-    filterFormClass,
-    linkClass,
-    pageTitleClass,
-    wrapBetweenClass,
-} from '@/components/classNames';
+import { filterFormClass, linkClass } from '@/components/classNames';
 import ConfirmationDialog from '@/components/ConfirmationDialog.vue';
 import DangerButton from '@/components/DangerButton.vue';
 import ErrorBanner from '@/components/ErrorBanner.vue';
 import FormField from '@/components/FormField.vue';
 import PrimaryButton from '@/components/PrimaryButton.vue';
+import { useDeleteConfirmation } from '@/composables/useDeleteConfirmation';
 import { t } from '@/i18n';
-import AdminLayout from '@/Layouts/AdminLayout.vue';
 
 interface Props {
     categories: Paginated<AdminCategory>;
@@ -62,46 +58,28 @@ const columns: DataTableColumn<AdminCategory>[] = [
     },
 ];
 
-const confirmingDeleteId = ref<number | null>(null);
-const deleting = ref(false);
-
-function confirmDelete(id: number): void {
-    confirmingDeleteId.value = id;
-}
-
-function destroy(): void {
-    if (confirmingDeleteId.value === null) {
-        return;
-    }
-
-    deleting.value = true;
-
-    router.delete(route('admin.categories.destroy', confirmingDeleteId.value), {
-        preserveScroll: true,
-        onFinish: () => {
-            deleting.value = false;
-            confirmingDeleteId.value = null;
-        },
-    });
-}
+const {
+    confirmingId: confirmingDeleteId,
+    deleting,
+    confirmDelete,
+    destroy,
+} = useDeleteConfirmation((id: number) =>
+    route('admin.categories.destroy', id),
+);
 </script>
 
 <template>
-    <AdminLayout>
-        <Head :title="t('admin.categories.pageTitle')" />
-
-        <template #header>
-            <div :class="wrapBetweenClass">
-                <h1 :class="pageTitleClass">
-                    {{ t('admin.categories.heading') }}
-                </h1>
-                <ButtonLink
-                    variant="primary"
-                    :href="route('admin.categories.create')"
-                >
-                    {{ t('admin.categories.create') }}
-                </ButtonLink>
-            </div>
+    <AdminPageHeader
+        :title="t('admin.categories.pageTitle')"
+        :heading="t('admin.categories.heading')"
+    >
+        <template #actions>
+            <ButtonLink
+                variant="primary"
+                :href="route('admin.categories.create')"
+            >
+                {{ t('admin.categories.create') }}
+            </ButtonLink>
         </template>
 
         <ErrorBanner v-if="deleteBlockedMessage">
@@ -187,5 +165,5 @@ function destroy(): void {
             @confirm="destroy"
             @cancel="confirmingDeleteId = null"
         />
-    </AdminLayout>
+    </AdminPageHeader>
 </template>

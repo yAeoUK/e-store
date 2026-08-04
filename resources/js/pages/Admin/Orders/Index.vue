@@ -1,19 +1,20 @@
 <script setup lang="ts">
-import { Head, router } from '@inertiajs/vue3';
+import { router } from '@inertiajs/vue3';
 import { ref } from 'vue';
 import type {
     AdminOrder,
     DataTableColumn,
     Paginated,
 } from '@/components/admin/admin.ts';
+import AdminPageHeader from '@/components/admin/AdminPageHeader.vue';
 import DataTable from '@/components/admin/DataTable.vue';
-import { filterFormClass, pageTitleClass } from '@/components/classNames';
+import { filterFormClass } from '@/components/classNames';
 import FormField from '@/components/FormField.vue';
+import OrderStatusBadge from '@/components/OrderStatusBadge.vue';
+import PaymentStatusBadge from '@/components/PaymentStatusBadge.vue';
 import PrimaryButton from '@/components/PrimaryButton.vue';
-import { Badge } from '@/components/ui/badge';
-import type { BadgeVariants } from '@/components/ui/badge';
 import { t } from '@/i18n';
-import AdminLayout from '@/Layouts/AdminLayout.vue';
+import { formatCurrency, formatDate } from '@/lib/format';
 
 interface Props {
     orders: Paginated<AdminOrder>;
@@ -48,38 +49,23 @@ const columns: DataTableColumn<AdminOrder>[] = [
         key: 'total',
         label: t('admin.orders.columns.total'),
         align: 'end',
-        render: (row) => `$${Number(row.total).toFixed(2)}`,
+        render: (row) => formatCurrency(row.total),
     },
     { key: 'status', label: t('admin.orders.columns.status') },
+    { key: 'payment', label: t('admin.orders.columns.payment') },
     {
         key: 'created_at',
         label: t('admin.orders.columns.date'),
-        render: (row) => new Date(row.created_at).toLocaleDateString(),
+        render: (row) => formatDate(row.created_at),
     },
 ];
-
-const statusVariants: Record<string, NonNullable<BadgeVariants['variant']>> = {
-    pending: 'outline',
-    processing: 'secondary',
-    completed: 'default',
-    cancelled: 'destructive',
-};
-
-function statusVariant(status: string): NonNullable<BadgeVariants['variant']> {
-    return statusVariants[status] ?? 'outline';
-}
 </script>
 
 <template>
-    <AdminLayout>
-        <Head :title="t('admin.orders.pageTitle')" />
-
-        <template #header>
-            <h1 :class="pageTitleClass">
-                {{ t('admin.orders.heading') }}
-            </h1>
-        </template>
-
+    <AdminPageHeader
+        :title="t('admin.orders.pageTitle')"
+        :heading="t('admin.orders.heading')"
+    >
         <form @submit.prevent="applyFilters" :class="filterFormClass">
             <FormField
                 v-model="search"
@@ -108,10 +94,24 @@ function statusVariant(status: string): NonNullable<BadgeVariants['variant']> {
             </template>
 
             <template #cell-status="{ row }">
-                <Badge :variant="statusVariant(row.status)">
-                    {{ t(`admin.orders.statuses.${row.status}`) }}
-                </Badge>
+                <OrderStatusBadge :status="row.status" namespace="admin.orders" />
+            </template>
+
+            <template #cell-payment="{ row }">
+                <div class="flex flex-col gap-1">
+                    <span v-if="row.payment_method" class="text-sm">
+                        {{
+                            t(
+                                `admin.orders.paymentMethods.${row.payment_method}`,
+                            )
+                        }}
+                    </span>
+                    <PaymentStatusBadge
+                        :status="row.payment_status"
+                        namespace="admin.orders"
+                    />
+                </div>
             </template>
         </DataTable>
-    </AdminLayout>
+    </AdminPageHeader>
 </template>

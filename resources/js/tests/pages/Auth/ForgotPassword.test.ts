@@ -40,6 +40,7 @@ describe('ForgotPassword page', () => {
 
         expect(field.exists()).toBe(true);
         expect(field.props('label')).toBe('auth.forgotPassword.email');
+        expect(field.props('required')).toBe(true);
     });
 
     it('passes validation errors through to the field', async () => {
@@ -104,5 +105,24 @@ describe('ForgotPassword page', () => {
         const wrapper = mount(ForgotPassword);
 
         expect(wrapper.findComponent(GuestLayout).exists()).toBe(true);
+    });
+
+    it('blocks submission and shows a client-side error when email is empty', async () => {
+        const wrapper = mount(ForgotPassword);
+
+        await wrapper.find('form').trigger('submit');
+
+        expect(getMockForm().lastPostUrl).toBeUndefined();
+        expect(wrapper.text()).toContain('validation.required');
+    });
+
+    it('blocks submission and shows a client-side error for an invalid email format', async () => {
+        const wrapper = mount(ForgotPassword);
+
+        await wrapper.find('#email').setValue('not-an-email');
+        await wrapper.find('form').trigger('submit');
+
+        expect(getMockForm().lastPostUrl).toBeUndefined();
+        expect(wrapper.text()).toContain('validation.email');
     });
 });

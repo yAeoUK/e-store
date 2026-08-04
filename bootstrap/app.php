@@ -19,6 +19,8 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->encryptCookies(except: ['appearance', 'sidebar_state', 'locale']);
 
+        $middleware->validateCsrfTokens(except: ['stripe/webhook']);
+
         $middleware->alias(['admin' => EnsureUserIsAdmin::class]);
 
         $middleware->web(append: [

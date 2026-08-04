@@ -209,4 +209,43 @@ describe('ProductImageManager', () => {
         expect(imageCompression).not.toHaveBeenCalled();
         expect(router.post).not.toHaveBeenCalled();
     });
+
+    it('shows a validation error and never compresses when no files are selected', async () => {
+        const wrapper = mount(ProductImageManager, {
+            props: { productId: 9, images: [] },
+        });
+
+        await selectFiles(wrapper, []);
+
+        expect(imageCompression).not.toHaveBeenCalled();
+        expect(getMockForm().lastPostUrl).toBeUndefined();
+        expect(wrapper.text()).toContain('validation.filesRequired');
+    });
+
+    it('shows a validation error and never compresses when a file has a disallowed mime type', async () => {
+        const wrapper = mount(ProductImageManager, {
+            props: { productId: 9, images: [] },
+        });
+
+        const file = new File(['a'], 'one.gif', { type: 'image/gif' });
+        await selectFiles(wrapper, [file]);
+
+        expect(imageCompression).not.toHaveBeenCalled();
+        expect(getMockForm().lastPostUrl).toBeUndefined();
+        expect(wrapper.text()).toContain('validation.fileType');
+    });
+
+    it('shows a validation error and never compresses when a file is oversized', async () => {
+        const wrapper = mount(ProductImageManager, {
+            props: { productId: 9, images: [] },
+        });
+
+        const file = new File(['a'], 'one.jpg', { type: 'image/jpeg' });
+        Object.defineProperty(file, 'size', { value: 5120 * 1024 + 1 });
+        await selectFiles(wrapper, [file]);
+
+        expect(imageCompression).not.toHaveBeenCalled();
+        expect(getMockForm().lastPostUrl).toBeUndefined();
+        expect(wrapper.text()).toContain('validation.fileSize');
+    });
 });

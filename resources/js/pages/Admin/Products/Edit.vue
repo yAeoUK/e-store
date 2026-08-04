@@ -1,19 +1,15 @@
 <script setup lang="ts">
-import { Head, useForm } from '@inertiajs/vue3';
 import type {
     AdminCategoryRef,
     AdminProduct,
 } from '@/components/admin/admin.ts';
+import AdminResourceForm from '@/components/admin/AdminResourceForm.vue';
 import ProductFormFields from '@/components/admin/ProductFormFields.vue';
 import ProductImageManager from '@/components/admin/ProductImageManager.vue';
 import ProductVariantManager from '@/components/admin/ProductVariantManager.vue';
-import ButtonLink from '@/components/ButtonLink.vue';
-import Card from '@/components/Card.vue';
-import { pageTitleClass } from '@/components/classNames';
-import FormActions from '@/components/FormActions.vue';
-import PrimaryButton from '@/components/PrimaryButton.vue';
+import { useAdminResourceForm } from '@/composables/useAdminResourceForm';
 import { t } from '@/i18n';
-import AdminLayout from '@/Layouts/AdminLayout.vue';
+import { integer, maxLength, min, numeric, required } from '@/lib/validation';
 
 const props = defineProps<{
     product: AdminProduct & {
@@ -23,70 +19,68 @@ const props = defineProps<{
     categories: AdminCategoryRef[];
 }>();
 
-const form = useForm({
-    category_id: props.product.category?.id ?? ('' as number | ''),
-    name: props.product.name,
-    slug: props.product.slug,
-    price: props.product.price,
-    stock: props.product.stock,
-    short_description: props.product.short_description ?? '',
-    description: props.product.description ?? '',
-    is_active: props.product.is_active,
-});
-
-function submit(): void {
-    form.patch(route('admin.products.update', props.product.id));
-}
+const { form, clientErrors, submit } = useAdminResourceForm(
+    {
+        category_id: props.product.category?.id ?? ('' as number | ''),
+        name: props.product.name,
+        slug: props.product.slug,
+        price: props.product.price,
+        stock: props.product.stock,
+        short_description: props.product.short_description ?? '',
+        description: props.product.description ?? '',
+        is_active: props.product.is_active,
+    },
+    {
+        name: [
+            required(t('admin.products.name')),
+            maxLength(t('admin.products.name'), 255),
+        ],
+        price: [
+            required(t('admin.products.price')),
+            numeric(t('admin.products.price')),
+            min(t('admin.products.price'), 0),
+        ],
+        stock: [
+            integer(t('admin.products.stock')),
+            min(t('admin.products.stock'), 0),
+        ],
+        short_description: [
+            maxLength(t('admin.products.shortDescription'), 500),
+        ],
+        slug: [maxLength(t('admin.products.slug'), 255)],
+    },
+    (form) => form.patch(route('admin.products.update', props.product.id)),
+);
 </script>
 
 <template>
-    <AdminLayout>
-        <Head :title="t('admin.products.edit')" />
+    <AdminResourceForm
+        :title="t('admin.products.edit')"
+        :cancel-href="route('admin.products.index')"
+        :save-label="t('admin.products.save')"
+        :processing="form.processing"
+        @submit="submit"
+    >
+        <ProductFormFields
+            :form="form"
+            :categories="categories"
+            :errors="{ ...clientErrors, ...form.errors }"
+        />
 
-        <template #header>
-            <h1 :class="pageTitleClass">
-                {{ t('admin.products.edit') }}
-            </h1>
-        </template>
-
-        <Card class="p-6">
-            <form @submit.prevent="submit" class="space-y-4">
-                <ProductFormFields
-                    v-model:name="form.name"
-                    v-model:slug="form.slug"
-                    v-model:category_id="form.category_id"
-                    v-model:price="form.price"
-                    v-model:stock="form.stock"
-                    v-model:short_description="form.short_description"
-                    v-model:description="form.description"
-                    v-model:is_active="form.is_active"
-                    :categories="categories"
-                    :errors="form.errors"
+        <template #after>
+            <div class="mt-6">
+                <ProductImageManager
+                    :product-id="product.id"
+                    :images="product.images ?? []"
                 />
+            </div>
 
-                <FormActions>
-                    <ButtonLink :href="route('admin.products.index')">
-                        {{ t('common.cancel') }}
-                    </ButtonLink>
-                    <PrimaryButton :disabled="form.processing">
-                        {{ t('admin.products.save') }}
-                    </PrimaryButton>
-                </FormActions>
-            </form>
-        </Card>
-
-        <div class="mt-6">
-            <ProductImageManager
-                :product-id="product.id"
-                :images="product.images ?? []"
-            />
-        </div>
-
-        <div class="mt-6">
-            <ProductVariantManager
-                :product-id="product.id"
-                :variants="product.variants ?? []"
-            />
-        </div>
-    </AdminLayout>
+            <div class="mt-6">
+                <ProductVariantManager
+                    :product-id="product.id"
+                    :variants="product.variants ?? []"
+                />
+            </div>
+        </template>
+    </AdminResourceForm>
 </template>

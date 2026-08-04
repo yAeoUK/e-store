@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Head, useForm } from '@inertiajs/vue3';
+import { Head } from '@inertiajs/vue3';
 import Checkbox from '@/components/Checkbox.vue';
 import FormActions from '@/components/FormActions.vue';
 import FormField from '@/components/FormField.vue';
@@ -7,8 +7,10 @@ import MutedText from '@/components/MutedText.vue';
 import PrimaryButton from '@/components/PrimaryButton.vue';
 import SuccessText from '@/components/SuccessText.vue';
 import TextLink from '@/components/TextLink.vue';
+import { useValidatedSubmit } from '@/composables/useValidatedSubmit';
 import { t } from '@/i18n';
 import GuestLayout from '@/Layouts/GuestLayout.vue';
+import { emailField, required } from '@/lib/validation';
 
 defineProps({
     canResetPassword: {
@@ -19,17 +21,17 @@ defineProps({
     },
 });
 
-const form = useForm({
-    email: '',
-    password: '',
-    remember: false,
-});
-
-const submit = () => {
-    form.post(route('login'), {
-        onFinish: () => form.reset('password'),
-    });
-};
+const { form, errors, submit } = useValidatedSubmit(
+    { email: '', password: '', remember: false },
+    {
+        email: emailField(t('auth.login.email')),
+        password: [required(t('auth.login.password'))],
+    },
+    (form) =>
+        form.post(route('login'), {
+            onFinish: () => form.reset('password'),
+        }),
+);
 </script>
 
 <template>
@@ -46,7 +48,7 @@ const submit = () => {
                 v-model="form.email"
                 type="email"
                 :label="t('auth.login.email')"
-                :error="form.errors.email"
+                :error="errors.email"
                 required
                 autofocus
                 autocomplete="username"
@@ -58,7 +60,7 @@ const submit = () => {
                 type="password"
                 class="mt-4"
                 :label="t('auth.login.password')"
-                :error="form.errors.password"
+                :error="errors.password"
                 required
                 autocomplete="current-password"
             />

@@ -77,6 +77,22 @@ describe('TextareaField', () => {
         expect(wrapper.text()).toContain('This field is required.');
     });
 
+    it('shows an asterisk on the label when required is true', () => {
+        const wrapper = mount(TextareaField, {
+            props: { label: 'Description', modelValue: '', required: true },
+        });
+
+        expect(wrapper.findComponent(InputLabel).text()).toBe('Description*');
+    });
+
+    it('does not show an asterisk on the label when required is omitted', () => {
+        const wrapper = mount(TextareaField, {
+            props: { label: 'Description', modelValue: '' },
+        });
+
+        expect(wrapper.findComponent(InputLabel).text()).toBe('Description');
+    });
+
     it('applies labelClass to the label and textareaClass to the textarea', () => {
         const wrapper = mount(TextareaField, {
             props: {

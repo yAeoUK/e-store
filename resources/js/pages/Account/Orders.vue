@@ -1,10 +1,30 @@
 <script setup lang="ts">
-import { Head } from '@inertiajs/vue3';
+import { Head, Link } from '@inertiajs/vue3';
 import Card from '@/components/Card.vue';
-import { headingTextClass } from '@/components/classNames';
+import {
+    cardPaddingClass,
+    narrowPageWidthClass,
+    pageHeaderTextClass,
+    stackedRowCardClass,
+} from '@/components/classNames';
 import MutedText from '@/components/MutedText.vue';
+import OrderStatusBadge from '@/components/OrderStatusBadge.vue';
+import Pagination from '@/components/Pagination.vue';
+import type { Paginated } from '@/components/Pagination.vue';
 import { t } from '@/i18n';
 import ShopLayout from '@/Layouts/ShopLayout.vue';
+import { formatCurrency, formatDate } from '@/lib/format';
+
+interface OrderRow {
+    id: number;
+    status: string;
+    total: number | string;
+    created_at: string;
+}
+
+defineProps<{
+    orders: Paginated<OrderRow>;
+}>();
 </script>
 
 <template>
@@ -12,22 +32,53 @@ import ShopLayout from '@/Layouts/ShopLayout.vue';
         <Head :title="t('account.orders.pageTitle')" />
 
         <template #header>
-            <h2
-                :class="[
-                    'text-xl leading-tight font-semibold',
-                    headingTextClass,
-                ]"
-            >
+            <h2 :class="pageHeaderTextClass">
                 {{ t('account.orders.pageTitle') }}
             </h2>
         </template>
 
         <div class="py-12">
-            <div class="mx-auto max-w-4xl sm:px-6 lg:px-8">
-                <Card class="overflow-hidden p-6">
-                    <MutedText>
-                        {{ t('account.orders.placeholder') }}
+            <div :class="narrowPageWidthClass">
+                <Card :class="cardPaddingClass">
+                    <MutedText v-if="orders.data.length === 0">
+                        {{ t('account.orders.empty') }}
                     </MutedText>
+
+                    <template v-else>
+                        <ul class="mb-6 space-y-3">
+                            <li
+                                v-for="order in orders.data"
+                                :key="order.id"
+                            >
+                                <Link
+                                    :href="route('account.orders.show', order.id)"
+                                    :class="[
+                                        stackedRowCardClass,
+                                        'hover:bg-slate-50 dark:hover:bg-slate-800',
+                                    ]"
+                                >
+                                    <div>
+                                        <span class="font-medium">
+                                            {{ t('account.orders.columns.id') }}
+                                            #{{ order.id }}
+                                        </span>
+                                        <MutedText>
+                                            {{ formatDate(order.created_at) }}
+                                        </MutedText>
+                                    </div>
+                                    <div class="flex items-center gap-3">
+                                        <span>{{ formatCurrency(order.total) }}</span>
+                                        <OrderStatusBadge
+                                            :status="order.status"
+                                            namespace="account.orders"
+                                        />
+                                    </div>
+                                </Link>
+                            </li>
+                        </ul>
+
+                        <Pagination :links="orders.links" />
+                    </template>
                 </Card>
             </div>
         </div>

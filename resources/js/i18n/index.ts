@@ -4,12 +4,14 @@ import authAr from './locales/ar/auth';
 import commonAr from './locales/ar/common';
 import profileAr from './locales/ar/profile';
 import shopAr from './locales/ar/shop';
+import validationAr from './locales/ar/validation';
 import account from './locales/en/account';
 import admin from './locales/en/admin';
 import auth from './locales/en/auth';
 import common from './locales/en/common';
 import profile from './locales/en/profile';
 import shop from './locales/en/shop';
+import validation from './locales/en/validation';
 
 export const translations = {
     en: {
@@ -19,6 +21,7 @@ export const translations = {
         profile,
         account,
         admin,
+        validation,
     },
     ar: {
         common: commonAr,
@@ -27,6 +30,7 @@ export const translations = {
         profile: profileAr,
         account: accountAr,
         admin: adminAr,
+        validation: validationAr,
     },
 } as const;
 
@@ -44,7 +48,7 @@ function resolveInitialLocale(): LocaleKey {
 
 export const currentLocale: LocaleKey = resolveInitialLocale();
 
-export function t(path: string, locale: LocaleKey = currentLocale): string {
+function resolve(path: string, locale: LocaleKey): string | undefined {
     const segments = path.split('.');
     let value: unknown = translations[locale];
 
@@ -52,9 +56,28 @@ export function t(path: string, locale: LocaleKey = currentLocale): string {
         if (value && typeof value === 'object' && segment in value) {
             value = (value as Record<string, unknown>)[segment];
         } else {
-            return path;
+            return undefined;
         }
     }
 
-    return typeof value === 'string' ? value : path;
+    return typeof value === 'string' ? value : undefined;
+}
+
+export function t(path: string, locale: LocaleKey = currentLocale): string {
+    return resolve(path, locale) ?? path;
+}
+
+// Same dot-path lookup as t(), plus {token} interpolation from params - kept
+// as a separate export (rather than an extra t() argument) because t()'s 2nd
+// positional argument is already used as a locale override elsewhere.
+export function tp(
+    path: string,
+    params: Record<string, string | number>,
+    locale: LocaleKey = currentLocale,
+): string {
+    const template = resolve(path, locale) ?? path;
+
+    return template.replace(/\{(\w+)\}/g, (match, token: string) =>
+        token in params ? String(params[token]) : match,
+    );
 }

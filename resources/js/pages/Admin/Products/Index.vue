@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Head, Link, router } from '@inertiajs/vue3';
+import { Link, router } from '@inertiajs/vue3';
 import { ref } from 'vue';
 import type {
     AdminCategoryRef,
@@ -7,20 +7,18 @@ import type {
     DataTableColumn,
     Paginated,
 } from '@/components/admin/admin.ts';
+import AdminPageHeader from '@/components/admin/AdminPageHeader.vue';
 import DataTable from '@/components/admin/DataTable.vue';
 import ButtonLink from '@/components/ButtonLink.vue';
-import {
-    linkClass,
-    pageTitleClass,
-    wrapBetweenClass,
-} from '@/components/classNames';
+import { linkClass } from '@/components/classNames';
 import ConfirmationDialog from '@/components/ConfirmationDialog.vue';
 import DangerButton from '@/components/DangerButton.vue';
 import FormField from '@/components/FormField.vue';
 import PrimaryButton from '@/components/PrimaryButton.vue';
 import SelectField from '@/components/SelectField.vue';
+import { useDeleteConfirmation } from '@/composables/useDeleteConfirmation';
 import { t } from '@/i18n';
-import AdminLayout from '@/Layouts/AdminLayout.vue';
+import { formatCurrency } from '@/lib/format';
 
 interface Props {
     products: Paginated<AdminProduct>;
@@ -58,7 +56,7 @@ const columns: DataTableColumn<AdminProduct>[] = [
         key: 'price',
         label: t('admin.products.columns.price'),
         align: 'end',
-        render: (row) => `$${Number(row.price).toFixed(2)}`,
+        render: (row) => formatCurrency(row.price),
     },
     { key: 'stock', label: t('admin.products.columns.stock'), align: 'end' },
     {
@@ -71,46 +69,23 @@ const columns: DataTableColumn<AdminProduct>[] = [
     },
 ];
 
-const confirmingDeleteId = ref<number | null>(null);
-const deleting = ref(false);
-
-function confirmDelete(id: number): void {
-    confirmingDeleteId.value = id;
-}
-
-function destroy(): void {
-    if (confirmingDeleteId.value === null) {
-        return;
-    }
-
-    deleting.value = true;
-
-    router.delete(route('admin.products.destroy', confirmingDeleteId.value), {
-        preserveScroll: true,
-        onFinish: () => {
-            deleting.value = false;
-            confirmingDeleteId.value = null;
-        },
-    });
-}
+const {
+    confirmingId: confirmingDeleteId,
+    deleting,
+    confirmDelete,
+    destroy,
+} = useDeleteConfirmation((id: number) => route('admin.products.destroy', id));
 </script>
 
 <template>
-    <AdminLayout>
-        <Head :title="t('admin.products.pageTitle')" />
-
-        <template #header>
-            <div :class="wrapBetweenClass">
-                <h1 :class="pageTitleClass">
-                    {{ t('admin.products.heading') }}
-                </h1>
-                <ButtonLink
-                    variant="primary"
-                    :href="route('admin.products.create')"
-                >
-                    {{ t('admin.products.create') }}
-                </ButtonLink>
-            </div>
+    <AdminPageHeader
+        :title="t('admin.products.pageTitle')"
+        :heading="t('admin.products.heading')"
+    >
+        <template #actions>
+            <ButtonLink variant="primary" :href="route('admin.products.create')">
+                {{ t('admin.products.create') }}
+            </ButtonLink>
         </template>
 
         <form
@@ -184,5 +159,5 @@ function destroy(): void {
             @confirm="destroy"
             @cancel="confirmingDeleteId = null"
         />
-    </AdminLayout>
+    </AdminPageHeader>
 </template>

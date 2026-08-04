@@ -15,22 +15,19 @@ import type {
     TopCategoryStat,
 } from '@/components/admin/admin.ts';
 import CategoryChart from '@/components/admin/CategoryChart.vue';
+import ChartCard from '@/components/admin/ChartCard.vue';
 import RevenueChart from '@/components/admin/RevenueChart.vue';
 import StatCard from '@/components/admin/StatCard.vue';
-import Card from '@/components/Card.vue';
 import { pageTitleClass } from '@/components/classNames';
 import { t } from '@/i18n';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
+import { formatCurrency } from '@/lib/format';
 
 defineProps<{
     stats: DashboardStats;
     revenueByDay: RevenueByDayPoint[];
     topCategories: TopCategoryStat[];
 }>();
-
-function currency(value: number | string): string {
-    return `$${Number(value).toFixed(2)}`;
-}
 </script>
 
 <template>
@@ -83,24 +80,18 @@ function currency(value: number | string): string {
             <StatCard
                 :icon="DollarSign"
                 :label="t('admin.dashboard.totalRevenue')"
-                :value="currency(stats.total_revenue)"
+                :value="formatCurrency(stats.total_revenue)"
                 :href="route('admin.orders.index')"
             />
         </div>
 
         <div class="grid gap-6 lg:grid-cols-2">
-            <Card class="p-4">
-                <h2 class="mb-4 text-sm font-semibold">
-                    {{ t('admin.dashboard.revenueChartTitle') }}
-                </h2>
+            <ChartCard :title="t('admin.dashboard.revenueChartTitle')">
                 <RevenueChart :data="revenueByDay" />
-            </Card>
-            <Card class="p-4">
-                <h2 class="mb-4 text-sm font-semibold">
-                    {{ t('admin.dashboard.categoryChartTitle') }}
-                </h2>
+            </ChartCard>
+            <ChartCard :title="t('admin.dashboard.categoryChartTitle')">
                 <CategoryChart :data="topCategories" />
-            </Card>
+            </ChartCard>
         </div>
     </AdminLayout>
 </template>

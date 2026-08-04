@@ -3,18 +3,29 @@ import { router, useForm } from '@inertiajs/vue3';
 import imageCompression from 'browser-image-compression';
 import { ref } from 'vue';
 import type { AdminProductImage } from '@/components/admin/admin.ts';
+import AdminSection from '@/components/admin/AdminSection.vue';
 import Card from '@/components/Card.vue';
 import {
     accentBadgeTextClass,
     buttonVariants,
+    cardPaddingClass,
+    hintTextClass,
     mutedBorderClass,
-    mutedTextClass,
+    wrapBetweenClass,
 } from '@/components/classNames';
 import ConfirmationDialog from '@/components/ConfirmationDialog.vue';
 import DangerButton from '@/components/DangerButton.vue';
+import InputError from '@/components/InputError.vue';
 import MutedText from '@/components/MutedText.vue';
 import SecondaryButton from '@/components/SecondaryButton.vue';
+import { useDeleteConfirmation } from '@/composables/useDeleteConfirmation';
 import { t } from '@/i18n';
+import {
+    fileMaxSize,
+    fileType,
+    filesRequired,
+    validateFields,
+} from '@/lib/validation';
 
 const props = defineProps<{
     productId: number;
@@ -24,10 +35,34 @@ const props = defineProps<{
 const form = useForm<{ images: File[] }>({ images: [] });
 const compressing = ref(false);
 const fileInput = ref<HTMLInputElement | null>(null);
+const fileError = ref<string | null>(null);
 
 async function onFilesSelected(event: Event): Promise<void> {
     const input = event.target as HTMLInputElement;
     const files = input.files ? Array.from(input.files) : [];
+
+    const errors = validateFields(
+        { images: files },
+        {
+            images: [
+                filesRequired(t('admin.products.images')),
+                fileType(
+                    t('admin.products.images'),
+                    ['image/jpeg', 'image/png', 'image/webp'],
+                    'JPEG, PNG, WEBP',
+                ),
+                fileMaxSize(t('admin.products.images'), 5120 * 1024, '5 MB'),
+            ],
+        },
+    );
+
+    if (errors.images) {
+        fileError.value = errors.images;
+
+        return;
+    }
+
+    fileError.value = null;
 
     if (files.length === 0) {
         return;
@@ -61,34 +96,14 @@ async function onFilesSelected(event: Event): Promise<void> {
     });
 }
 
-const confirmingDeleteId = ref<number | null>(null);
-const deleting = ref(false);
-
-function confirmDelete(id: number): void {
-    confirmingDeleteId.value = id;
-}
-
-function destroy(): void {
-    if (confirmingDeleteId.value === null) {
-        return;
-    }
-
-    deleting.value = true;
-
-    router.delete(
-        route('admin.products.images.destroy', [
-            props.productId,
-            confirmingDeleteId.value,
-        ]),
-        {
-            preserveScroll: true,
-            onFinish: () => {
-                deleting.value = false;
-                confirmingDeleteId.value = null;
-            },
-        },
-    );
-}
+const {
+    confirmingId: confirmingDeleteId,
+    deleting,
+    confirmDelete,
+    destroy,
+} = useDeleteConfirmation((id: number) =>
+    route('admin.products.images.destroy', [props.productId, id]),
+);
 
 function setPrimary(id: number): void {
     router.post(
@@ -100,10 +115,8 @@ function setPrimary(id: number): void {
 </script>
 
 <template>
-    <div class="space-y-6">
-        <h2 class="text-lg font-semibold">{{ t('admin.products.images') }}</h2>
-
-        <Card class="overflow-hidden p-6">
+    <AdminSection :title="t('admin.products.images')">
+        <Card :class="cardPaddingClass">
             <MutedText v-if="images.length === 0" class="mb-4">
                 {{ t('admin.products.empty') }}
             </MutedText>
@@ -119,9 +132,7 @@ function setPrimary(id: number): void {
                         :alt="image.alt_text ?? ''"
                         class="aspect-square w-full rounded object-cover"
                     />
-                    <div
-                        class="flex flex-wrap items-center justify-between gap-2"
-                    >
+                    <div :class="wrapBetweenClass">
                         <span
                             v-if="image.is_primary"
                             :class="accentBadgeTextClass"
@@ -155,10 +166,8 @@ function setPrimary(id: number): void {
                         @change="onFilesSelected"
                     />
                 </label>
-                <p
-                    v-if="compressing || form.processing"
-                    :class="[mutedTextClass, 'mt-2 text-xs']"
-                >
+                <InputError :message="fileError || form.errors.images" />
+                <p v-if="compressing || form.processing" :class="hintTextClass">
                     {{ t('admin.products.uploadingImages') }}
                 </p>
             </div>
@@ -174,5 +183,5 @@ function setPrimary(id: number): void {
             @confirm="destroy"
             @cancel="confirmingDeleteId = null"
         />
-    </div>
+    </AdminSection>
 </template>

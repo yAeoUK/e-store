@@ -319,9 +319,15 @@ section the same as the Boost guidelines above.
 - Per-owner authorization (does this user own this record?) goes through a
   Laravel Policy, not an inline `if ($request->user()->id !== $model->user_id) { abort(403); }`
   check duplicated across every controller action that needs it.
-  `AddressPolicy` (`view`/`update`/`delete`) is the app's first and — so far
-  — only Policy; use it as the template if a second owned-resource needs the
-  same treatment. Call it via `$this->authorize('ability', $model)` in a
+  `AddressPolicy` (`view`/`update`/`delete`) was the app's first Policy;
+  `OrderPolicy` (`view` only — an order is never customer-editable, so there's
+  nothing to authorize but reading it) and `OrderItemPolicy` (`update`/
+  `delete`, gated on **both** ownership *and* `$orderItem->order->status ===
+  OrderStatus::Cart`) followed for the cart/checkout feature. Use whichever
+  is the closer template: `AddressPolicy`/`OrderPolicy` for a plain
+  ownership check, `OrderItemPolicy` for "owned *and* still mutable" (a cart
+  line item stops being deletable the moment checkout flips its order out of
+  `Cart`). Call a policy via `$this->authorize('ability', $model)` in a
   controller (needs `AuthorizesRequests` on the base `Controller`, already
   added) or `$this->user()->can('ability', $model)` inside a `FormRequest`'s
   `authorize()`.
@@ -425,6 +431,46 @@ Full detail in [docs/frontend/README.md](docs/frontend/README.md) and
   message will read awkwardly in Arabic (the raw English field name embedded
   in an otherwise-Arabic sentence).
 
+## Frontend form validation (this repo specifically)
+
+Full detail in [docs/frontend/README.md](docs/frontend/README.md)'s "Form
+validation" section (feature) and
+[docs/testing.md](docs/testing.md)'s "Testing client-side form validation"
+(tests) — the essentials:
+
+- **Every submit form validates client-side, in addition to** its existing
+  backend `FormRequest`/inline `$request->validate()` rules — the backend
+  stays authoritative (uniqueness, existence, auth checks aren't mirrored;
+  there's nothing to check without a round trip). `resources/js/lib/validation.ts`
+  is a small first-party utility (`required`, `isEmail`, `maxLength`,
+  `minLength`, `numeric`, `integer`, `min`, `max`, `confirmedBy`,
+  `filesRequired`, `fileType`, `fileMaxSize`, plus the `validateFields(data,
+  rules)` runner) — no vee-validate/yup/zod/vuelidate is installed, don't add
+  one for this.
+- The component owning `useForm()` adds a `rules` map, an `attempted` ref,
+  and `const clientErrors = computed(() => (attempted.value ? validateFields(form, rules) : {}))`,
+  setting `attempted.value = true` and bailing out of `submit()` before
+  `form.post/put/patch/delete` if `clientErrors.value` isn't empty. Pass
+  `form` itself into `validateFields`, not `form.data()` (the Vitest mock's
+  `form.data()` is a frozen initial-values snapshot, not live). See
+  `resources/js/pages/Auth/Login.vue` for the reference implementation.
+- Messages go through a new `tp(path, params)` export in
+  `resources/js/i18n/index.ts` (parameterized `t()`, backed by the new
+  `resources/js/i18n/locales/{en,ar}/validation.ts` domain) — validators
+  call it internally; callers just pass the field's already-translated
+  `label` string, no new per-field i18n keys needed.
+- Direct `FormField`/etc bindings become `:error="clientErrors.x ||
+  form.errors.x"`; components handing a whole `errors` object to a shared
+  fields component (`CategoryFormFields`/`ProductFormFields`/
+  `AddressFormFields`) become `:errors="{ ...clientErrors, ...form.errors }"`
+  (server wins on conflict). Reset a form's `attempted` ref wherever its
+  `clearErrors()`/`reset()` already gets called (modal open/close), so
+  reopening an edit modal doesn't show stale validation state.
+- New forms/fields follow the same pattern from the start — add the field's
+  rules to that component's `rules` map and a matching test case (see
+  `docs/testing.md`), don't ship a new required/format-constrained field
+  with client-side validation only on the backend.
+
 ## PHPStan/Larastan conventions (this repo specifically)
 
 Full detail in [docs/architecture.md](docs/architecture.md) — the essentials:
@@ -457,6 +503,15 @@ Full detail in [docs/architecture.md](docs/architecture.md) — the essentials:
 
 Full detail in [docs/testing.md](docs/testing.md) — the essentials:
 
+- **Every file created or modified needs a test added or updated in the same
+  pass** — a new Vue component gets a new `*.test.ts`, a changed component
+  gets its existing test file updated to cover the change, a new/changed
+  controller action or model gets the matching Pest/unit test. Don't defer
+  this to a follow-up and don't treat a file as done until the test for it
+  exists and passes. This is the general form of every specific rule below
+  (models, admin controllers, shopper-facing controllers, Vue components) —
+  those spell out the pattern per area, this line covers anything not
+  explicitly listed.
 - **Cookies in `encryptCookies(except: [...])`** (`appearance`, `sidebar_state`,
   `locale`) need the unencrypted Pest helpers — `withUnencryptedCookie()` to
   send one, `assertCookie($name, $value, encrypted: false)` to check one.
@@ -489,6 +544,32 @@ Full detail in [docs/testing.md](docs/testing.md) — the essentials:
   instead — use `.attributes('x')`), and an inline `global.stubs` object
   needs an explicit `name` field before `findComponent({ name: 'X' })` can
   match it.
+- **Frontend: every static text label a page/component renders — every
+  `t('namespace.key')` call in its `<template>`, not just the ones a happy-path
+  test happens to touch — needs an assertion that it actually shows up in
+  `wrapper.text()`.** Don't stop at the strings a feature test needs to
+  verify behavior (a status badge, a validation message); a heading, a
+  section label, a button's own text, an empty-state message all count too.
+  For a page with several such labels, add one dedicated test asserting the
+  full set together (see `'renders all static text labels on the page'` in
+  [Show.test.ts](resources/js/tests/pages/Account/Orders/Show.test.ts) for the
+  pattern) rather than leaving any of them uncovered. Apply this in the same
+  pass as adding or changing the template — don't defer it, and don't treat a
+  component as fully tested just because *some* of its text is asserted
+  elsewhere in the file.
+- **A `.vue`/`.ts` file already having a matching `*.test.ts` is not proof its
+  coverage is current — every change to a file needs the equivalent change in
+  its test file, in the same pass.** `ShopAuthBanner.vue` gained a `cart.index`
+  `DropdownLink` between the addresses and order-history links, but
+  `ShopAuthBanner.test.ts`'s `'renders the ... dropdown links'` test kept
+  asserting a length of 3 and never checked the new link — the gap went
+  unnoticed because *a* test file existed and the other six tests in the file
+  still passed. Before treating a component's test coverage as complete, diff
+  the component's actual template/script against what the test file asserts —
+  line by line, the same "don't infer coverage from the test file's
+  existence" rule already stated above for a model's `$casts`/relationships
+  against its `<Model>Test.php` — don't infer coverage from unrelated tests
+  in the file passing.
 - **Every admin CRUD endpoint — every page render AND every mutating
   action — needs its own non-admin-forbidden test, co-located in that
   resource's test file.** This applies to *all* of `index`/`create`/`edit`
@@ -554,6 +635,23 @@ Full detail in [docs/testing.md](docs/testing.md) — the essentials:
   19 more admins (plus the one from `actingAsAdmin()`) asserts `total` 20.
   Apply the same test to any *new* admin `index` action that paginates, at
   the same time the action is added.
+- **A shopper-facing owned-resource controller (`CartController`,
+  `CheckoutController`) needs the full matrix, not just the happy path per
+  action**: guest-redirect, cross-user isolation (acting as one user must
+  never read/mutate another user's cart/order/address — create a second
+  user's data as noise and assert it's untouched), every `FormRequest`
+  validation/authorization rule (required fields, invalid enum values, an
+  `address_id`/foreign key that doesn't exist *and* one that exists but
+  belongs to someone else), and every documented business-rule branch in the
+  controller itself (e.g. `CheckoutController::store`'s empty-cart abort,
+  insufficient-stock abort for both a plain product and a variant, the
+  stock-decrement side effect, the `product_snapshot`/
+  `shipping_address_snapshot` contents, multi-item total summation, and
+  `stripeReturn`'s session-id-mismatch and already-paid idempotency guards).
+  See [CartControllerTest](tests/Feature/CartControllerTest.php) and
+  [CheckoutControllerTest](tests/Feature/CheckoutControllerTest.php) for the
+  pattern — when adding a new branch to either controller, add its test in
+  the same pass rather than only covering the new code's happy path.
 - **Every model relationship and cast needs a `tests/Unit/Models/<Model>Test.php`
   test, added in the same pass as the model change** — not deferred, not
   left to feature-test coverage to catch incidentally. This project has one
@@ -567,6 +665,15 @@ Full detail in [docs/testing.md](docs/testing.md) — the essentials:
   - **New relationship or cast on an existing model** → add the matching
     test to that model's existing test file in the same change, don't wait
     for a reviewer to notice the gap.
+  - **A model already having a `<Model>Test.php` file is not proof its
+    coverage is current** — `Order` shipped an `OrderTest.php` covering
+    `user()`/`status`/`total`, but `orderItems()` and the `payment_method`/
+    `payment_status`/`paid_at`/`shipping_address_snapshot` casts were added
+    to the model later without a matching test update, and the gap went
+    unnoticed because *a* test file existed. Before treating a model's test
+    coverage as complete, diff the model's actual `$casts`/`casts()` array
+    and relationship methods against what the test file asserts — line by
+    line, not by skimming for "does a test exist for this model."
   - Relationship tests always include **unrelated (noise) data** — see the
     "Guard relationship tests with unrelated data" rule above; a relation
     test without a second, unrelated parent/owner in the setup can pass even
@@ -584,4 +691,37 @@ Full detail in [docs/testing.md](docs/testing.md) — the essentials:
     for "does not affect an unrelated sibling group" — see
     `AddressTest`'s `makeDefault` tests or `ProductImageTest`'s
     `makePrimary` tests for the three-test shape to copy.
+
+## Browser (Playwright) end-to-end testing (this repo specifically)
+
+Full detail in [docs/testing.md](docs/testing.md)'s "Browser (Playwright)
+end-to-end testing" section — the essentials:
+
+- Pest hits routes directly and asserts on the JSON/Inertia response; it
+  doesn't prove the *Vue page* renders correctly or that a real browser can
+  click through a full flow. `tests/e2e/*.spec.ts` (Playwright) is a
+  **required, not optional** companion — every user-facing feature/page
+  needs a spec exercising its primary flow(s), added in the same pass as the
+  feature, not deferred. One spec file per feature area (`auth.spec.ts`,
+  `cart-checkout.spec.ts`, `admin-orders.spec.ts`, etc. — see
+  `docs/testing.md` for the full existing set).
+- **Scope**: happy-path flows through the real UI, not a re-litigation of
+  Pest's authorization/edge-case matrix — that's what the Pest suite's
+  per-resource `non-admin cannot ...` tests are for.
+- **Fixtures**: `database/seeders/E2eSeeder.php` (deterministic data, run via
+  `--class=E2eSeeder`) — add a **new, distinct** seeded record rather than
+  repurposing an existing one when a spec needs to *mutate* shared state.
+- **Environment**: `.env.e2e` + `database/e2e.sqlite`, prepared by
+  `tests/e2e/prepare-db.mjs` inside `playwright.config.ts`'s `webServer`
+  command (must happen there, not in `globalSetup`, which runs too late).
+- **Run**: `npm run test:e2e` (or `npx playwright test tests/e2e/x.spec.ts`
+  for one file). CI runs it after `composer ci:check` in
+  `.github/workflows/tests.yml`.
+- **Shared helpers**: `tests/e2e/helpers.ts` exports `login()` and seeded-user
+  credential constants — import from there, don't redeclare per spec file.
+- Recurring gotchas worth knowing before you hit them again (substring-match
+  text selectors, scoping same-labeled buttons/dialogs, a stacked table
+  cell's text joining with no whitespace, a type-hinted service dependency
+  resolving even down an unused code path): see `docs/testing.md` for the
+  full list with examples.
 

@@ -57,17 +57,22 @@ resources/js/tests/
   setup.ts                       # global Vitest setup (see below)
   utils.ts                       # small shared fixtures (e.g. defaultProducts)
   lib/                           # slugify(), cn() unit tests
+  composables/                   # useFormValidation, useEditableForm, useCartSubtotal, ...
   componenets/                   # note: repo's existing typo, kept for consistency
     shop/                        # shop-specific components (ProductCard, CatalogLayout, ...)
-    common/                      # shared/generic components (Modal, Dropdown, buttons, ...)
+    common/                      # shared/generic components (Modal, ShopAuthBanner, buttons, ...)
     admin/                       # admin-only composites (DataTable, *FormFields, SlugField, ...)
     ui/                          # shadcn-vue primitives (Table, Badge)
   pages/
     Auth/                        # Login, Register, ForgotPassword, ResetPassword, ...
-    Account/                     # Addresses, Orders
+    Account/                     # Addresses, Orders, Orders/Show
+    Cart/, Checkout/             # cart & checkout pages
     Products/, Categories/       # shop pages
     Admin/                       # Dashboard, Products, Categories, Users, Admins, Orders
   Layouts/                       # ShopLayout, AdminLayout, GuestLayout
+
+tests/e2e/                       # Playwright specs — see "Browser (Playwright)
+                                  # end-to-end testing" below
 ```
 
 ## Backend (Pest) conventions
@@ -107,10 +112,11 @@ resources/js/tests/
 
 - **`mount()` vs `shallowMount()`**: default to `mount()` — a full render is
   needed whenever a test interacts with real form fields, clicks, or slot
-  content. `shallowMount()` is only used for the three shop pages
-  (`Products/Index`, `Products/Show`, `Categories/Show`) whose tests solely
-  assert that props are passed through correctly to `CatalogLayout`/
-  `ProductGallery`.
+  content. `shallowMount()` is only used for the two shop pages
+  (`Products/Index`, `Categories/Show`) whose tests solely assert that props
+  are passed through correctly to `CatalogLayout`. `Products/Show` uses a full
+  `mount()` — its gallery markup is inline (see below), not a separate
+  component to shallow-render around.
 - **Prefer `findComponent(Component)` over `findComponent({ name: 'X' })`.**
   A `<script setup>` block with real content (imports, logic) gets a component
   name inferred by the Vue compiler, which name-string matching relies on. A
@@ -164,6 +170,131 @@ resources/js/tests/
   reference equality and the proxy is a different object. Use `.toEqual()`
   for object/array props sourced from reactive state; reserve `.toBe()` for
   primitives or values you're certain aren't proxied.
+- **Testing client-side form validation** (see
+  [docs/frontend/README.md](frontend/README.md)'s "Form validation" section
+  for the feature itself): every form with client rules needs a test that
+  leaves a required/invalid field as-is, triggers a submit, and asserts two
+  things — the mocked form's `post`/`patch`/`put`/`delete` was never actually
+  invoked (`getMockForm(index).lastPostUrl` stays `undefined`, since the mock
+  sets that field the moment `post`/etc. is called), and the matching
+  `validation.*` message renders (e.g. `wrapper.text()).toContain('validation.required')`
+  — `@/i18n`'s `t`/`tp` are both globally mocked to return the raw key
+  unmodified, so asserting the literal `validation.xxx` string is correct and
+  expected, not a placeholder that needs fixing). Existing happy-path submit
+  tests (valid fixture values, asserting `routeMock`/`lastPostUrl` *was*
+  called) don't need new assertions — client rules only reject what the
+  backend would already reject, so a valid fixture never trips them.
+
+## Browser (Playwright) end-to-end testing
+
+Pest feature tests hit routes directly and assert on the JSON/Inertia
+response; they do not prove the *Vue page* actually renders correctly, that
+a button's click handler is wired to the right form, or that a real browser
+can click through a full flow. `tests/e2e/*.spec.ts` (Playwright) exists for
+exactly that gap, and is a **required, not optional** companion to Pest
+coverage — every user-facing feature/page needs a spec exercising its
+primary flow(s) in a real browser, added in the same pass as the feature,
+not deferred to a follow-up.
+
+- **One spec file per feature area** — `auth.spec.ts`, `profile.spec.ts`,
+  `catalog.spec.ts`, `addresses.spec.ts`, `cart-checkout.spec.ts`,
+  `admin-products.spec.ts`, `admin-categories.spec.ts`, `admin-users.spec.ts`,
+  `admin-orders.spec.ts`, `admin-admins.spec.ts`, `admin-dashboard.spec.ts`
+  are the existing set. Add a new file for a genuinely new area, extend an
+  existing one for a new action within an area already covered.
+- **Scope: happy-path flows through the real UI, not a re-litigation of
+  Pest's authorization/edge-case matrix.** Playwright specs answer "does
+  clicking through this actually work," not "does every 403/422 case
+  work" — that's what the Pest suite's per-resource `non-admin cannot ...`
+  tests are for. Don't duplicate that matrix in Playwright; do add a flow
+  for every route a real user/admin can reach through the UI (list, create,
+  edit, delete, and any sub-panel like image/variant management).
+- **Fixtures**: `database/seeders/E2eSeeder.php` is the dedicated seeder for
+  this suite (run via `--class=E2eSeeder`, never the default
+  `DatabaseSeeder`) — deterministic emails/slugs/SKUs, not random factory
+  output, so specs can select on fixed values. Add new fixtures there in the
+  same pass as a new spec that needs them, and add a **new, distinct**
+  seeded user/record rather than repurposing an existing one when a test
+  needs to *mutate* shared state (see `ADDRESS_OWNER` vs the
+  `cart-checkout.spec.ts` customer, or `ORDER_HISTORY_CUSTOMER` vs the
+  checkout-flow customer) — two specs mutating the same seeded row is a
+  cross-file ordering hazard, not a simplification.
+- **Environment**: `.env.e2e` + `database/e2e.sqlite` (gitignored, created
+  fresh every run) — entirely separate from your local dev DB. Playwright's
+  `webServer` in `playwright.config.ts` runs `tests/e2e/prepare-db.mjs`
+  (creates the sqlite file, `migrate:fresh`, seeds `E2eSeeder`) **before**
+  `artisan serve` starts. **This ordering matters**: Playwright starts
+  `webServer` and waits for it to respond *before* running any configured
+  `globalSetup` — DB preparation that depends on the app already being
+  correctly seeded must happen inside `webServer.command` itself, not in
+  `globalSetup` (which runs too late, after the health-check either passes
+  against an unseeded DB or times out).
+- **Run locally**: `npm run test:e2e` (add a path argument to run one file
+  while iterating, e.g. `npx playwright test tests/e2e/auth.spec.ts`). CI
+  runs the full suite via `.github/workflows/tests.yml` after the existing
+  `composer ci:check` step, installing Chromium via
+  `npx playwright install --with-deps chromium` first.
+- **Shared login/user constants**: `tests/e2e/helpers.ts` exports `login()`
+  and the seeded-user credential constants — import from there, don't
+  redeclare per spec file.
+- **Gotchas that recur** (each cost real debugging time writing this
+  suite — don't rediscover them):
+  - **Playwright's `getByText`/`getByRole` default to substring matching.**
+    "Default" matches inside "Set as default"; "E2E Category" matches
+    inside "E2E Category Two" *and* as another row's Parent-column cell (a
+    `<td>` wrapping a link still exposes the link's text as the cell's own
+    accessible name). Pass `{ exact: true }`, scope to a specific row/cell
+    (`page.locator('tr', { hasText: ... })`), or use `.first()` when a weak
+    "this renders somewhere" check is all that's needed.
+  - **A page with two forms that each have a same-labeled submit button**
+    (e.g. `Profile/Edit.vue`'s "Update Profile Information" and "Update
+    Password" forms both have a "Save" button) **must be scoped per-form**
+    — `page.locator('form', { has: page.getByLabel('Current Password') })`
+    then `.getByRole('button', { name: 'Save' })` off that scoped locator —
+    or the click can silently submit the *other* form, and the test still
+    "passes" its `"Saved."` assertion while never doing what it thought it
+    did.
+  - **`ProductVariantManager.vue`'s "Add Variant" form and its "Edit
+    Variant" modal render simultaneously once a variant is being edited**
+    (the add form never unmounts) — every field label (SKU/Price/Stock/
+    Options/Active) is duplicated on screen at that moment. Scope all
+    edit-modal interactions to `page.locator('dialog')`.
+  - **Two `<dialog>`-based components can coexist in the DOM at once**
+    (e.g. an edit `Modal` plus a delete `ConfirmationDialog` on the same
+    page) but only the currently-open one has its slot content mounted, so
+    `page.locator('dialog').getByRole(...)` still resolves uniquely in
+    practice — you don't need to hunt for a more specific selector than
+    `dialog` itself.
+  - **A confirmation dialog's own trigger button can still be "in" the
+    page (just visually behind the overlay) when its confirm button shares
+    the same text** — e.g. the "Log Out" dropdown item and the
+    `ConfirmationDialog`'s "Log Out" confirm button. Scope the second click
+    to the dialog (`page.locator('dialog').getByRole('button', { name:
+    'Log Out' })`), don't assume the first matching element is the right
+    one.
+  - **A stacked two-line table cell (e.g. Admin Orders' "Payment" column:
+    payment method text above a status badge) can join with no whitespace
+    between the lines when read via `allTextContents()`**, breaking a
+    `\bWord\b`-style regex across that seam. Prefer a plain substring
+    match (relying on case-sensitivity to disambiguate, e.g. `"Paid"` vs
+    `"Unpaid"`) over a word-boundary regex when asserting on joined cell
+    text.
+  - **A shared module-level counter for generating unique test data (e.g.
+    a fresh email per test) is not reliably safe across tests** — derive
+    uniqueness from Playwright's own `testInfo.testId` instead. A collision
+    here doesn't fail loudly at the point of the mistake; it surfaces as a
+    confusing "email already taken" failure in a *different*, seemingly
+    unrelated test.
+  - **Any controller method with a type-hinted service dependency is
+    resolved via the container on *every* call, even down a code path
+    that never ends up using it** (e.g. `CheckoutController::store(...,
+    CheckoutSessionCreator $c)` resolves `$c` — and therefore Stripe's
+    `StripeClient` singleton — even for a `cod` order that never touches
+    Stripe). If that dependency's constructor needs real config
+    (`STRIPE_SECRET`, etc.), `.env.e2e` needs *some* non-null placeholder
+    value or every checkout in the suite 500s regardless of payment
+    method — this is a real footgun for any environment missing that
+    config, not just the e2e suite.
 
 ## The `setup.ts` test harness
 

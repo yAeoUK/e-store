@@ -1,32 +1,33 @@
 <script setup lang="ts">
-import { router, useForm } from '@inertiajs/vue3';
 import { ref } from 'vue';
 import type { AdminProductVariant } from '@/components/admin/admin.ts';
-import VariantOptionsEditor from '@/components/admin/VariantOptionsEditor.vue';
+import AdminSection from '@/components/admin/AdminSection.vue';
+import VariantFormFields from '@/components/admin/VariantFormFields.vue';
 import Card from '@/components/Card.vue';
-import CheckboxField from '@/components/CheckboxField.vue';
 import {
-    mutedBorderClass,
+    cardPaddingClass,
     mutedTextClass,
     rowActionsClass,
+    sectionHeadingClass,
+    stackedRowCardClass,
 } from '@/components/classNames';
 import ConfirmationDialog from '@/components/ConfirmationDialog.vue';
 import DangerButton from '@/components/DangerButton.vue';
 import FormActions from '@/components/FormActions.vue';
-import FormField from '@/components/FormField.vue';
-import InputLabel from '@/components/InputLabel.vue';
 import Modal from '@/components/Modal.vue';
 import MutedText from '@/components/MutedText.vue';
 import PrimaryButton from '@/components/PrimaryButton.vue';
 import SecondaryButton from '@/components/SecondaryButton.vue';
+import { useDeleteConfirmation } from '@/composables/useDeleteConfirmation';
+import { useEditableForm } from '@/composables/useEditableForm';
 import { t } from '@/i18n';
+import { formatCurrency } from '@/lib/format';
+import { integer, maxLength, min, numeric, required } from '@/lib/validation';
 
 const props = defineProps<{
     productId: number;
     variants: AdminProductVariant[];
 }>();
-
-const priceHintClass = [mutedTextClass, 'mt-1 text-xs'];
 
 function optionsSummary(options: Record<string, string> | null): string {
     if (!options || Object.keys(options).length === 0) {
@@ -44,51 +45,70 @@ function optionsSummary(options: Record<string, string> | null): string {
 // component for why).
 const addFormResetKey = ref(0);
 
-const form = useForm({
-    sku: '',
-    options: {} as Record<string, string>,
-    price: '' as number | string,
-    stock: 0,
-    is_active: true,
-});
+const rules = {
+    sku: [
+        required(t('admin.products.sku')),
+        maxLength(t('admin.products.sku'), 255),
+    ],
+    price: [
+        numeric(t('admin.products.variantPrice')),
+        min(t('admin.products.variantPrice'), 0),
+    ],
+    stock: [
+        integer(t('admin.products.stock')),
+        min(t('admin.products.stock'), 0),
+    ],
+};
+
+const {
+    form,
+    errors,
+    attemptSubmit,
+    resetAttempted,
+    editingId: editingVariantId,
+    editForm,
+    editErrors,
+    attemptEditSubmit,
+    edit,
+    closeEdit,
+} = useEditableForm(
+    () => ({
+        sku: '',
+        options: {} as Record<string, string>,
+        price: '' as number | string,
+        stock: 0,
+        is_active: true,
+    }),
+    rules,
+    (target, variant: AdminProductVariant) => {
+        target.sku = variant.sku;
+        target.options = variant.options ?? {};
+        target.price = variant.price ?? '';
+        target.stock = variant.stock;
+        target.is_active = variant.is_active;
+    },
+);
 
 function submit(): void {
+    if (!attemptSubmit()) {
+        return;
+    }
+
     form.post(route('admin.products.variants.store', props.productId), {
         preserveScroll: true,
         onSuccess: () => {
             form.reset();
             addFormResetKey.value++;
+            resetAttempted();
         },
     });
 }
 
-const editingVariantId = ref<number | null>(null);
-
-const editForm = useForm({
-    sku: '',
-    options: {} as Record<string, string>,
-    price: '' as number | string,
-    stock: 0,
-    is_active: true,
-});
-
-function edit(variant: AdminProductVariant): void {
-    editingVariantId.value = variant.id;
-    editForm.clearErrors();
-    editForm.sku = variant.sku;
-    editForm.options = variant.options ?? {};
-    editForm.price = variant.price ?? '';
-    editForm.stock = variant.stock;
-    editForm.is_active = variant.is_active;
-}
-
-function closeEdit(): void {
-    editingVariantId.value = null;
-    editForm.clearErrors();
-    editForm.reset();
-}
-
 function submitEdit(): void {
+    if (!attemptEditSubmit()) {
+        return;
+    }
+
     if (editingVariantId.value === null) {
         return;
     }
@@ -105,43 +125,19 @@ function submitEdit(): void {
     );
 }
 
-const confirmingDeleteId = ref<number | null>(null);
-const deleting = ref(false);
-
-function confirmDelete(id: number): void {
-    confirmingDeleteId.value = id;
-}
-
-function destroy(): void {
-    if (confirmingDeleteId.value === null) {
-        return;
-    }
-
-    deleting.value = true;
-
-    router.delete(
-        route('admin.products.variants.destroy', [
-            props.productId,
-            confirmingDeleteId.value,
-        ]),
-        {
-            preserveScroll: true,
-            onFinish: () => {
-                deleting.value = false;
-                confirmingDeleteId.value = null;
-            },
-        },
-    );
-}
+const {
+    confirmingId: confirmingDeleteId,
+    deleting,
+    confirmDelete,
+    destroy,
+} = useDeleteConfirmation((id: number) =>
+    route('admin.products.variants.destroy', [props.productId, id]),
+);
 </script>
 
 <template>
-    <div class="space-y-6">
-        <h2 class="text-lg font-semibold">
-            {{ t('admin.products.variants') }}
-        </h2>
-
-        <Card class="overflow-hidden p-6">
+    <AdminSection :title="t('admin.products.variants')">
+        <Card :class="cardPaddingClass">
             <MutedText v-if="variants.length === 0" class="mb-4">
                 {{ t('admin.products.empty') }}
             </MutedText>
@@ -150,17 +146,14 @@ function destroy(): void {
                 <li
                     v-for="variant in variants"
                     :key="variant.id"
-                    :class="[
-                        mutedBorderClass,
-                        'flex flex-col gap-3 rounded border p-4 sm:flex-row sm:items-center sm:justify-between',
-                    ]"
+                    :class="stackedRowCardClass"
                 >
                     <div>
                         <div class="flex items-center gap-2">
                             <span class="font-medium">{{ variant.sku }}</span>
                             <span
                                 v-if="!variant.is_active"
-                                class="text-xs font-medium text-slate-500 dark:text-slate-400"
+                                :class="['text-xs font-medium', mutedTextClass]"
                             >
                                 {{ t('admin.products.isInactive') }}
                             </span>
@@ -171,7 +164,7 @@ function destroy(): void {
                         <MutedText>
                             {{
                                 variant.price !== null
-                                    ? `$${Number(variant.price).toFixed(2)}`
+                                    ? formatCurrency(variant.price)
                                     : '—'
                             }}
                             &middot; {{ t('admin.products.stock') }}:
@@ -190,51 +183,15 @@ function destroy(): void {
             </ul>
         </Card>
 
-        <Card class="overflow-hidden p-6">
-            <h3 class="mb-4 text-base font-semibold">
+        <Card :class="cardPaddingClass">
+            <h3 :class="['mb-4', sectionHeadingClass]">
                 {{ t('admin.products.addVariant') }}
             </h3>
             <form @submit.prevent="submit" class="space-y-4">
-                <div class="grid gap-4 sm:grid-cols-3">
-                    <FormField
-                        v-model="form.sku"
-                        type="text"
-                        :label="t('admin.products.sku')"
-                        :error="form.errors.sku"
-                    />
-                    <div>
-                        <FormField
-                            v-model="form.price"
-                            type="number"
-                            min="0"
-                            step="0.01"
-                            :label="t('admin.products.variantPrice')"
-                            :error="form.errors.price"
-                        />
-                        <p :class="priceHintClass">
-                            {{ t('admin.products.variantPriceHint') }}
-                        </p>
-                    </div>
-                    <FormField
-                        v-model="form.stock"
-                        type="number"
-                        min="0"
-                        :label="t('admin.products.stock')"
-                        :error="form.errors.stock"
-                    />
-                </div>
-
-                <div>
-                    <InputLabel>{{ t('admin.products.options') }}</InputLabel>
-                    <VariantOptionsEditor
-                        :key="addFormResetKey"
-                        v-model="form.options"
-                    />
-                </div>
-
-                <CheckboxField
-                    v-model:checked="form.is_active"
-                    :label="t('admin.products.isActive')"
+                <VariantFormFields
+                    :form="form"
+                    :errors="errors"
+                    :options-reset-key="addFormResetKey"
                 />
 
                 <FormActions>
@@ -247,46 +204,11 @@ function destroy(): void {
 
         <Modal :show="editingVariantId !== null" @close="closeEdit">
             <div class="p-6">
-                <h3 class="mb-4 text-lg font-semibold">
+                <h3 :class="['mb-4', sectionHeadingClass]">
                     {{ t('admin.products.editVariant') }}
                 </h3>
                 <form @submit.prevent="submitEdit" class="space-y-4">
-                    <FormField
-                        v-model="editForm.sku"
-                        type="text"
-                        :label="t('admin.products.sku')"
-                        :error="editForm.errors.sku"
-                    />
-                    <div>
-                        <FormField
-                            v-model="editForm.price"
-                            type="number"
-                            min="0"
-                            step="0.01"
-                            :label="t('admin.products.variantPrice')"
-                            :error="editForm.errors.price"
-                        />
-                        <p :class="priceHintClass">
-                            {{ t('admin.products.variantPriceHint') }}
-                        </p>
-                    </div>
-                    <FormField
-                        v-model="editForm.stock"
-                        type="number"
-                        min="0"
-                        :label="t('admin.products.stock')"
-                        :error="editForm.errors.stock"
-                    />
-                    <div>
-                        <InputLabel>{{
-                            t('admin.products.options')
-                        }}</InputLabel>
-                        <VariantOptionsEditor v-model="editForm.options" />
-                    </div>
-                    <CheckboxField
-                        v-model:checked="editForm.is_active"
-                        :label="t('admin.products.isActive')"
-                    />
+                    <VariantFormFields :form="editForm" :errors="editErrors" />
 
                     <FormActions>
                         <SecondaryButton type="button" @click="closeEdit">
@@ -310,5 +232,5 @@ function destroy(): void {
             @confirm="destroy"
             @cancel="confirmingDeleteId = null"
         />
-    </div>
+    </AdminSection>
 </template>

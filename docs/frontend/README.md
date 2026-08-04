@@ -101,6 +101,114 @@ i18n (`t()`)
   (`export type ShopTranslations = typeof shop`), and the matching `ar/*.ts`
   does `import type { ShopTranslations } from '../en/shop'`.
 
+Form validation (client-side)
+
+- Every submit form validates on the client **in addition to** the backend
+  `FormRequest`/inline `$request->validate()` rules it already had — the
+  backend remains the source of truth (uniqueness, existence, auth checks),
+  the client layer only short-circuits the obvious, non-DB-dependent cases
+  (required, format, length, numeric range, password confirmation match)
+  before a round trip happens.
+- `resources/js/lib/validation.ts` is the whole utility — no external
+  validation library (no vee-validate/yup/zod/vuelidate is installed).
+  Validator factories (`required(label)`, `isEmail(label)`,
+  `maxLength(label, limit)`, `minLength(label, limit)`, `numeric(label)`,
+  `integer(label)`, `min(label, limit)`, `max(label, limit)`,
+  `confirmedBy(label, otherField)`, `filesRequired(label)`,
+  `fileType(label, allowedMimes, humanTypes)`, `fileMaxSize(label, maxBytes,
+  humanSize)`) each return a `(value, data) => string | null` function.
+  `validateFields(data, rules)` runs a `{ field: [validator, ...] }` map
+  against a data object and returns only the fields that failed. `required`/
+  `min`/`max` treat `0`/`false` as present — only `null`/`undefined`/`''`/
+  whitespace-only counts as missing, so a numeric field defaulting to `0`
+  (e.g. `stock`) doesn't spuriously fail a `required` check.
+- **DB-dependent backend rules stay server-only** — `unique`, `exists`, and
+  similar aren't mirrored client-side; there's nothing to check without a
+  round trip, so those fields still only get an error after the server
+  responds.
+- **Messages come from a dedicated i18n domain**,
+  `resources/js/i18n/locales/{en,ar}/validation.ts`, via a new `tp(path,
+  params, locale?)` export in [resources/js/i18n/index.ts](../../resources/js/i18n/index.ts)
+  — the same dot-path lookup as `t()`, plus `{token}` interpolation from
+  `params` (e.g. `tp('validation.required', { field: t('auth.login.email') })`
+  → `"Email is required."`). `t()`'s own signature is untouched (its 2nd
+  positional argument is already used as a locale override by
+  `tests/lib/i18n.test.ts`), so `tp()` is a separate, additive export rather
+  than an extra `t()` argument. Validator factories call `tp()` internally;
+  callers just pass the field's already-translated label (the same string
+  already used for that field's `label` prop) as the first argument — no new
+  per-field label keys needed.
+- **The pattern lives in composables now, not hand-rolled per component.**
+  The original shape (a `rules` map, an `attempted` ref, and a `computed`
+  re-running `validateFields` only once a submit is attempted) is still
+  exactly what happens under the hood, but it's been extracted to
+  `resources/js/composables/`, in four layers from lowest- to
+  highest-level — reach for the highest one that fits, not the raw
+  primitive, so a new form doesn't re-inline the same three-piece
+  boilerplate:
+  - `useFormValidation(form, rules)` — the base primitive: takes an
+    already-constructed `useForm()` result, returns `{ attempted,
+    clientErrors, errors (client merged over server), attemptSubmit(),
+    reset() }`. Reach for this directly only when the page needs custom
+    control over `submit()` beyond a single `form.post/put/patch/delete`
+    call — e.g. [resources/js/pages/Checkout/Index.vue](../../resources/js/pages/Checkout/Index.vue),
+    which calls `attemptSubmit()` itself before `form.post(route('checkout.store'))`.
+  - `useValidatedSubmit(initialValues, rules, onSubmit)` — the common case:
+    owns the `useForm()` call too, returns `{ form, errors, submit }` where
+    `submit` already guards `onSubmit(form)` behind `attemptSubmit()`. Used
+    by every Auth page, the three Profile partial forms, and
+    `Admin/Admins/Create.vue`. See
+    [resources/js/pages/Auth/Login.vue](../../resources/js/pages/Auth/Login.vue)
+    for the reference implementation (this used to hand-roll the pattern
+    inline — now it's a three-line `useValidatedSubmit()` call).
+  - `useAdminResourceForm(initialValues, rules, onSubmit)` — same shape as
+    `useValidatedSubmit`, but returns `{ form, clientErrors, submit }`
+    (**not** a pre-merged `errors`) since every admin Create/Edit page hands
+    its errors down to a shared fields component that needs to merge them
+    with `form.errors` itself (see "Display" below). Used by
+    `Admin/Products/{Create,Edit}.vue` and `Admin/Categories/{Create,Edit}.vue`.
+  - `useEditableForm(createInitialValues, rules, populate)` — for a "list
+    with an add form and an edit-modal" manager that needs *two* independent
+    `useForm()`/validation instances plus the `editingId`/`edit()`/
+    `closeEdit()` bookkeeping between them. `createInitialValues` is a
+    factory function (not a plain object) called once per form instance, so
+    the add-form and edit-form never share a nested object (e.g. an
+    `options` map) by reference. Used by `Account/Addresses.vue` and
+    `admin/ProductVariantManager.vue`.
+
+  Whichever layer a page uses, errors only show once a submit has actually
+  been attempted, not while the user is still filling the form in for the
+  first time; every layer also passes the live `form` object into
+  `validateFields` internally, **not** `form.data()` — the Vitest mock's
+  `form.data()` returns a frozen snapshot of the values `useForm()` was
+  called with, not the live values, so relying on it would silently validate
+  stale data under test even though real Inertia's `data()` is live.
+- **Display**: components binding `FormField`/`SelectField`/etc directly to
+  a `useValidatedSubmit`/`useFormValidation` result use its already-merged
+  `errors` (`:error="errors.x"` — client and server are combined for you).
+  Pages using `useAdminResourceForm`/`useEditableForm` and handing a whole
+  `errors` object down to a shared fields component (`CategoryFormFields`,
+  `ProductFormFields`, `AddressFormFields`, `VariantFormFields`) merge
+  manually at the call site instead: `:errors="{ ...clientErrors,
+  ...form.errors }"` — server errors win over client ones when both exist
+  for the same field (e.g. a uniqueness failure only the server can catch).
+  No changes were needed to `FormField`/`SelectField`/`TextareaField`/
+  `InputError` themselves — they already just render whatever string lands
+  in their `error`/`message` prop.
+- **Reset alongside the existing error-reset points.** Any form that can be
+  reopened (an edit modal) resets its `attempted` ref back to `false`
+  wherever the code already calls `clearErrors()`/`reset()` for that form
+  (opening/closing the address or product-variant edit modals) — otherwise
+  reopening the modal shows stale validation state from the previous edit.
+- **`ProductImageManager.vue` doesn't fit the pattern above** — it has no
+  `<form>`/submit button and auto-submits from the file input's `@change`
+  handler. It validates the raw `File[]` selection synchronously (via
+  `filesRequired`/`fileType`/`fileMaxSize`) before compressing or posting,
+  setting a local `fileError` ref and returning early on failure, rendered
+  via `<InputError :message="fileError || form.errors.images" />` — that
+  error display didn't exist there at all before, for either client or
+  server errors.
+
 Locale switching & RTL
 
 - `LanguageSwitcher.vue` (an EN/AR toggle) is mounted in both `ShopLayout` and
@@ -124,9 +232,10 @@ Locale switching & RTL
   like the back-arrow glyph swap in
   [resources/js/Layouts/GuestLayout.vue](../../resources/js/Layouts/GuestLayout.vue#L22)
   (`<span class="rtl:hidden">&larr;</span><span class="ltr:hidden">&rarr;</span>`).
-  `Dropdown.vue`'s `alignmentClasses` (`ltr:origin-top-right rtl:origin-top-left
-  end-0`) is the other reference example — written before Arabic support
-  existed, but already following this exact convention.
+  `ShopAuthBanner.vue`'s account-menu panel classes
+  (`ltr:origin-top-right rtl:origin-top-left end-0`) are the other reference
+  example — written before Arabic support existed, but already following this
+  exact convention.
 
 Layouts (`resources/js/Layouts/`)
 
@@ -146,7 +255,7 @@ Layouts (`resources/js/Layouts/`)
 Pages
 
 - Products index (`applyFilters` handler): [resources/js/pages/Products/Index.vue](../../resources/js/pages/Products/Index.vue#L15-L20)
-- Product detail (uses `ProductGallery`): [resources/js/pages/Products/Show.vue](../../resources/js/pages/Products/Show.vue#L45-L45)
+- Product detail (inline gallery: `galleryImages` + `selectedImage`): [resources/js/pages/Products/Show.vue](../../resources/js/pages/Products/Show.vue#L52-L59)
 - Auth pages (`pages/Auth/`): `Login`, `Register`, `ForgotPassword`,
   `ResetPassword`, `ConfirmPassword`, `VerifyEmail` — each a thin form wrapped
   in `GuestLayout`, using Inertia's `useForm()` for submission/validation
@@ -154,44 +263,71 @@ Pages
   All six back onto the Breeze-style controllers under
   `app/Http/Controllers/Auth/` and the routes in `routes/auth.php`.
 - Account pages (`pages/Account/`): `Addresses.vue` (list + add + delete +
-  set-default, backed by `app/Http/Controllers/Account/AddressController.php`)
-  and `Orders.vue` (currently a static placeholder — no orders feature yet).
+  set-default, backed by `app/Http/Controllers/Account/AddressController.php`,
+  using the `useEditableForm` composable — see "Form validation" above) and
+  `Orders.vue` / `Orders/Show.vue` (order history list + single-order detail,
+  backed by `app/Http/Controllers/Account/OrderController.php` — see
+  [docs/architecture.md](../architecture.md)'s "Cart, checkout & payments"
+  section for the backend side). Both render `OrderStatusBadge`, and
+  `Show.vue` additionally renders `PaymentStatusBadge`,
+  `OrderItemsSummary`, and `AddressLines` (against the order's
+  `shipping_address_snapshot`) — see
+  [docs/design-system/README.md](../design-system/README.md) for all three.
+- Cart & checkout (`pages/Cart/Index.vue`, `pages/Checkout/Index.vue`):
+  `Cart/Index.vue` lists/edits/removes cart line items (quantity edits go
+  through a `ConfirmationDialog`-hosted mini-form, removal/clear through
+  `useDeleteConfirmation`) and links to checkout;
+  `Checkout/Index.vue` shows the cart summary (`OrderItemsSummary`) plus a
+  shipping-address picker and payment-method picker, both built from
+  `RadioCardOption` list items, validated via `useFormValidation` (see "Form
+  validation" above) before `form.post(route('checkout.store'))`. Both pages
+  share the cart subtotal calculation via the `useCartSubtotal` composable.
+  Backed by `CartController`/`CheckoutController` — see
+  [docs/architecture.md](../architecture.md)'s "Cart, checkout & payments"
+  section for the full backend flow (stock locking, snapshotting, Stripe).
 - Profile pages (`pages/Profile/`): `Edit.vue` composes three partial forms
   under `Profile/Partials/` (`UpdateProfileInformationForm`,
   `UpdatePasswordForm`, `DeleteUserForm`), backed by Breeze's
   `ProfileController`.
-- Admin pages (`pages/Admin/`), all wrapped in `AdminLayout`, backed by the
-  controllers under `app/Http/Controllers/Admin/` (see
+- Admin pages (`pages/Admin/`), wrapped via `AdminPageHeader` (which itself
+  wraps `AdminLayout` — see [docs/design-system/README.md](../design-system/README.md))
+  — except `Dashboard.vue`, which still wraps `AdminLayout` directly since it
+  has no page-header actions slot to share — backed by the controllers under
+  `app/Http/Controllers/Admin/` (see
   [docs/architecture.md](../architecture.md)'s "Admin panel & authorization"
   section for the backend side): `Dashboard.vue` (stat cards + revenue/category
-  charts); `Products/{Index,Create,Edit}.vue` and `Categories/{Index,Create,Edit}.vue`
-  (list+filter, and Create/Edit pairs that each render a shared
-  `CategoryFormFields`/`ProductFormFields` component — see
-  [docs/design-system/README.md](../design-system/README.md)); `Products/Edit.vue`
-  additionally renders `ProductImageManager` and `ProductVariantManager`
-  below the main form; `Users/Index.vue` and `Admins/{Index,Create}.vue`
-  (list + promote/create/revoke flows, each backed by a `ConfirmationDialog`);
-  `Orders/Index.vue` (read-only list, status rendered via the `Badge`
-  component). All list pages compose `DataTable` for the actual table markup
-  — see [docs/design-system/README.md](../design-system/README.md) for that
-  and the `resources/js/components/admin/admin.ts` shared TypeScript types
+  charts, each chart wrapped in the `ChartCard` layout shell); Create/Edit
+  pairs (`Products`, `Categories`, `Admins/Create`) compose
+  `AdminResourceForm` (the shared form chrome: card, submit/cancel buttons,
+  processing state) around a shared `<Entity>FormFields` component
+  (`CategoryFormFields`/`ProductFormFields`/`VariantFormFields`) and the
+  `useAdminResourceForm` composable (see "Form validation" above);
+  `Products/Edit.vue` additionally renders `ProductImageManager` and
+  `ProductVariantManager` below the main form; `Users/Index.vue` and
+  `Admins/Index.vue` (list + promote/revoke flows, each backed by a
+  `ConfirmationDialog`); `Orders/Index.vue` (read-only list, status/payment
+  rendered via `OrderStatusBadge`/`PaymentStatusBadge`, with a search box and
+  a per-customer `user_id` filter). All list pages compose `DataTable` for
+  the actual table markup — see
+  [docs/design-system/README.md](../design-system/README.md) for that and
+  the `resources/js/components/admin/admin.ts` shared TypeScript types
   (`Paginated<Row>`, `DataTableColumn<Row>`, `AdminProduct`, `AdminCategory`,
-  etc.) every admin page/component types its props against.
+  `AdminOrder`, etc.) every admin page/component types its props against.
 
 Shared component library
 
 - `resources/js/components/*.vue` (top level, not `shop/`) holds generic,
-  reusable UI primitives — buttons, form inputs, `Modal`, `Dropdown`,
+  reusable UI primitives — buttons, form inputs, `Modal`,
   `ConfirmationDialog`, typography wrappers, etc. — used across Auth, Account,
   Profile, and shop pages alike. See [docs/design-system/README.md](../design-system/README.md)
-  for the full inventory and the shared Tailwind class tokens in `classNames.js`.
+  for the full inventory and the shared Tailwind class tokens in `classNames.ts`.
 - `resources/js/components/admin/` holds admin-panel-only composites
   (`DataTable`, `CategoryFormFields`, `ProductFormFields`, `SlugField`,
   `ProductImageManager`, `ProductVariantManager`, `StatCard`, the chart
   wrappers, `admin.ts`'s shared types) — not reused outside `pages/Admin/`.
 - `resources/js/components/ui/` holds [shadcn-vue](https://www.shadcn-vue.com/)-style
   primitives (`table/*`, `badge/*`) generated against the `components.json`
-  config at the repo root, then adapted to import this app's `classNames.js`
+  config at the repo root, then adapted to import this app's `classNames.ts`
   tokens instead of shadcn's default raw Tailwind literals. `resources/js/lib/utils.ts`'s
   `cn()` (the standard `clsx` + `tailwind-merge` combinator) is the class-merging
   helper every `ui/*` component uses for its `class` prop — see
@@ -207,8 +343,6 @@ Shop-specific components
 
 - Catalog layout (category + filters slots): [resources/js/components/shop/CatalogLayout.vue](../../resources/js/components/shop/CatalogLayout.vue#L35-L39)
 - Product card (image & title): [resources/js/components/shop/ProductCard.vue](../../resources/js/components/shop/ProductCard.vue#L31-L31) and [resources/js/components/shop/ProductCard.vue](../../resources/js/components/shop/ProductCard.vue#L45-L45)
-- Product gallery (`selectedImage` & `images`): [resources/js/components/shop/ProductGallery.vue](../../resources/js/components/shop/ProductGallery.vue#L16-L24)
-- Product gallery (main image render): [resources/js/components/shop/ProductGallery.vue](../../resources/js/components/shop/ProductGallery.vue#L33-L38)
 - Product filters (`applyFilters` + form): [resources/js/components/shop/ProductFilters.vue](../../resources/js/components/shop/ProductFilters.vue#L20-L27) and [resources/js/components/shop/ProductFilters.vue](../../resources/js/components/shop/ProductFilters.vue#L31-L36)
 - Category navigation (header and list): [resources/js/components/shop/CategoryNavigation.vue](../../resources/js/components/shop/CategoryNavigation.vue#L16-L16) and [resources/js/components/shop/CategoryNavigation.vue](../../resources/js/components/shop/CategoryNavigation.vue#L19-L23)
 

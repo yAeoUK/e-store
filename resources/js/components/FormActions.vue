@@ -1,7 +1,9 @@
-<script setup lang="ts"></script>
+<script setup lang="ts">
+import { endRowClass } from '@/components/classNames';
+</script>
 
 <template>
-    <div class="flex items-center justify-end gap-3">
+    <div :class="endRowClass">
         <slot />
     </div>
 </template>

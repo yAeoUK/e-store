@@ -15,6 +15,7 @@ const props = defineProps<{
     error?: string;
     labelClass?: string;
     inputClass?: string;
+    required?: boolean;
 }>();
 
 const model = defineModel<string | number>({ default: '' });
@@ -45,11 +46,17 @@ defineExpose({ focus: () => input.value?.focus() });
 
 <template>
     <div>
-        <InputLabel :for="id" :value="label" :class="labelClass" />
+        <InputLabel
+            :for="id"
+            :value="label"
+            :class="labelClass"
+            :required="required"
+        />
         <input
             :id="id"
             ref="input"
             v-bind="$attrs"
+            :required="required"
             :value="model"
             @input="update"
             :class="[

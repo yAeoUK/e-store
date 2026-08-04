@@ -1,13 +1,24 @@
 import { router, usePage } from '@inertiajs/vue3';
 import { mount } from '@vue/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import DropdownLink from '@/components/DropdownLink.vue';
 import ShopAuthBanner from '@/components/ShopAuthBanner.vue';
 
 function pageWith(user: { name: string; email: string } | null) {
     return { props: { auth: { user }, errors: {} } } as unknown as ReturnType<
         typeof usePage
     >;
+}
+
+function mountAuthenticated() {
+    vi.mocked(usePage).mockReturnValue(
+        pageWith({ name: 'Jane Doe', email: 'jane@example.com' }),
+    );
+
+    return mount(ShopAuthBanner);
+}
+
+function menuPanel(wrapper: ReturnType<typeof mountAuthenticated>) {
+    return wrapper.find('.shadow-lg').element as HTMLElement;
 }
 
 beforeEach(() => {
@@ -36,11 +47,7 @@ describe('ShopAuthBanner', () => {
     });
 
     it('greets the authenticated user by name', () => {
-        vi.mocked(usePage).mockReturnValue(
-            pageWith({ name: 'Jane Doe', email: 'jane@example.com' }),
-        );
-
-        const wrapper = mount(ShopAuthBanner);
+        const wrapper = mountAuthenticated();
 
         expect(wrapper.text()).toContain('common.nav.greeting');
         expect(wrapper.text()).toContain('Jane Doe');
@@ -56,34 +63,63 @@ describe('ShopAuthBanner', () => {
         expect(wrapper.text()).toContain('jane@example.com');
     });
 
-    it('renders the three dropdown links', () => {
-        vi.mocked(usePage).mockReturnValue(
-            pageWith({ name: 'Jane Doe', email: 'jane@example.com' }),
-        );
+    it('renders the four account menu links', () => {
+        const wrapper = mountAuthenticated();
+        const links = wrapper.findAll('a');
 
-        const wrapper = mount(ShopAuthBanner);
-        const links = wrapper.findAllComponents(DropdownLink);
-
-        expect(links).toHaveLength(3);
-        expect(links[0].props('href')).toBe('profile.edit');
+        expect(links).toHaveLength(4);
+        expect(links[0].attributes('href')).toBe('profile.edit');
         expect(links[0].text()).toBe('common.nav.profile');
-        expect(links[1].props('href')).toBe('account.addresses.index');
+        expect(links[1].attributes('href')).toBe('account.addresses.index');
         expect(links[1].text()).toBe('common.nav.addresses');
-        expect(links[2].props('href')).toBe('account.orders');
-        expect(links[2].text()).toBe('common.nav.orderHistory');
+        expect(links[2].attributes('href')).toBe('cart.index');
+        expect(links[2].text()).toBe('common.nav.cart');
+        expect(links[3].attributes('href')).toBe('account.orders');
+        expect(links[3].text()).toBe('common.nav.orderHistory');
+    });
+
+    it('is closed by default and opens the menu when the trigger is clicked', async () => {
+        const wrapper = mountAuthenticated();
+        const panel = menuPanel(wrapper);
+
+        expect(panel.style.display).toBe('none');
+
+        await wrapper.findAll('button')[0].trigger('click');
+
+        expect(panel.style.display).not.toBe('none');
+    });
+
+    it('closes the menu when clicking the full-screen overlay', async () => {
+        const wrapper = mountAuthenticated();
+
+        await wrapper.findAll('button')[0].trigger('click');
+
+        const panel = menuPanel(wrapper);
+        await wrapper.find('.fixed.inset-0.z-40').trigger('click');
+
+        expect(panel.style.display).toBe('none');
+    });
+
+    it('closes the menu on Escape when open, and is a no-op when already closed', async () => {
+        const wrapper = mountAuthenticated();
+        const panel = menuPanel(wrapper);
+
+        document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+        await wrapper.vm.$nextTick();
+        expect(panel.style.display).toBe('none');
+
+        await wrapper.findAll('button')[0].trigger('click');
+        expect(panel.style.display).not.toBe('none');
+
+        document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+        await wrapper.vm.$nextTick();
+        expect(panel.style.display).toBe('none');
     });
 
     it('opens the logout confirmation dialog when the logout trigger is clicked', async () => {
-        vi.mocked(usePage).mockReturnValue(
-            pageWith({ name: 'Jane Doe', email: 'jane@example.com' }),
-        );
+        const wrapper = mountAuthenticated();
 
-        const wrapper = mount(ShopAuthBanner);
-
-        await wrapper
-            .findComponent({ name: 'Dropdown' })
-            .find('button')
-            .trigger('click');
+        await wrapper.findAll('button')[0].trigger('click');
 
         const dialog = wrapper.findComponent({ name: 'ConfirmationDialog' });
 
@@ -107,11 +143,7 @@ describe('ShopAuthBanner', () => {
     });
 
     it('posts to the logout route and resets state on finish when confirmed', async () => {
-        vi.mocked(usePage).mockReturnValue(
-            pageWith({ name: 'Jane Doe', email: 'jane@example.com' }),
-        );
-
-        const wrapper = mount(ShopAuthBanner);
+        const wrapper = mountAuthenticated();
 
         await wrapper
             .findComponent({ name: 'ConfirmationDialog' })
@@ -144,11 +176,7 @@ describe('ShopAuthBanner', () => {
     });
 
     it('resets confirmingLogout without posting when the dialog is cancelled', async () => {
-        vi.mocked(usePage).mockReturnValue(
-            pageWith({ name: 'Jane Doe', email: 'jane@example.com' }),
-        );
-
-        const wrapper = mount(ShopAuthBanner);
+        const wrapper = mountAuthenticated();
 
         const logoutButton = wrapper
             .findAll('button')

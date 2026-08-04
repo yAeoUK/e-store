@@ -14,6 +14,8 @@ const orders = {
             id: 1,
             total: '49.99',
             status: 'completed',
+            payment_method: 'stripe',
+            payment_status: 'paid',
             created_at: '2026-01-01T00:00:00.000Z',
             user: { id: 1, name: 'Jane Doe', email: 'jane@example.com' },
         },
@@ -21,6 +23,8 @@ const orders = {
             id: 2,
             total: '10.00',
             status: 'cancelled',
+            payment_method: 'cod',
+            payment_status: 'unpaid',
             created_at: '2026-01-02T00:00:00.000Z',
             user: null,
         },
@@ -104,7 +108,17 @@ describe('Admin Orders index page', () => {
         expect(wrapper.text()).toContain('admin.orders.columns.customer');
         expect(wrapper.text()).toContain('admin.orders.columns.total');
         expect(wrapper.text()).toContain('admin.orders.columns.status');
+        expect(wrapper.text()).toContain('admin.orders.columns.payment');
         expect(wrapper.text()).toContain('admin.orders.columns.date');
+    });
+
+    it('renders the payment method and status for each order', () => {
+        const wrapper = mountPage();
+
+        expect(wrapper.text()).toContain('admin.orders.paymentMethods.stripe');
+        expect(wrapper.text()).toContain('admin.orders.paymentStatuses.paid');
+        expect(wrapper.text()).toContain('admin.orders.paymentMethods.cod');
+        expect(wrapper.text()).toContain('admin.orders.paymentStatuses.unpaid');
     });
 
     it('renders the search field label and submit button text', () => {

@@ -11,7 +11,7 @@ Code style
   see commands below.
 - JS: follow existing ESLint/Prettier config.
 - Reuse the shared component library (`resources/js/components/*.vue`) and the
-  class tokens in `classNames.js` instead of writing new raw markup or
+  class tokens in `classNames.ts` instead of writing new raw markup or
   repeating Tailwind class strings — see [docs/design-system/README.md](design-system/README.md).
 
 Formatting and checks

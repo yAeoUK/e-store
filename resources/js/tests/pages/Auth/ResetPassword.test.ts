@@ -77,6 +77,9 @@ describe('ResetPassword page', () => {
         expect(fields[2].props('label')).toBe(
             'auth.resetPassword.confirmPassword',
         );
+        expect(fields[0].props('required')).toBe(true);
+        expect(fields[1].props('required')).toBe(true);
+        expect(fields[2].props('required')).toBe(true);
     });
 
     it('passes validation errors through to each field', async () => {
@@ -122,5 +125,37 @@ describe('ResetPassword page', () => {
         expect(
             wrapper.findComponent(PrimaryButton).attributes('disabled'),
         ).not.toBeUndefined();
+    });
+
+    it('blocks submission and shows a client-side error when password is empty', async () => {
+        const wrapper = mountResetPassword();
+
+        await wrapper.find('form').trigger('submit');
+
+        expect(getMockForm().lastPostUrl).toBeUndefined();
+        expect(wrapper.text()).toContain('validation.required');
+    });
+
+    it('blocks submission and shows a client-side error for an invalid email format', async () => {
+        const wrapper = mountResetPassword();
+
+        await wrapper.find('#email').setValue('not-an-email');
+        await wrapper.find('#password').setValue('secret');
+        await wrapper.find('#password_confirmation').setValue('secret');
+        await wrapper.find('form').trigger('submit');
+
+        expect(getMockForm().lastPostUrl).toBeUndefined();
+        expect(wrapper.text()).toContain('validation.email');
+    });
+
+    it('blocks submission and shows a client-side error when password confirmation does not match', async () => {
+        const wrapper = mountResetPassword();
+
+        await wrapper.find('#password').setValue('secret');
+        await wrapper.find('#password_confirmation').setValue('different');
+        await wrapper.find('form').trigger('submit');
+
+        expect(getMockForm().lastPostUrl).toBeUndefined();
+        expect(wrapper.text()).toContain('validation.confirmed');
     });
 });

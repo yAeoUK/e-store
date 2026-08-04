@@ -1,62 +1,46 @@
 <script setup lang="ts">
-import { Head, useForm } from '@inertiajs/vue3';
 import type { AdminCategoryRef } from '@/components/admin/admin.ts';
+import AdminResourceForm from '@/components/admin/AdminResourceForm.vue';
 import CategoryFormFields from '@/components/admin/CategoryFormFields.vue';
-import ButtonLink from '@/components/ButtonLink.vue';
-import Card from '@/components/Card.vue';
-import { pageTitleClass } from '@/components/classNames';
-import FormActions from '@/components/FormActions.vue';
-import PrimaryButton from '@/components/PrimaryButton.vue';
+import { useAdminResourceForm } from '@/composables/useAdminResourceForm';
 import { t } from '@/i18n';
-import AdminLayout from '@/Layouts/AdminLayout.vue';
+import { maxLength, required } from '@/lib/validation';
 
 defineProps<{
     categories: AdminCategoryRef[];
 }>();
 
-const form = useForm({
-    parent_id: '' as number | '',
-    name: '',
-    slug: '',
-    description: '',
-});
-
-function submit(): void {
-    form.post(route('admin.categories.store'));
-}
+const { form, clientErrors, submit } = useAdminResourceForm(
+    {
+        parent_id: '' as number | '',
+        name: '',
+        slug: '',
+        description: '',
+    },
+    {
+        name: [
+            required(t('admin.categories.name')),
+            maxLength(t('admin.categories.name'), 255),
+        ],
+        slug: [maxLength(t('admin.categories.slug'), 255)],
+    },
+    (form) => form.post(route('admin.categories.store')),
+);
 </script>
 
 <template>
-    <AdminLayout>
-        <Head :title="t('admin.categories.create')" />
-
-        <template #header>
-            <h1 :class="pageTitleClass">
-                {{ t('admin.categories.create') }}
-            </h1>
-        </template>
-
-        <Card class="p-6">
-            <form @submit.prevent="submit" class="space-y-4">
-                <CategoryFormFields
-                    v-model:name="form.name"
-                    v-model:slug="form.slug"
-                    v-model:parent_id="form.parent_id"
-                    v-model:description="form.description"
-                    :categories="categories"
-                    :errors="form.errors"
-                    auto-slug
-                />
-
-                <FormActions>
-                    <ButtonLink :href="route('admin.categories.index')">
-                        {{ t('common.cancel') }}
-                    </ButtonLink>
-                    <PrimaryButton :disabled="form.processing">
-                        {{ t('admin.categories.save') }}
-                    </PrimaryButton>
-                </FormActions>
-            </form>
-        </Card>
-    </AdminLayout>
+    <AdminResourceForm
+        :title="t('admin.categories.create')"
+        :cancel-href="route('admin.categories.index')"
+        :save-label="t('admin.categories.save')"
+        :processing="form.processing"
+        @submit="submit"
+    >
+        <CategoryFormFields
+            :form="form"
+            :categories="categories"
+            :errors="{ ...clientErrors, ...form.errors }"
+            auto-slug
+        />
+    </AdminResourceForm>
 </template>

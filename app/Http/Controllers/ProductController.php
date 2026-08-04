@@ -60,10 +60,12 @@ class ProductController extends Controller
 
     public function show(Product $product): Response
     {
+        abort_unless($product->is_active, 404);
+
         $product->load([
             'category:id,name',
             'images:product_id,url,alt_text',
-            'variants:product_id,sku,options,stock',
+            'variants:id,product_id,sku,options,price,stock,is_active',
         ]);
 
         return Inertia::render('Products/Show', [

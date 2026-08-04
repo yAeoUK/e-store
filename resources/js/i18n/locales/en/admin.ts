@@ -146,6 +146,7 @@ const admin = {
             customer: 'Customer',
             total: 'Total',
             status: 'Status',
+            payment: 'Payment',
             date: 'Date',
         },
         statuses: {
@@ -153,6 +154,16 @@ const admin = {
             processing: 'Processing',
             completed: 'Completed',
             cancelled: 'Cancelled',
+        },
+        paymentMethods: {
+            cod: 'Cash on Delivery',
+            stripe: 'Card',
+        },
+        paymentStatuses: {
+            unpaid: 'Unpaid',
+            paid: 'Paid',
+            failed: 'Failed',
+            refunded: 'Refunded',
         },
     },
     table: {

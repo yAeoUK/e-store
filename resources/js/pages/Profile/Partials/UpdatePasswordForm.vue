@@ -1,51 +1,50 @@
 <script setup lang="ts">
-import { useForm } from '@inertiajs/vue3';
 import { ref } from 'vue';
-import { dialogTitleClass } from '@/components/classNames';
 import FormField from '@/components/FormField.vue';
-import MutedText from '@/components/MutedText.vue';
-import PrimaryButton from '@/components/PrimaryButton.vue';
+import FormSectionHeader from '@/components/FormSectionHeader.vue';
+import PasswordConfirmationFields from '@/components/PasswordConfirmationFields.vue';
+import SaveButton from '@/components/SaveButton.vue';
+import { useValidatedSubmit } from '@/composables/useValidatedSubmit';
 import { t } from '@/i18n';
+import { confirmedBy, required } from '@/lib/validation';
 
-const passwordInput = ref<{ focus: () => void } | null>(null);
+const passwordFields = ref<{ focus: () => void } | null>(null);
 const currentPasswordInput = ref<{ focus: () => void } | null>(null);
 
-const form = useForm({
-    current_password: '',
-    password: '',
-    password_confirmation: '',
-});
+const { form, errors, submit: updatePassword } = useValidatedSubmit(
+    { current_password: '', password: '', password_confirmation: '' },
+    {
+        current_password: [required(t('profile.password.currentPassword'))],
+        password: [required(t('profile.password.newPassword'))],
+        password_confirmation: [
+            confirmedBy(t('profile.password.confirmPassword'), 'password'),
+        ],
+    },
+    (form) =>
+        form.put(route('password.update'), {
+            preserveScroll: true,
+            onSuccess: () => form.reset(),
+            onError: () => {
+                if (form.errors.password) {
+                    form.reset('password', 'password_confirmation');
+                    passwordFields.value?.focus();
+                }
 
-const updatePassword = () => {
-    form.put(route('password.update'), {
-        preserveScroll: true,
-        onSuccess: () => form.reset(),
-        onError: () => {
-            if (form.errors.password) {
-                form.reset('password', 'password_confirmation');
-                passwordInput.value?.focus();
-            }
-
-            if (form.errors.current_password) {
-                form.reset('current_password');
-                currentPasswordInput.value?.focus();
-            }
-        },
-    });
-};
+                if (form.errors.current_password) {
+                    form.reset('current_password');
+                    currentPasswordInput.value?.focus();
+                }
+            },
+        }),
+);
 </script>
 
 <template>
     <section>
-        <header>
-            <h2 :class="dialogTitleClass">
-                {{ t('profile.password.heading') }}
-            </h2>
-
-            <MutedText class="mt-1">
-                {{ t('profile.password.description') }}
-            </MutedText>
-        </header>
+        <FormSectionHeader
+            :heading="t('profile.password.heading')"
+            :description="t('profile.password.description')"
+        />
 
         <form @submit.prevent="updatePassword" class="mt-6 space-y-6">
             <FormField
@@ -54,45 +53,25 @@ const updatePassword = () => {
                 v-model="form.current_password"
                 type="password"
                 :label="t('profile.password.currentPassword')"
-                :error="form.errors.current_password"
+                :error="errors.current_password"
+                required
                 autocomplete="current-password"
             />
 
-            <FormField
-                id="password"
-                ref="passwordInput"
-                v-model="form.password"
-                type="password"
-                :label="t('profile.password.newPassword')"
-                :error="form.errors.password"
-                autocomplete="new-password"
+            <PasswordConfirmationFields
+                ref="passwordFields"
+                v-model:password="form.password"
+                v-model:confirmation="form.password_confirmation"
+                :password-label="t('profile.password.newPassword')"
+                :confirm-label="t('profile.password.confirmPassword')"
+                :password-error="errors.password"
+                :confirm-error="errors.password_confirmation"
             />
 
-            <FormField
-                id="password_confirmation"
-                v-model="form.password_confirmation"
-                type="password"
-                :label="t('profile.password.confirmPassword')"
-                :error="form.errors.password_confirmation"
-                autocomplete="new-password"
+            <SaveButton
+                :processing="form.processing"
+                :saved="form.recentlySuccessful"
             />
-
-            <div class="flex items-center gap-4">
-                <PrimaryButton :disabled="form.processing">{{
-                    t('common.save')
-                }}</PrimaryButton>
-
-                <Transition
-                    enter-active-class="transition ease-in-out"
-                    enter-from-class="opacity-0"
-                    leave-active-class="transition ease-in-out"
-                    leave-to-class="opacity-0"
-                >
-                    <MutedText v-if="form.recentlySuccessful">
-                        {{ t('common.saved') }}
-                    </MutedText>
-                </Transition>
-            </div>
         </form>
     </section>
 </template>

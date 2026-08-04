@@ -18,6 +18,7 @@ const common = {
         greeting: 'Hi,',
         profile: 'Profile',
         addresses: 'Addresses',
+        cart: 'Cart',
         orderHistory: 'Order History',
         logIn: 'Log in',
         logOut: 'Log Out',

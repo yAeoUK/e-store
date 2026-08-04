@@ -1,23 +1,19 @@
 <script setup lang="ts">
-import { Head, Link, router } from '@inertiajs/vue3';
+import { Link, router } from '@inertiajs/vue3';
 import { ref } from 'vue';
 import type {
     AdminUser,
     DataTableColumn,
     Paginated,
 } from '@/components/admin/admin.ts';
+import AdminPageHeader from '@/components/admin/AdminPageHeader.vue';
 import DataTable from '@/components/admin/DataTable.vue';
-import {
-    filterFormClass,
-    linkClass,
-    pageTitleClass,
-} from '@/components/classNames';
+import { filterFormClass, linkClass } from '@/components/classNames';
 import ConfirmationDialog from '@/components/ConfirmationDialog.vue';
 import FormField from '@/components/FormField.vue';
 import PrimaryButton from '@/components/PrimaryButton.vue';
 import SecondaryButton from '@/components/SecondaryButton.vue';
 import { t } from '@/i18n';
-import AdminLayout from '@/Layouts/AdminLayout.vue';
 
 interface Props {
     users: Paginated<AdminUser>;
@@ -90,15 +86,10 @@ function promote(): void {
 </script>
 
 <template>
-    <AdminLayout>
-        <Head :title="t('admin.users.pageTitle')" />
-
-        <template #header>
-            <h1 :class="pageTitleClass">
-                {{ t('admin.users.heading') }}
-            </h1>
-        </template>
-
+    <AdminPageHeader
+        :title="t('admin.users.pageTitle')"
+        :heading="t('admin.users.heading')"
+    >
         <form @submit.prevent="applyFilters" :class="filterFormClass">
             <FormField
                 v-model="search"
@@ -150,5 +141,5 @@ function promote(): void {
             @confirm="promote"
             @cancel="promotingUser = null"
         />
-    </AdminLayout>
+    </AdminPageHeader>
 </template>
