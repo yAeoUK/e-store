@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { computed } from 'vue';
 import { Link } from '@inertiajs/vue3';
 import {
     cardSurfaceClass,
@@ -8,6 +9,7 @@ import {
 } from '@/components/classNames';
 import MutedText from '@/components/MutedText.vue';
 import { t } from '@/i18n';
+import { formatCurrency, PRODUCT_IMAGE_PLACEHOLDER } from '@/lib/format';
 
 interface ProductImage {
     url: string;
@@ -31,9 +33,9 @@ const props = defineProps<{
 }>();
 
 const imageUrl =
-    props.product.images?.[0]?.url ??
-    'https://placehold.co/600x600?text=Product';
+    props.product.images?.[0]?.url ?? PRODUCT_IMAGE_PLACEHOLDER;
 const imageAlt = props.product.images?.[0]?.alt_text ?? props.product.name;
+const productUrl = computed(() => `/products/${props.product.slug}`);
 </script>
 
 <template>
@@ -43,7 +45,7 @@ const imageAlt = props.product.images?.[0]?.alt_text ?? props.product.name;
             'overflow-hidden bg-white shadow-sm transition hover:shadow-md dark:shadow-none',
         ]"
     >
-        <Link :href="`/products/${product.slug}`" class="block">
+        <Link :href="productUrl" class="block">
             <img
                 :src="imageUrl"
                 :alt="imageAlt"
@@ -57,11 +59,11 @@ const imageAlt = props.product.images?.[0]?.alt_text ?? props.product.name;
                     {{ product.category.name }}
                 </span>
                 <span :class="compactHeadingClass">
-                    ${{ Number(product.price).toFixed(2) }}
+                    {{ formatCurrency(product.price) }}
                 </span>
             </div>
 
-            <Link :href="`/products/${product.slug}`" class="block">
+            <Link :href="productUrl" class="block">
                 <h3 :class="subheadingTextClass">
                     {{ product.name }}
                 </h3>
@@ -72,7 +74,7 @@ const imageAlt = props.product.images?.[0]?.alt_text ?? props.product.name;
             </MutedText>
 
             <Link
-                :href="`/products/${product.slug}`"
+                :href="productUrl"
                 class="inline-flex items-center text-sm font-medium text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300"
             >
                 {{ t('common.viewProduct') }}

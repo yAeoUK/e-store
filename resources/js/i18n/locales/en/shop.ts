@@ -18,6 +18,43 @@ const shop = {
     categories: {
         pageTitle: 'Categories',
     },
+    cart: {
+        pageTitle: 'Your Cart',
+        heading: 'Your Cart',
+        empty: 'Your cart is empty.',
+        quantity: 'Quantity',
+        editQuantity: 'Edit quantity',
+        editQuantityTitle: 'Edit quantity',
+        decreaseQuantity: 'Decrease quantity',
+        increaseQuantity: 'Increase quantity',
+        remove: 'Remove',
+        removeConfirmTitle: 'Remove item?',
+        removeConfirmMessage: 'This item will be removed from your cart.',
+        clearCart: 'Clear cart',
+        clearConfirmTitle: 'Clear cart?',
+        clearConfirmMessage: 'All items will be removed from your cart.',
+        subtotal: 'Subtotal',
+        proceedToCheckout: 'Proceed to Checkout',
+        continueShopping: 'Continue Shopping',
+        addToCart: 'Add to Cart',
+        selectVariant: 'Select an option',
+        outOfStock: 'Out of stock',
+    },
+    checkout: {
+        pageTitle: 'Checkout',
+        heading: 'Checkout',
+        orderSummary: 'Order Summary',
+        shippingAddress: 'Shipping Address',
+        noAddresses: 'You have no saved addresses yet.',
+        manageAddresses: 'Add an address',
+        total: 'Total',
+        placeOrder: 'Place Order',
+        paymentMethod: 'Payment Method',
+        paymentMethods: {
+            cod: 'Cash on Delivery',
+            stripe: 'Pay by Card',
+        },
+    },
 };
 
 export type ShopTranslations = typeof shop;

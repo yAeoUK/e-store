@@ -1,8 +1,9 @@
-import { Head } from '@inertiajs/vue3';
-import { shallowMount } from '@vue/test-utils';
-import { describe, expect, it } from 'vitest';
+import { Head, router } from '@inertiajs/vue3';
+import { mount } from '@vue/test-utils';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import ShopLayout from '@/Layouts/ShopLayout.vue';
 import ProductsShowPage from '@/pages/Products/Show.vue';
+import { routeMock } from '../../setup';
 
 const defaultProduct = {
     id: 1,
@@ -18,13 +19,18 @@ const defaultProduct = {
 };
 
 function mountProductsShowPage(props = {}) {
-    return shallowMount(ProductsShowPage, {
+    return mount(ProductsShowPage, {
         props: {
             product: defaultProduct,
             ...props,
         },
     });
 }
+
+beforeEach(() => {
+    routeMock.mockClear();
+    vi.mocked(router.post).mockClear();
+});
 
 describe('Products show page', () => {
     it('renders the page title via Head, using the product name', () => {
@@ -61,9 +67,21 @@ describe('Products show page', () => {
         expect(availability?.classes()).toContain('text-red-600');
     });
 
-    it('displays product images', () => {
+    it('displays a placeholder image when the product has none', () => {
+        const wrapper = mountProductsShowPage();
+
+        const image = wrapper.get('img');
+
+        expect(image.attributes('src')).toContain(
+            'https://placehold.co/600x600?text=Product',
+        );
+        expect(image.attributes('alt')).toBe(defaultProduct.name);
+    });
+
+    it('displays product images and updates the selected image on thumbnail click', async () => {
         const images = [
-            { id: 1, url: '/images/watch.jpg', alt_text: 'Smart Watch' },
+            { id: 1, url: '/images/watch.jpg', alt_text: 'Front' },
+            { id: 2, url: '/images/watch-back.jpg', alt_text: 'Back' },
         ];
 
         const wrapper = mountProductsShowPage({
@@ -73,11 +91,16 @@ describe('Products show page', () => {
             },
         });
 
-        const gallery = wrapper.findComponent({ name: 'ProductGallery' });
+        expect(wrapper.get('img').attributes('src')).toBe('/images/watch.jpg');
 
-        expect(gallery.exists()).toBe(true);
-        expect(gallery.props('images')).toEqual(images);
-        expect(gallery.props('title')).toBe(defaultProduct.name);
+        const thumbnails = wrapper.findAll('button[type="button"]');
+        expect(thumbnails).toHaveLength(2);
+
+        await thumbnails[1].trigger('click');
+
+        expect(wrapper.get('img').attributes('src')).toBe(
+            '/images/watch-back.jpg',
+        );
     });
 
     it('displays product variants', () => {
@@ -108,5 +131,93 @@ describe('Products show page', () => {
         expect(wrapper.text()).toContain('color: Black');
         expect(wrapper.text()).toContain('WATCH-SILVER');
         expect(wrapper.text()).toContain('common.stock');
+    });
+
+    it('disables adding to cart and shows the out-of-stock label when the product has no stock', () => {
+        const wrapper = mountProductsShowPage({
+            product: { ...defaultProduct, stock: 0 },
+        });
+
+        const button = wrapper.get('button');
+
+        expect(button.text()).toBe('shop.cart.outOfStock');
+        expect(button.attributes('disabled')).toBeDefined();
+    });
+
+    it('enables adding to cart with a quantity capped at the available stock', () => {
+        const wrapper = mountProductsShowPage();
+
+        const button = wrapper.get('button');
+        const quantityInput = wrapper.get('input[type="number"]');
+
+        expect(button.text()).toBe('shop.cart.addToCart');
+        expect(button.attributes('disabled')).toBeUndefined();
+        expect(quantityInput.attributes('max')).toBe('5');
+        expect((quantityInput.element as HTMLInputElement).value).toBe('1');
+    });
+
+    it('adds a product without variants to the cart with the chosen quantity', async () => {
+        const wrapper = mountProductsShowPage();
+
+        await wrapper.get('input[type="number"]').setValue(3);
+        await wrapper.get('button').trigger('click');
+
+        expect(routeMock).toHaveBeenCalledWith('cart.items.store');
+        expect(vi.mocked(router.post)).toHaveBeenCalledWith(
+            'cart.items.store',
+            {
+                product_id: defaultProduct.id,
+                product_variant_id: null,
+                quantity: 3,
+            },
+            { preserveScroll: true },
+        );
+    });
+
+    it('disables adding to cart when the selected variant is out of stock', async () => {
+        const variants = [
+            { id: 10, sku: 'WATCH-BLACK', is_active: true, stock: 4 },
+            { id: 11, sku: 'WATCH-SILVER', is_active: true, stock: 0 },
+        ];
+
+        const wrapper = mountProductsShowPage({
+            product: { ...defaultProduct, variants },
+        });
+
+        const button = wrapper.get('button');
+        const quantityInput = wrapper.get('input[type="number"]');
+
+        expect(quantityInput.attributes('max')).toBe('4');
+        expect(button.attributes('disabled')).toBeUndefined();
+
+        await wrapper.get('select').setValue('11');
+
+        expect(quantityInput.attributes('max')).toBe('0');
+        expect(button.attributes('disabled')).toBeDefined();
+        expect(button.text()).toBe('shop.cart.outOfStock');
+    });
+
+    it('adds the selected variant to the cart', async () => {
+        const variants = [
+            { id: 10, sku: 'WATCH-BLACK', is_active: true, stock: 4 },
+            { id: 11, sku: 'WATCH-SILVER', is_active: true, stock: 2 },
+        ];
+
+        const wrapper = mountProductsShowPage({
+            product: { ...defaultProduct, variants },
+        });
+
+        await wrapper.get('select').setValue('11');
+        await wrapper.get('button').trigger('click');
+
+        expect(vi.mocked(router.post)).toHaveBeenCalledWith(
+            'cart.items.store',
+            {
+                product_id: defaultProduct.id,
+                product_variant_id: 11,
+                quantity: 1,
+            },
+            { preserveScroll: true },
+        );
     });
 });

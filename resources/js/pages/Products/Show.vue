@@ -1,20 +1,23 @@
 <script setup lang="ts">
-import { Head } from '@inertiajs/vue3';
-import { ref } from 'vue';
+import { Head, router } from '@inertiajs/vue3';
+import { computed, ref } from 'vue';
 import {
     cardSurfaceClass,
     errorTextClass,
     headingTextClass,
     mutedBodyTextClass,
+    mutedBorderClass,
     mutedTextClass,
     subheadingTextClass,
 } from '@/components/classNames';
 import LabelText from '@/components/LabelText.vue';
 import MutedText from '@/components/MutedText.vue';
 import PageContainer from '@/components/PageContainer.vue';
-import ProductGallery from '@/components/shop/ProductGallery.vue';
+import PrimaryButton from '@/components/PrimaryButton.vue';
+import SelectField from '@/components/SelectField.vue';
 import { t } from '@/i18n';
 import ShopLayout from '@/Layouts/ShopLayout.vue';
+import { formatCurrency, PRODUCT_IMAGE_PLACEHOLDER } from '@/lib/format';
 
 interface ProductImage {
     url: string;
@@ -22,9 +25,11 @@ interface ProductImage {
 }
 
 interface ProductVariant {
+    id: number;
     sku: string;
     options?: Record<string, string | number> | null;
     stock?: number | null;
+    is_active: boolean;
 }
 
 interface Product {
@@ -42,8 +47,52 @@ interface Product {
     variants?: ProductVariant[];
 }
 
-defineProps<{ product: Product }>();
-const selectedImage = ref<string | null>(null);
+const props = defineProps<{ product: Product }>();
+
+const galleryImages = computed(() => {
+    if (!props.product.images || props.product.images.length === 0) {
+        return [{ url: PRODUCT_IMAGE_PLACEHOLDER, alt_text: props.product.name }];
+    }
+
+    return props.product.images;
+});
+const selectedImage = ref<string | null>(galleryImages.value[0]?.url ?? null);
+
+const activeVariants = computed(
+    () => props.product.variants?.filter((variant) => variant.is_active) ?? [],
+);
+const selectedVariantId = ref<number | ''>(activeVariants.value[0]?.id ?? '');
+const quantity = ref(1);
+
+const selectedVariant = computed(() =>
+    activeVariants.value.find(
+        (variant) => variant.id === selectedVariantId.value,
+    ),
+);
+
+const availableStock = computed(() =>
+    activeVariants.value.length > 0
+        ? (selectedVariant.value?.stock ?? 0)
+        : (props.product.stock ?? 0),
+);
+
+const canAddToCart = computed(
+    () =>
+        availableStock.value > 0 &&
+        (activeVariants.value.length === 0 || selectedVariantId.value !== ''),
+);
+
+function addToCart() {
+    router.post(
+        route('cart.items.store'),
+        {
+            product_id: props.product.id,
+            product_variant_id: selectedVariantId.value || null,
+            quantity: quantity.value,
+        },
+        { preserveScroll: true },
+    );
+}
 </script>
 
 <template>
@@ -52,11 +101,33 @@ const selectedImage = ref<string | null>(null);
     <ShopLayout>
         <PageContainer>
             <div class="grid gap-8 lg:grid-cols-[1.1fr_0.9fr]">
-                <ProductGallery
-                    :images="product.images"
-                    :title="product.name"
-                    v-model:selected-image="selectedImage"
-                />
+                <div class="space-y-4">
+                    <img
+                        v-if="selectedImage"
+                        :src="selectedImage"
+                        :alt="product.name"
+                        :class="`h-[420px] w-full rounded-xl border object-cover ${mutedBorderClass}`"
+                    />
+
+                    <div
+                        v-if="galleryImages.length > 1"
+                        class="flex flex-wrap gap-3"
+                    >
+                        <button
+                            v-for="image in galleryImages"
+                            :key="image.url"
+                            type="button"
+                            @click="selectedImage = image.url"
+                            :class="`h-20 w-20 overflow-hidden rounded-lg border bg-slate-50 dark:bg-slate-800 ${mutedBorderClass}`"
+                        >
+                            <img
+                                :src="image.url"
+                                :alt="image.alt_text ?? product.name"
+                                class="h-full w-full object-cover"
+                            />
+                        </button>
+                    </div>
+                </div>
 
                 <div class="space-y-6">
                     <div>
@@ -99,7 +170,7 @@ const selectedImage = ref<string | null>(null);
                                         headingTextClass,
                                     ]"
                                 >
-                                    ${{ Number(product.price).toFixed(2) }}
+                                    {{ formatCurrency(product.price) }}
                                 </p>
                             </div>
                             <div class="text-end">
@@ -157,6 +228,45 @@ const selectedImage = ref<string | null>(null);
                                     {{ variant.stock ?? 0 }}
                                 </LabelText>
                             </div>
+                        </div>
+                    </div>
+
+                    <div :class="[cardSurfaceClass, 'space-y-4 p-5']">
+                        <SelectField
+                            v-if="activeVariants.length"
+                            v-model="selectedVariantId"
+                            :label="t('shop.cart.selectVariant')"
+                        >
+                            <option
+                                v-for="variant in activeVariants"
+                                :key="variant.id"
+                                :value="variant.id"
+                            >
+                                {{ variant.sku }}
+                            </option>
+                        </SelectField>
+
+                        <div class="flex items-end gap-3">
+                            <div>
+                                <LabelText>{{ t('shop.cart.quantity') }}</LabelText>
+                                <input
+                                    v-model.number="quantity"
+                                    type="number"
+                                    min="1"
+                                    :max="availableStock"
+                                    class="mt-1 w-24 rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950"
+                                />
+                            </div>
+                            <PrimaryButton
+                                :disabled="!canAddToCart"
+                                @click="addToCart"
+                            >
+                                {{
+                                    canAddToCart
+                                        ? t('shop.cart.addToCart')
+                                        : t('shop.cart.outOfStock')
+                                }}
+                            </PrimaryButton>
                         </div>
                     </div>
                 </div>
