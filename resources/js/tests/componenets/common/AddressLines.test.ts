@@ -1,18 +1,9 @@
 import { mount } from '@vue/test-utils';
 import { describe, expect, it } from 'vitest';
 import AddressLines from '@/components/AddressLines.vue';
+import { defaultAddressSnapshot } from '../../utils';
 
-const address = {
-    label: 'Home',
-    name: 'Jane Doe',
-    line1: '123 Main St',
-    line2: 'Apt 4',
-    city: 'Springfield',
-    state: 'IL',
-    postal_code: '62704',
-    country: 'US',
-    phone: null,
-};
+const address = defaultAddressSnapshot({ line2: 'Apt 4', state: 'IL' });
 
 describe('AddressLines', () => {
     it('renders the label, lines, and city/state/postal by default', () => {
@@ -56,5 +47,15 @@ describe('AddressLines', () => {
         expect(wrapper.text()).not.toContain('Home');
         expect(wrapper.text()).not.toContain('Jane Doe');
         expect(wrapper.text()).toContain('123 Main St');
+    });
+
+    it('renders the label as bold text when boldLabel is true', () => {
+        const wrapper = mount(AddressLines, {
+            props: { address, boldLabel: true },
+        });
+
+        const bold = wrapper.find('span.font-medium');
+        expect(bold.exists()).toBe(true);
+        expect(bold.text()).toContain('Home');
     });
 });

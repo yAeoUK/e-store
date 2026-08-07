@@ -25,7 +25,11 @@ const columns: DataTableColumn<Row>[] = [
 describe('DataTable', () => {
     it('renders a header cell per column', () => {
         const wrapper = mount(DataTable, {
-            props: { columns, rows: [], emptyMessage: 'Nothing here' } as any,
+            props: {
+                columns,
+                paginated: { data: [] },
+                emptyMessage: 'Nothing here',
+            } as any,
         });
 
         const headers = wrapper.findAll('th');
@@ -34,7 +38,11 @@ describe('DataTable', () => {
 
     it('shows the empty message when there are no rows', () => {
         const wrapper = mount(DataTable, {
-            props: { columns, rows: [], emptyMessage: 'Nothing here' } as any,
+            props: {
+                columns,
+                paginated: { data: [] },
+                emptyMessage: 'Nothing here',
+            } as any,
         });
 
         expect(wrapper.text()).toContain('Nothing here');
@@ -48,7 +56,11 @@ describe('DataTable', () => {
         ];
 
         const wrapper = mount(DataTable, {
-            props: { columns, rows, emptyMessage: 'Nothing here' } as any,
+            props: {
+                columns,
+                paginated: { data: rows },
+                emptyMessage: 'Nothing here',
+            } as any,
         });
 
         const bodyRows = wrapper.findAll('tbody tr');
@@ -62,7 +74,11 @@ describe('DataTable', () => {
         const rows: Row[] = [{ id: 1, name: 'Widget', price: 9.5 }];
 
         const wrapper = mount(DataTable, {
-            props: { columns, rows, emptyMessage: 'Nothing here' } as any,
+            props: {
+                columns,
+                paginated: { data: rows },
+                emptyMessage: 'Nothing here',
+            } as any,
             slots: {
                 actions: `<template #actions="{ row }"><button>Edit {{ row.name }}</button></template>`,
             },
@@ -76,7 +92,11 @@ describe('DataTable', () => {
         const rows: Row[] = [{ id: 1, name: 'Widget', price: 9.5 }];
 
         const wrapper = mount(DataTable, {
-            props: { columns, rows, emptyMessage: 'Nothing here' } as any,
+            props: {
+                columns,
+                paginated: { data: rows },
+                emptyMessage: 'Nothing here',
+            } as any,
             slots: {
                 'cell-name': `<template #cell-name="{ row }"><a :href="'/widgets/' + row.id">{{ row.name }}</a></template>`,
             },
@@ -98,11 +118,8 @@ describe('DataTable', () => {
         const wrapper = mount(DataTable, {
             props: {
                 columns,
-                rows,
+                paginated: { data: rows, from: 1, to: 15, total: 42 },
                 emptyMessage: 'Nothing here',
-                from: 1,
-                to: 15,
-                total: 42,
             } as any,
         });
 
@@ -116,7 +133,11 @@ describe('DataTable', () => {
         const rows: Row[] = [{ id: 1, name: 'Widget', price: 9.5 }];
 
         const wrapper = mount(DataTable, {
-            props: { columns, rows, emptyMessage: 'Nothing here' } as any,
+            props: {
+                columns,
+                paginated: { data: rows },
+                emptyMessage: 'Nothing here',
+            } as any,
         });
 
         expect(wrapper.find('caption').exists()).toBe(false);
@@ -133,12 +154,8 @@ describe('DataTable', () => {
         const wrapper = mount(DataTable, {
             props: {
                 columns,
-                rows,
+                paginated: { data: rows, from: 1, to: 1, total: 2, links },
                 emptyMessage: 'Nothing here',
-                from: 1,
-                to: 1,
-                total: 2,
-                links,
             } as any,
         });
 

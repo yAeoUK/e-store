@@ -1,12 +1,18 @@
-import { Head } from '@inertiajs/vue3';
 import { mount } from '@vue/test-utils';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import ProductFormFields from '@/components/admin/ProductFormFields.vue';
 import ProductImageManager from '@/components/admin/ProductImageManager.vue';
 import ProductVariantManager from '@/components/admin/ProductVariantManager.vue';
-import FormActions from '@/components/FormActions.vue';
 import ProductsEditPage from '@/pages/Admin/Products/Edit.vue';
 import { getMockForm, routeMock } from '../../../setup';
+import {
+    expectRendersPageTitle,
+    testAdminResourceFormLayout,
+    testBindsProductMiscFieldsToForm,
+    testRendersLabels,
+    testSlugNotAutoSyncedOnEdit,
+    testSubmitsToUpdateRoute,
+} from '../../../utils';
 
 const product = {
     id: 5,
@@ -40,10 +46,6 @@ const product = {
 };
 
 describe('Admin Products edit page', () => {
-    beforeEach(() => {
-        routeMock.mockClear();
-    });
-
     it('pre-fills the form from the product prop', () => {
         mount(ProductsEditPage, {
             props: { product, categories: [] },
@@ -70,28 +72,16 @@ describe('Admin Products edit page', () => {
         expect(getMockForm().category_id).toBe('');
     });
 
-    it('does not auto-sync the slug when the name is edited', async () => {
-        const wrapper = mount(ProductsEditPage, {
-            props: { product, categories: [] },
-        });
+    testSlugNotAutoSyncedOnEdit(
+        () => mount(ProductsEditPage, { props: { product, categories: [] } }),
+        { newName: 'Wireless Mouse 2', expectedSlug: 'wireless-mouse' },
+    );
 
-        await wrapper.find('input[type="text"]').setValue('Wireless Mouse 2');
-
-        expect(getMockForm().slug).toBe('wireless-mouse');
-    });
-
-    it('submits to the product update route', async () => {
-        const wrapper = mount(ProductsEditPage, {
-            props: { product, categories: [] },
-        });
-
-        await wrapper.find('form').trigger('submit');
-
-        expect(routeMock).toHaveBeenCalledWith(
-            'admin.products.update',
-            product.id,
-        );
-    });
+    testSubmitsToUpdateRoute(
+        () => mount(ProductsEditPage, { props: { product, categories: [] } }),
+        'admin.products.update',
+        product.id,
+    );
 
     it('renders the product image and variant managers with the product data', () => {
         const wrapper = mount(ProductsEditPage, {
@@ -128,51 +118,31 @@ describe('Admin Products edit page', () => {
             props: { product, categories: [] },
         });
 
-        expect(wrapper.findComponent(Head).attributes('title')).toBe(
+        expectRendersPageTitle(wrapper, 'admin.products.edit');
+    });
+
+    testRendersLabels(
+        () => mount(ProductsEditPage, { props: { product, categories: [] } }),
+        [
             'admin.products.edit',
-        );
-    });
+            'admin.products.name',
+            'admin.products.slug',
+            'admin.products.category',
+            'admin.products.noCategory',
+            'admin.products.price',
+            'admin.products.stock',
+            'admin.products.shortDescription',
+            'admin.products.description',
+            'admin.products.isActive',
+            'common.cancel',
+            'admin.products.save',
+        ],
+        'renders the field labels and form actions',
+    );
 
-    it('renders the field labels and form actions', () => {
-        const wrapper = mount(ProductsEditPage, {
-            props: { product, categories: [] },
-        });
-        const text = wrapper.text();
-
-        expect(text).toContain('admin.products.edit');
-        expect(text).toContain('admin.products.name');
-        expect(text).toContain('admin.products.slug');
-        expect(text).toContain('admin.products.category');
-        expect(text).toContain('admin.products.noCategory');
-        expect(text).toContain('admin.products.price');
-        expect(text).toContain('admin.products.stock');
-        expect(text).toContain('admin.products.shortDescription');
-        expect(text).toContain('admin.products.description');
-        expect(text).toContain('admin.products.isActive');
-        expect(text).toContain('common.cancel');
-        expect(text).toContain('admin.products.save');
-    });
-
-    it('renders the expected layout and form components', () => {
-        const wrapper = mount(ProductsEditPage, {
-            props: { product, categories: [] },
-        });
-
-        expect(wrapper.findComponent({ name: 'AdminLayout' }).exists()).toBe(
-            true,
-        );
-        expect(wrapper.findComponent({ name: 'Card' }).exists()).toBe(true);
-        expect(wrapper.findComponent(FormActions).exists()).toBe(true);
-        expect(
-            wrapper.findAllComponents({ name: 'InputLabel' }).length,
-        ).toBeGreaterThan(0);
-        expect(wrapper.findComponent({ name: 'ButtonLink' }).exists()).toBe(
-            true,
-        );
-        expect(wrapper.findComponent({ name: 'PrimaryButton' }).exists()).toBe(
-            true,
-        );
-    });
+    testAdminResourceFormLayout(() =>
+        mount(ProductsEditPage, { props: { product, categories: [] } }),
+    );
 
     it('wires ProductFormFields with auto-slug disabled and the categories/errors props', () => {
         const categories = [{ id: 2, name: 'Electronics' }];
@@ -196,29 +166,19 @@ describe('Admin Products edit page', () => {
         expect(fields.props('form').is_active).toBe(true);
     });
 
-    it('binds category, stock, short description, description and active status to the form', async () => {
-        const categories = [
-            { id: 2, name: 'Electronics' },
-            { id: 5, name: 'Toys' },
-        ];
-        const wrapper = mount(ProductsEditPage, {
-            props: { product, categories },
-        });
-
-        await wrapper.find('select').setValue(5);
-        await wrapper.findAll('input[type="number"]')[1].setValue(7);
-        await wrapper
-            .findAll('input[type="text"]')[1]
-            .setValue('Great for travel.');
-        await wrapper.find('textarea').setValue('Full description.');
-        await wrapper.find('input[type="checkbox"]').setValue(false);
-
-        expect(getMockForm().category_id).toBe(5);
-        expect(getMockForm().stock).toBe(7);
-        expect(getMockForm().short_description).toBe('Great for travel.');
-        expect(getMockForm().description).toBe('Full description.');
-        expect(getMockForm().is_active).toBe(false);
-    });
+    testBindsProductMiscFieldsToForm(
+        () =>
+            mount(ProductsEditPage, {
+                props: {
+                    product,
+                    categories: [
+                        { id: 2, name: 'Electronics' },
+                        { id: 5, name: 'Toys' },
+                    ],
+                },
+            }),
+        { categorySelectValue: 5 },
+    );
 
     it('blocks submission and shows a validation error when name is empty', async () => {
         const wrapper = mount(ProductsEditPage, {

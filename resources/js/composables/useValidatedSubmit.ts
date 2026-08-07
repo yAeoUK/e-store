@@ -4,7 +4,9 @@ import { useFormValidation } from '@/composables/useFormValidation';
 import type { Validator } from '@/lib/validation';
 
 // Bundles the useForm() + useFormValidation() + guarded-submit boilerplate
-// every auth page repeats.
+// every auth/profile/admin page repeats. Auth/profile pages bind the
+// client-first `errors`; admin pages that hand a whole errors object down to
+// a shared fields component bind the server-first `fieldErrors` instead.
 export function useValidatedSubmit<TForm extends Record<string, unknown>>(
     initialValues: TForm,
     rules: Partial<Record<keyof TForm, Validator[]>>,
@@ -15,7 +17,8 @@ export function useValidatedSubmit<TForm extends Record<string, unknown>>(
     // argument is passed through as `any` and the result cast back to
     // `InertiaForm<TForm>`.
     const form = useForm(initialValues as any) as InertiaForm<TForm>;
-    const { errors, attemptSubmit, reset } = useFormValidation(form, rules);
+    const { clientErrors, errors, fieldErrors, attemptSubmit, reset } =
+        useFormValidation(form, rules);
 
     function submit(): void {
         if (!attemptSubmit()) {
@@ -25,5 +28,5 @@ export function useValidatedSubmit<TForm extends Record<string, unknown>>(
         onSubmit(form);
     }
 
-    return { form, errors, submit, reset };
+    return { form, clientErrors, errors, fieldErrors, submit, reset };
 }

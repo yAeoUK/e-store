@@ -1,97 +1,27 @@
 import { mount } from '@vue/test-utils';
 import { describe, expect, it } from 'vitest';
-import InputLabel from '@/components/InputLabel.vue';
 import SelectField from '@/components/SelectField.vue';
+import { testLabeledFieldContract } from '../../utils';
 
-function mountField(props = {}, slots = {}) {
-    return mount(SelectField, {
-        props: { label: 'Category', modelValue: '', ...props },
-        slots: {
-            default:
-                '<option value="">None</option><option value="1">A</option>',
-            ...slots,
-        },
-    });
-}
+const options = '<option value="">None</option><option value="1">A</option>';
 
 describe('SelectField', () => {
-    it('renders the label prop via InputLabel', () => {
-        const wrapper = mountField();
-
-        expect(wrapper.findComponent(InputLabel).props('value')).toBe(
-            'Category',
-        );
-    });
-
-    it('links the label to the select via a matching for/id pair', () => {
-        const wrapper = mountField();
-
-        const forAttr = wrapper.findComponent(InputLabel).attributes('for');
-
-        expect(forAttr).toBeTruthy();
-        expect(wrapper.get('select').attributes('id')).toBe(forAttr);
-    });
-
-    it('uses an explicit id when provided instead of generating one', () => {
-        const wrapper = mountField({ id: 'category' });
-
-        expect(wrapper.get('select').attributes('id')).toBe('category');
-        expect(wrapper.findComponent(InputLabel).attributes('for')).toBe(
-            'category',
-        );
+    testLabeledFieldContract(SelectField, {
+        label: 'Category',
+        elementSelector: 'select',
+        classProp: 'selectClass',
+        setValue: '1',
+        slots: { default: options },
     });
 
     it('renders the option elements passed via the default slot', () => {
-        const wrapper = mountField();
-
-        const options = wrapper.findAll('option');
-        expect(options).toHaveLength(2);
-        expect(options[1].text()).toBe('A');
-    });
-
-    it('renders the modelValue prop as the selected value', () => {
-        const wrapper = mountField({ modelValue: '1' });
-
-        expect((wrapper.get('select').element as HTMLSelectElement).value).toBe(
-            '1',
-        );
-    });
-
-    it('emits update:modelValue when a different option is selected', async () => {
-        const wrapper = mountField();
-
-        await wrapper.get('select').setValue('1');
-
-        expect(wrapper.emitted('update:modelValue')?.[0]).toEqual(['1']);
-    });
-
-    it('renders the error message when provided', () => {
-        const wrapper = mountField({ error: 'This field is required.' });
-
-        expect(wrapper.text()).toContain('This field is required.');
-    });
-
-    it('shows an asterisk on the label when required is true', () => {
-        const wrapper = mountField({ required: true });
-
-        expect(wrapper.findComponent(InputLabel).text()).toBe('Category*');
-    });
-
-    it('does not show an asterisk on the label when required is omitted', () => {
-        const wrapper = mountField();
-
-        expect(wrapper.findComponent(InputLabel).text()).toBe('Category');
-    });
-
-    it('applies labelClass to the label and selectClass to the select', () => {
-        const wrapper = mountField({
-            labelClass: 'sr-only',
-            selectClass: 'w-3/4',
+        const wrapper = mount(SelectField, {
+            props: { label: 'Category', modelValue: '' },
+            slots: { default: options },
         });
 
-        expect(wrapper.findComponent(InputLabel).classes()).toContain(
-            'sr-only',
-        );
-        expect(wrapper.get('select').classes()).toContain('w-3/4');
+        const rendered = wrapper.findAll('option');
+        expect(rendered).toHaveLength(2);
+        expect(rendered[1].text()).toBe('A');
     });
 });

@@ -1,13 +1,18 @@
-import { useForm } from '@inertiajs/vue3';
-import { mount } from '@vue/test-utils';
 import { describe, expect, it } from 'vitest';
 import ProductFormFields from '@/components/admin/ProductFormFields.vue';
 import SlugField from '@/components/admin/SlugField.vue';
 import Checkbox from '@/components/Checkbox.vue';
 import FormField from '@/components/FormField.vue';
+import {
+    adminCategoryRefs,
+    createFieldsHarness,
+    testAutoSlugSourceProp,
+    testErrorsAssignedToFormFields,
+} from '../../utils';
 
-function makeForm(overrides = {}) {
-    return useForm({
+const { makeForm, mountFields } = createFieldsHarness(
+    ProductFormFields,
+    {
         category_id: '' as number | '',
         name: '',
         slug: '',
@@ -15,21 +20,10 @@ function makeForm(overrides = {}) {
         stock: 0,
         short_description: '',
         description: '',
-        is_active: true,
-        ...overrides,
-    });
-}
-
-const categories = [
-    { id: 1, name: 'Electronics' },
-    { id: 2, name: 'Furniture' },
-];
-
-function mountFields(props = {}) {
-    return mount(ProductFormFields, {
-        props: { form: makeForm(), categories: [], errors: {}, ...props },
-    });
-}
+        is_active: true as boolean,
+    },
+    { categories: [] },
+);
 
 describe('ProductFormFields', () => {
     it('renders every field with its label', () => {
@@ -86,7 +80,7 @@ describe('ProductFormFields', () => {
     });
 
     it('lists the categories prop as select options', () => {
-        const wrapper = mountFields({ categories });
+        const wrapper = mountFields({ categories: adminCategoryRefs });
 
         expect(wrapper.text()).toContain('Electronics');
         expect(wrapper.text()).toContain('Furniture');
@@ -104,19 +98,10 @@ describe('ProductFormFields', () => {
         expect(form.is_active).toBe(false);
     });
 
-    it('passes each error to its matching field', () => {
-        const wrapper = mountFields({
-            errors: {
-                name: 'The name field is required.',
-                price: 'The price must be a number.',
-                stock: 'The stock field is required.',
-            },
-        });
-
-        const fields = wrapper.findAllComponents(FormField);
-        expect(fields[0].props('error')).toBe('The name field is required.');
-        expect(fields[1].props('error')).toBe('The price must be a number.');
-        expect(fields[2].props('error')).toBe('The stock field is required.');
+    testErrorsAssignedToFormFields(mountFields, {
+        name: 'The name field is required.',
+        price: 'The price must be a number.',
+        stock: 'The stock field is required.',
     });
 
     it('marks only the name and price fields as required', () => {
@@ -138,25 +123,9 @@ describe('ProductFormFields', () => {
             (wrapper.find('select').element as HTMLSelectElement).required,
         ).toBe(false);
         expect(
-            (wrapper.find('textarea').element as HTMLTextAreaElement)
-                .required,
+            (wrapper.find('textarea').element as HTMLTextAreaElement).required,
         ).toBe(false);
     });
 
-    it('only passes a slug source when autoSlug is enabled', () => {
-        const withoutAutoSlug = mountFields({
-            form: makeForm({ name: 'Wireless Mouse' }),
-        });
-        expect(
-            withoutAutoSlug.findComponent(SlugField).props('source'),
-        ).toBeUndefined();
-
-        const withAutoSlug = mountFields({
-            form: makeForm({ name: 'Wireless Mouse' }),
-            autoSlug: true,
-        });
-        expect(withAutoSlug.findComponent(SlugField).props('source')).toBe(
-            'Wireless Mouse',
-        );
-    });
+    testAutoSlugSourceProp(mountFields, makeForm, 'Wireless Mouse');
 });

@@ -1,18 +1,25 @@
-import { Head } from '@inertiajs/vue3';
+import { UserPlus } from '@lucide/vue';
 import { mount } from '@vue/test-utils';
-import { beforeEach, describe, expect, it } from 'vitest';
-import FormField from '@/components/FormField.vue';
-import PrimaryButton from '@/components/PrimaryButton.vue';
+import { describe, expect, it } from 'vitest';
 import TextLink from '@/components/TextLink.vue';
-import GuestLayout from '@/Layouts/GuestLayout.vue';
 import Register from '@/pages/Auth/Register.vue';
-import { getMockForm, routeMock } from '../../setup';
-
-beforeEach(() => {
-    routeMock.mockClear();
-});
+import { routeMock } from '../../setup';
+import {
+    expectBlocksSubmissionWithClientError,
+    expectPassesValidationErrorsToFields,
+    expectRendersRequiredFormFieldLabels,
+    itBehavesLikeGuestAuthPage,
+} from './authAssertions';
 
 describe('Register page', () => {
+    itBehavesLikeGuestAuthPage({
+        mount: () => mount(Register),
+        titleKey: 'auth.register.title',
+        icon: UserPlus,
+        iconName: 'UserPlus',
+        submitKey: 'auth.register.submit',
+    });
+
     it('renders the name, email, password and password_confirmation fields', () => {
         const wrapper = mount(Register);
 
@@ -47,57 +54,24 @@ describe('Register page', () => {
         ).toBe('');
     });
 
-    it('renders within GuestLayout', () => {
-        const wrapper = mount(Register);
-
-        expect(wrapper.findComponent(GuestLayout).exists()).toBe(true);
-    });
-
-    it('renders the page title via Head', () => {
-        const wrapper = mount(Register);
-        const head = wrapper.findComponent(Head);
-
-        expect(head.exists()).toBe(true);
-        expect(head.attributes('title')).toBe('auth.register.title');
-    });
-
     it('renders a FormField for name, email, password and confirm password with the right labels', () => {
-        const wrapper = mount(Register);
-        const fields = wrapper.findAllComponents(FormField);
-
-        expect(fields).toHaveLength(4);
-        expect(fields[0].props('label')).toBe('auth.register.name');
-        expect(fields[1].props('label')).toBe('auth.register.email');
-        expect(fields[2].props('label')).toBe('auth.register.password');
-        expect(fields[3].props('label')).toBe('auth.register.confirmPassword');
-        expect(fields[0].props('required')).toBe(true);
-        expect(fields[1].props('required')).toBe(true);
-        expect(fields[2].props('required')).toBe(true);
-        expect(fields[3].props('required')).toBe(true);
+        expectRendersRequiredFormFieldLabels(mount(Register), [
+            'auth.register.name',
+            'auth.register.email',
+            'auth.register.password',
+            'auth.register.confirmPassword',
+        ]);
     });
 
     it('passes validation errors through to each field', async () => {
         const wrapper = mount(Register);
 
-        getMockForm().errors = {
+        await expectPassesValidationErrorsToFields(wrapper, {
             name: 'The name field is required.',
             email: 'The email field is required.',
             password: 'The password field is required.',
             password_confirmation: 'The password confirmation does not match.',
-        };
-        await wrapper.vm.$nextTick();
-
-        const fields = wrapper.findAllComponents(FormField);
-
-        expect(fields[0].props('error')).toBe('The name field is required.');
-        expect(fields[1].props('error')).toBe('The email field is required.');
-        expect(fields[2].props('error')).toBe(
-            'The password field is required.',
-        );
-        expect(fields[3].props('error')).toBe(
-            'The password confirmation does not match.',
-        );
-        expect(wrapper.text()).toContain('The name field is required.');
+        });
     });
 
     it('the already registered link leads to the sign in screen', () => {
@@ -108,32 +82,13 @@ describe('Register page', () => {
         expect(link.props('href')).toBe('login');
     });
 
-    it('renders the submit button', () => {
-        const wrapper = mount(Register);
-        const button = wrapper.findComponent(PrimaryButton);
-
-        expect(button.exists()).toBe(true);
-        expect(button.text()).toBe('auth.register.submit');
-    });
-
-    it('disables the submit button while the form is processing', async () => {
-        const wrapper = mount(Register);
-
-        getMockForm().processing = true;
-        await wrapper.vm.$nextTick();
-
-        expect(
-            wrapper.findComponent(PrimaryButton).attributes('disabled'),
-        ).not.toBeUndefined();
-    });
-
     it('blocks submission and shows client-side errors when required fields are empty', async () => {
         const wrapper = mount(Register);
 
-        await wrapper.find('form').trigger('submit');
-
-        expect(getMockForm().lastPostUrl).toBeUndefined();
-        expect(wrapper.text()).toContain('validation.required');
+        await expectBlocksSubmissionWithClientError(
+            wrapper,
+            'validation.required',
+        );
     });
 
     it('blocks submission and shows a client-side error for an invalid email format', async () => {
@@ -143,10 +98,10 @@ describe('Register page', () => {
         await wrapper.find('#email').setValue('not-an-email');
         await wrapper.find('#password').setValue('secret');
         await wrapper.find('#password_confirmation').setValue('secret');
-        await wrapper.find('form').trigger('submit');
-
-        expect(getMockForm().lastPostUrl).toBeUndefined();
-        expect(wrapper.text()).toContain('validation.email');
+        await expectBlocksSubmissionWithClientError(
+            wrapper,
+            'validation.email',
+        );
     });
 
     it('blocks submission and shows a client-side error when password confirmation does not match', async () => {
@@ -156,9 +111,9 @@ describe('Register page', () => {
         await wrapper.find('#email').setValue('jane@example.com');
         await wrapper.find('#password').setValue('secret');
         await wrapper.find('#password_confirmation').setValue('different');
-        await wrapper.find('form').trigger('submit');
-
-        expect(getMockForm().lastPostUrl).toBeUndefined();
-        expect(wrapper.text()).toContain('validation.confirmed');
+        await expectBlocksSubmissionWithClientError(
+            wrapper,
+            'validation.confirmed',
+        );
     });
 });

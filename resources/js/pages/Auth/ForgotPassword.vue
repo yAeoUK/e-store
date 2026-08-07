@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Head } from '@inertiajs/vue3';
+import { KeyRound } from '@lucide/vue';
 import FormActions from '@/components/FormActions.vue';
 import FormField from '@/components/FormField.vue';
 import MutedText from '@/components/MutedText.vue';
@@ -26,7 +27,7 @@ const { form, errors, submit } = useValidatedSubmit(
 </script>
 
 <template>
-    <GuestLayout>
+    <GuestLayout :heading="t('auth.forgotPassword.title')" :icon="KeyRound">
         <Head :title="t('auth.forgotPassword.title')" />
 
         <MutedText class="mb-4">

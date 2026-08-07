@@ -1,30 +1,20 @@
-import { useForm } from '@inertiajs/vue3';
-import { mount } from '@vue/test-utils';
 import { describe, expect, it } from 'vitest';
 import FormField from '@/components/FormField.vue';
 import AddressFormFields from '@/pages/Account/Partials/AddressFormFields.vue';
+import { createFieldsHarness, defaultAddress } from '../../../utils';
 
-function makeForm(overrides = {}) {
-    return useForm({
-        label: '',
-        name: '',
-        line1: '',
-        line2: '',
-        city: '',
-        state: '',
-        postal_code: '',
-        country: '',
-        phone: '',
-        is_default: false,
-        ...overrides,
-    });
-}
-
-function mountFields(props = {}) {
-    return mount(AddressFormFields, {
-        props: { form: makeForm(), errors: {}, ...props },
-    });
-}
+const { makeForm, mountFields } = createFieldsHarness(AddressFormFields, {
+    label: '',
+    name: '',
+    line1: '',
+    line2: '',
+    city: '',
+    state: '',
+    postal_code: '',
+    country: '',
+    phone: '',
+    is_default: false,
+});
 
 const fieldsInOrder = [
     {
@@ -116,17 +106,22 @@ describe('AddressFormFields', () => {
     });
 
     it('pre-fills each field from the form values', () => {
+        const address = defaultAddress({
+            line2: 'Apt 4',
+            state: 'IL',
+            phone: '555-0100',
+        });
         const wrapper = mountFields({
             form: makeForm({
-                label: 'Home',
-                name: 'Jane Doe',
-                line1: '123 Main St',
-                line2: 'Apt 4',
-                city: 'Springfield',
-                state: 'IL',
-                postal_code: '62704',
-                country: 'US',
-                phone: '555-0100',
+                label: address.label ?? '',
+                name: address.name ?? '',
+                line1: address.line1,
+                line2: address.line2 ?? '',
+                city: address.city,
+                state: address.state ?? '',
+                postal_code: address.postal_code,
+                country: address.country,
+                phone: address.phone ?? '',
             }),
         });
 
@@ -138,9 +133,7 @@ describe('AddressFormFields', () => {
             '123 Main St',
         );
         expect((inputs[6].element as HTMLInputElement).value).toBe('62704');
-        expect((inputs[8].element as HTMLInputElement).value).toBe(
-            '555-0100',
-        );
+        expect((inputs[8].element as HTMLInputElement).value).toBe('555-0100');
     });
 
     it('updates the form field when an input changes', async () => {

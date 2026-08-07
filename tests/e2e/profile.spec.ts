@@ -1,6 +1,6 @@
 import type { Page, TestInfo } from '@playwright/test';
 import { expect, test } from '@playwright/test';
-import { login } from './helpers';
+import { formWithField, login, loginExpectingFailure, logout, registerUser } from './helpers';
 
 // Derived from Playwright's own per-test id rather than a shared module-level
 // counter - module state isn't guaranteed to persist reliably across tests,
@@ -9,15 +9,10 @@ import { login } from './helpers';
 async function registerFreshUser(page: Page, testInfo: TestInfo) {
     const unique = testInfo.testId;
     const email = `e2e-profile-${unique}@example.com`;
-    await page.goto('/register');
-    await page.getByLabel('Name').fill(`E2E Profile Test ${unique}`);
-    await page.getByLabel('Email').fill(email);
-    await page.getByLabel('Password', { exact: true }).fill('password');
-    await page.getByLabel('Confirm Password').fill('password');
-    await page.click('button:has-text("Register")');
-    await page.waitForURL((url) => url.pathname === '/');
+    const password = 'password';
+    await registerUser(page, { name: `E2E Profile Test ${unique}`, email, password });
 
-    return { email, password: 'password' };
+    return { email, password };
 }
 
 test.describe('profile settings', () => {
@@ -27,7 +22,7 @@ test.describe('profile settings', () => {
         await page.goto('/profile');
         // scoped for the same reason as the password test below - two forms
         // on this page both have a "Save" button.
-        const infoForm = page.locator('form', { has: page.getByLabel('Name') });
+        const infoForm = formWithField(page, 'Name');
         await infoForm.getByLabel('Name').fill('E2E Profile Updated Name');
         await infoForm.getByRole('button', { name: 'Save' }).click();
 
@@ -43,17 +38,14 @@ test.describe('profile settings', () => {
         // the profile page has two separate forms both with a "Save" button
         // (profile info + password) - scope to the one containing the
         // password fields so this doesn't accidentally submit the other.
-        const passwordForm = page.locator('form', { has: page.getByLabel('Current Password') });
+        const passwordForm = formWithField(page, 'Current Password');
         await passwordForm.getByLabel('Current Password').fill(user.password);
         await passwordForm.getByLabel('New Password').fill('brand-new-password');
         await passwordForm.getByLabel('Confirm Password').fill('brand-new-password');
         await passwordForm.getByRole('button', { name: 'Save' }).click();
         await expect(page.getByText('Saved.')).toBeVisible();
 
-        await page.getByText('Hi,').locator('..').getByRole('button').click();
-        await page.click('button:has-text("Log Out")');
-        await page.locator('dialog').getByRole('button', { name: 'Log Out' }).click();
-        await page.waitForURL((url) => url.pathname === '/');
+        await logout(page);
 
         await login(page, { email: user.email, password: 'brand-new-password' });
         await expect(page.getByText('Hi,')).toBeVisible();
@@ -72,10 +64,6 @@ test.describe('profile settings', () => {
         await expect(page.getByRole('link', { name: 'Log in' })).toBeVisible();
 
         // the account no longer exists
-        await page.goto('/login');
-        await page.getByLabel('Email').fill(user.email);
-        await page.getByLabel('Password').fill(user.password);
-        await page.click('button:has-text("Log in")');
-        await expect(page).toHaveURL(/\/login$/);
+        await loginExpectingFailure(page, user);
     });
 });

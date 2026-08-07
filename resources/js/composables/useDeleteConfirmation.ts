@@ -1,35 +1,18 @@
 import { router } from '@inertiajs/vue3';
-import { ref } from 'vue';
+import { useConfirmAction } from '@/composables/useConfirmAction';
 
 export function useDeleteConfirmation<T = number>(
     buildRoute: (id: T) => string,
 ) {
-    const confirmingId = ref<T | null>(null);
-    const deleting = ref(false);
-
-    function confirmDelete(id: T): void {
-        confirmingId.value = id;
-    }
-
-    function cancel(): void {
-        confirmingId.value = null;
-    }
-
-    function destroy(): void {
-        if (confirmingId.value === null) {
-            return;
-        }
-
-        deleting.value = true;
-
-        router.delete(buildRoute(confirmingId.value), {
-            preserveScroll: true,
-            onFinish: () => {
-                deleting.value = false;
-                confirmingId.value = null;
-            },
-        });
-    }
+    const {
+        confirming: confirmingId,
+        processing: deleting,
+        confirm: confirmDelete,
+        cancel,
+        run: destroy,
+    } = useConfirmAction<T>((id, onFinish) =>
+        router.delete(buildRoute(id), { preserveScroll: true, onFinish }),
+    );
 
     return { confirmingId, deleting, confirmDelete, cancel, destroy };
 }

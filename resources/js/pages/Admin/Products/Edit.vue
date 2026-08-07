@@ -7,9 +7,9 @@ import AdminResourceForm from '@/components/admin/AdminResourceForm.vue';
 import ProductFormFields from '@/components/admin/ProductFormFields.vue';
 import ProductImageManager from '@/components/admin/ProductImageManager.vue';
 import ProductVariantManager from '@/components/admin/ProductVariantManager.vue';
-import { useAdminResourceForm } from '@/composables/useAdminResourceForm';
+import { useValidatedSubmit } from '@/composables/useValidatedSubmit';
 import { t } from '@/i18n';
-import { integer, maxLength, min, numeric, required } from '@/lib/validation';
+import { productValidationRules } from '@/lib/validation';
 
 const props = defineProps<{
     product: AdminProduct & {
@@ -19,7 +19,7 @@ const props = defineProps<{
     categories: AdminCategoryRef[];
 }>();
 
-const { form, clientErrors, submit } = useAdminResourceForm(
+const { form, fieldErrors, submit } = useValidatedSubmit(
     {
         category_id: props.product.category?.id ?? ('' as number | ''),
         name: props.product.name,
@@ -30,25 +30,13 @@ const { form, clientErrors, submit } = useAdminResourceForm(
         description: props.product.description ?? '',
         is_active: props.product.is_active,
     },
-    {
-        name: [
-            required(t('admin.products.name')),
-            maxLength(t('admin.products.name'), 255),
-        ],
-        price: [
-            required(t('admin.products.price')),
-            numeric(t('admin.products.price')),
-            min(t('admin.products.price'), 0),
-        ],
-        stock: [
-            integer(t('admin.products.stock')),
-            min(t('admin.products.stock'), 0),
-        ],
-        short_description: [
-            maxLength(t('admin.products.shortDescription'), 500),
-        ],
-        slug: [maxLength(t('admin.products.slug'), 255)],
-    },
+    productValidationRules({
+        name: t('admin.products.name'),
+        price: t('admin.products.price'),
+        stock: t('admin.products.stock'),
+        shortDescription: t('admin.products.shortDescription'),
+        slug: t('admin.products.slug'),
+    }),
     (form) => form.patch(route('admin.products.update', props.product.id)),
 );
 </script>
@@ -64,7 +52,7 @@ const { form, clientErrors, submit } = useAdminResourceForm(
         <ProductFormFields
             :form="form"
             :categories="categories"
-            :errors="{ ...clientErrors, ...form.errors }"
+            :errors="fieldErrors"
         />
 
         <template #after>

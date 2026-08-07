@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Head } from '@inertiajs/vue3';
+import { ShieldCheck } from '@lucide/vue';
 import FormActions from '@/components/FormActions.vue';
 import FormField from '@/components/FormField.vue';
 import MutedText from '@/components/MutedText.vue';
@@ -22,7 +23,7 @@ const { form, errors, submit } = useValidatedSubmit(
 </script>
 
 <template>
-    <GuestLayout>
+    <GuestLayout :heading="t('auth.confirmPassword.title')" :icon="ShieldCheck">
         <Head :title="t('auth.confirmPassword.title')" />
 
         <MutedText class="mb-4">

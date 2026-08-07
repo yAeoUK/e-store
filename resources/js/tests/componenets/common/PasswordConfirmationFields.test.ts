@@ -25,12 +25,10 @@ describe('PasswordConfirmationFields', () => {
 
         expect(wrapper.find('#password').exists()).toBe(true);
         expect(wrapper.find('#password_confirmation').exists()).toBe(true);
-        expect(wrapper.find('#password').attributes('type')).toBe(
+        expect(wrapper.find('#password').attributes('type')).toBe('password');
+        expect(wrapper.find('#password_confirmation').attributes('type')).toBe(
             'password',
         );
-        expect(
-            wrapper.find('#password_confirmation').attributes('type'),
-        ).toBe('password');
     });
 
     it('passes the labels through to each FormField', () => {
@@ -84,9 +82,7 @@ describe('PasswordConfirmationFields', () => {
         await wrapper.find('#password_confirmation').setValue('secret');
 
         expect(wrapper.emitted('update:password')?.[0]).toEqual(['secret']);
-        expect(wrapper.emitted('update:confirmation')?.[0]).toEqual([
-            'secret',
-        ]);
+        expect(wrapper.emitted('update:confirmation')?.[0]).toEqual(['secret']);
     });
 
     it('applies fieldClass to both fields when provided', () => {
@@ -102,9 +98,9 @@ describe('PasswordConfirmationFields', () => {
         const wrapper = mountFields();
 
         expect(wrapper.find('#password').classes()).not.toContain('mt-4');
-        expect(
-            wrapper.find('#password_confirmation').classes(),
-        ).not.toContain('mt-4');
+        expect(wrapper.find('#password_confirmation').classes()).not.toContain(
+            'mt-4',
+        );
     });
 
     it('exposes a focus method that focuses the password field', () => {
@@ -120,9 +116,7 @@ describe('PasswordConfirmationFields', () => {
 
         (wrapper.vm as unknown as { focus: () => void }).focus();
 
-        expect(document.activeElement).toBe(
-            wrapper.get('#password').element,
-        );
+        expect(document.activeElement).toBe(wrapper.get('#password').element);
         wrapper.unmount();
     });
 });

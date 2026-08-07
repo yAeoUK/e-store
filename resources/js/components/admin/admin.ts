@@ -1,3 +1,5 @@
+import type { OrderDetail, OrderItem } from '@/types/order';
+
 export type { PaginationLink, Paginated } from '@/components/Pagination.vue';
 
 export interface DataTableColumn<Row> {
@@ -10,6 +12,19 @@ export interface DataTableColumn<Row> {
 export interface AdminCategoryRef {
     id: number;
     name: string;
+}
+
+export interface AutoSlugProp {
+    // Auto-fills the slug from the name while it hasn't been hand-edited.
+    // Omit on edit forms so an existing slug never changes just because the
+    // name was edited.
+    autoSlug?: boolean;
+}
+
+export interface AdminUserRef {
+    id: number;
+    name: string;
+    email: string;
 }
 
 export interface AdminProductImage {
@@ -40,9 +55,7 @@ export interface AdminProduct {
     variants?: AdminProductVariant[];
 }
 
-export interface AdminCategory {
-    id: number;
-    name: string;
+export interface AdminCategory extends AdminCategoryRef {
     slug: string;
     description?: string | null;
     parent_id?: number | null;
@@ -51,19 +64,13 @@ export interface AdminCategory {
     children_count?: number;
 }
 
-export interface AdminUser {
-    id: number;
-    name: string;
-    email: string;
+export interface AdminUser extends AdminUserRef {
     created_at: string;
     orders_count?: number;
     is_admin: boolean;
 }
 
-export interface AdminAdmin {
-    id: number;
-    name: string;
-    email: string;
+export interface AdminAdmin extends AdminUserRef {
     created_at: string;
 }
 
@@ -73,8 +80,16 @@ export interface AdminOrder {
     status: string;
     payment_method: string | null;
     payment_status: string;
+    admin_note?: string | null;
     created_at: string;
-    user?: { id: number; name: string; email: string } | null;
+    user?: AdminUserRef | null;
+}
+
+export type AdminOrderItem = OrderItem;
+
+export interface AdminOrderDetail extends OrderDetail {
+    admin_note: string | null;
+    user: AdminUserRef | null;
 }
 
 export interface DashboardStats {

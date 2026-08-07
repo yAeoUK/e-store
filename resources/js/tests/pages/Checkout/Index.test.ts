@@ -1,8 +1,12 @@
-import { Head } from '@inertiajs/vue3';
 import { mount } from '@vue/test-utils';
 import { describe, expect, it } from 'vitest';
 import CheckoutIndexPage from '@/pages/Checkout/Index.vue';
 import { getMockForm, routeMock } from '../../setup';
+import {
+    defaultAddress,
+    expectBlocksSubmissionWithClientError,
+    expectRendersPageTitle,
+} from '../../utils';
 
 const cart = {
     id: 1,
@@ -11,39 +15,20 @@ const cart = {
             id: 1,
             quantity: 2,
             unit_price: 9.99,
-            product: { name: 'Wireless Mouse' },
+            product: { id: 1, name: 'Wireless Mouse', slug: 'wireless-mouse' },
             product_variant: null,
         },
     ],
 };
 
 const addresses = [
-    {
-        id: 1,
-        label: 'Home',
-        name: 'Jane Doe',
-        line1: '123 Main St',
-        line2: null,
-        city: 'Springfield',
-        state: null,
-        postal_code: '62704',
-        country: 'US',
-        phone: null,
-        is_default: false,
-    },
-    {
+    defaultAddress(),
+    defaultAddress({
         id: 2,
         label: 'Work',
-        name: 'Jane Doe',
         line1: '456 Office Rd',
-        line2: null,
-        city: 'Springfield',
-        state: null,
-        postal_code: '62704',
-        country: 'US',
-        phone: null,
         is_default: true,
-    },
+    }),
 ];
 
 describe('Checkout index page', () => {
@@ -52,9 +37,7 @@ describe('Checkout index page', () => {
             props: { cart, addresses: [] },
         });
 
-        expect(wrapper.findComponent(Head).attributes('title')).toBe(
-            'shop.checkout.pageTitle',
-        );
+        expectRendersPageTitle(wrapper, 'shop.checkout.pageTitle');
     });
 
     it('shows the no-addresses state and a link to manage addresses when there are none', () => {
@@ -67,7 +50,7 @@ describe('Checkout index page', () => {
     });
 
     it('pre-selects the default address', () => {
-        const wrapper = mount(CheckoutIndexPage, {
+        mount(CheckoutIndexPage, {
             props: { cart, addresses },
         });
 
@@ -79,7 +62,8 @@ describe('Checkout index page', () => {
             ...address,
             is_default: false,
         }));
-        const wrapper = mount(CheckoutIndexPage, {
+
+        mount(CheckoutIndexPage, {
             props: { cart, addresses: noDefault },
         });
 
@@ -105,10 +89,10 @@ describe('Checkout index page', () => {
         getMockForm().address_id = null;
         await wrapper.vm.$nextTick();
 
-        await wrapper.find('form').trigger('submit');
-
-        expect(getMockForm().lastPostUrl).toBeUndefined();
-        expect(wrapper.text()).toContain('validation.required');
+        await expectBlocksSubmissionWithClientError(
+            wrapper,
+            'validation.required',
+        );
     });
 
     it('blocks submission and shows a required error when no payment method is selected', async () => {
@@ -119,10 +103,10 @@ describe('Checkout index page', () => {
         getMockForm().payment_method = '';
         await wrapper.vm.$nextTick();
 
-        await wrapper.find('form').trigger('submit');
-
-        expect(getMockForm().lastPostUrl).toBeUndefined();
-        expect(wrapper.text()).toContain('validation.required');
+        await expectBlocksSubmissionWithClientError(
+            wrapper,
+            'validation.required',
+        );
     });
 
     it('updates the payment method when a radio option is selected', async () => {
@@ -139,5 +123,23 @@ describe('Checkout index page', () => {
         await stripeInput?.setValue();
 
         expect(getMockForm().payment_method).toBe('stripe');
+    });
+
+    it('starts with an empty customer note and submits it with the order', async () => {
+        const wrapper = mount(CheckoutIndexPage, {
+            props: { cart, addresses },
+        });
+
+        expect(getMockForm().customer_note).toBe('');
+
+        await wrapper
+            .find('textarea')
+            .setValue('Please leave at the back door.');
+        await wrapper.find('form').trigger('submit');
+
+        expect(getMockForm().customer_note).toBe(
+            'Please leave at the back door.',
+        );
+        expect(getMockForm().lastPostUrl).toBe('checkout.store');
     });
 });

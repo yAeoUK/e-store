@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { Link, router } from '@inertiajs/vue3';
-import { ref } from 'vue';
+import { router } from '@inertiajs/vue3';
+import { ShieldCheck } from '@lucide/vue';
 import type {
     AdminUser,
     DataTableColumn,
@@ -8,12 +8,17 @@ import type {
 } from '@/components/admin/admin.ts';
 import AdminPageHeader from '@/components/admin/AdminPageHeader.vue';
 import DataTable from '@/components/admin/DataTable.vue';
-import { filterFormClass, linkClass } from '@/components/classNames';
+import LinkOrFallback from '@/components/admin/LinkOrFallback.vue';
+import { filterFormClass } from '@/components/classNames';
 import ConfirmationDialog from '@/components/ConfirmationDialog.vue';
+import FilterSubmitButton from '@/components/FilterSubmitButton.vue';
 import FormField from '@/components/FormField.vue';
-import PrimaryButton from '@/components/PrimaryButton.vue';
+import IconLabel from '@/components/IconLabel.vue';
 import SecondaryButton from '@/components/SecondaryButton.vue';
+import { useConfirmAction } from '@/composables/useConfirmAction';
+import { submitFilters, useFilterForm } from '@/composables/useFilterForm';
 import { t } from '@/i18n';
+import { formatDate } from '@/lib/format';
 
 interface Props {
     users: Paginated<AdminUser>;
@@ -24,14 +29,12 @@ interface Props {
 
 const props = defineProps<Props>();
 
-const search = ref(props.filters.search ?? '');
+const { state: filterState, normalize } = useFilterForm(props.filters, {
+    search: '',
+});
 
 function applyFilters(): void {
-    router.get(
-        route('admin.users.index'),
-        { search: search.value || null },
-        { preserveState: true, replace: true },
-    );
+    submitFilters('admin.users.index', normalize());
 }
 
 const columns: DataTableColumn<AdminUser>[] = [
@@ -53,36 +56,23 @@ const columns: DataTableColumn<AdminUser>[] = [
     {
         key: 'created_at',
         label: t('admin.users.columns.joined'),
-        render: (row) => new Date(row.created_at).toLocaleDateString(),
+        render: (row) => formatDate(row.created_at),
     },
 ];
 
-const promotingUser = ref<AdminUser | null>(null);
-const promoting = ref(false);
-
-function confirmPromote(user: AdminUser): void {
-    promotingUser.value = user;
-}
-
-function promote(): void {
-    if (!promotingUser.value) {
-        return;
-    }
-
-    promoting.value = true;
-
+const {
+    confirming: promotingUser,
+    processing: promoting,
+    confirm: confirmPromote,
+    cancel: cancelPromote,
+    run: promote,
+} = useConfirmAction<AdminUser>((user, onFinish) => {
     router.post(
         route('admin.admins.promote'),
-        { email: promotingUser.value.email },
-        {
-            preserveScroll: true,
-            onFinish: () => {
-                promoting.value = false;
-                promotingUser.value = null;
-            },
-        },
+        { email: user.email },
+        { preserveScroll: true, onFinish },
     );
-}
+});
 </script>
 
 <template>
@@ -92,33 +82,26 @@ function promote(): void {
     >
         <form @submit.prevent="applyFilters" :class="filterFormClass">
             <FormField
-                v-model="search"
+                v-model="filterState.search"
                 type="text"
                 :label="t('admin.users.searchPlaceholder')"
             />
-            <PrimaryButton type="submit">{{
-                t('common.confirm')
-            }}</PrimaryButton>
+            <FilterSubmitButton>{{ t('common.confirm') }}</FilterSubmitButton>
         </form>
 
         <DataTable
             :columns="columns"
-            :rows="users.data"
-            :from="users.from"
-            :to="users.to"
-            :total="users.total"
-            :links="users.links"
+            :paginated="users"
             :empty-message="t('admin.users.empty')"
         >
             <template #cell-orders_count="{ row }">
-                <Link
-                    v-if="row.orders_count"
+                <LinkOrFallback
+                    :show="!!row.orders_count"
                     :href="route('admin.orders.index', { user_id: row.id })"
-                    :class="linkClass"
+                    fallback="0"
                 >
                     {{ row.orders_count }}
-                </Link>
-                <span v-else>0</span>
+                </LinkOrFallback>
             </template>
 
             <template #actions="{ row }">
@@ -127,7 +110,9 @@ function promote(): void {
                     type="button"
                     @click="confirmPromote(row)"
                 >
-                    {{ t('admin.users.promote') }}
+                    <IconLabel :icon="ShieldCheck">{{
+                        t('admin.users.promote')
+                    }}</IconLabel>
                 </SecondaryButton>
             </template>
         </DataTable>
@@ -139,7 +124,7 @@ function promote(): void {
             :confirm-label="t('admin.users.promote')"
             :processing="promoting"
             @confirm="promote"
-            @cancel="promotingUser = null"
+            @cancel="cancelPromote"
         />
     </AdminPageHeader>
 </template>

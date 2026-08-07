@@ -3,6 +3,11 @@ import { mount } from '@vue/test-utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import UsersIndexPage from '@/pages/Admin/Users/Index.vue';
 import { routeMock } from '../../../setup';
+import {
+    expectRendersPageTitle,
+    testConfirmationDialogFlow,
+    testRendersIndexLayout,
+} from '../../../utils';
 
 const users = {
     data: [
@@ -35,8 +40,6 @@ const users = {
 };
 
 beforeEach(() => {
-    HTMLDialogElement.prototype.showModal = vi.fn();
-    HTMLDialogElement.prototype.close = vi.fn();
     routeMock.mockClear();
     vi.mocked(router.post).mockClear();
 });
@@ -66,9 +69,7 @@ describe('Admin Users index page', () => {
     it('renders the page title, heading, search field and confirm button', () => {
         const wrapper = mountPage();
 
-        expect(
-            wrapper.findComponent({ name: 'Head' }).attributes('title'),
-        ).toBe('admin.users.pageTitle');
+        expectRendersPageTitle(wrapper, 'admin.users.pageTitle');
         expect(wrapper.text()).toContain('admin.users.heading');
         expect(wrapper.text()).toContain('admin.users.searchPlaceholder');
         expect(wrapper.text()).toContain('common.confirm');
@@ -102,31 +103,15 @@ describe('Admin Users index page', () => {
         expect(wrapper.text()).toContain('admin.users.empty');
     });
 
-    it('renders the DataTable, Pagination and AdminLayout components', () => {
-        const wrapper = mountPage();
-
-        expect(wrapper.findComponent({ name: 'AdminLayout' }).exists()).toBe(
-            true,
-        );
-        expect(wrapper.findComponent({ name: 'DataTable' }).exists()).toBe(
-            true,
-        );
-        expect(wrapper.findComponent({ name: 'Pagination' }).exists()).toBe(
-            true,
-        );
-        expect(wrapper.findComponent({ name: 'FormField' }).exists()).toBe(
-            true,
-        );
-        expect(wrapper.findComponent({ name: 'PrimaryButton' }).exists()).toBe(
-            true,
-        );
-        expect(
-            wrapper.findAllComponents({ name: 'SecondaryButton' }).length,
-        ).toBeGreaterThan(0);
-        expect(
-            wrapper.findComponent({ name: 'ConfirmationDialog' }).exists(),
-        ).toBe(true);
-    });
+    testRendersIndexLayout(mountPage, [
+        'AdminLayout',
+        'DataTable',
+        'Pagination',
+        'FormField',
+        'PrimaryButton',
+        'SecondaryButton',
+        'ConfirmationDialog',
+    ]);
 
     it('does not show the promote button for an already-admin user', () => {
         const wrapper = mountPage();
@@ -139,62 +124,17 @@ describe('Admin Users index page', () => {
         expect(promoteButtons).toHaveLength(2);
     });
 
-    it('opens the confirmation dialog with the promote title and message when promote is clicked', async () => {
-        const wrapper = mountPage();
-
-        const dialogBefore = wrapper.findComponent({
-            name: 'ConfirmationDialog',
-        });
-        expect(dialogBefore.props('show')).toBe(false);
-
-        const promoteButton = wrapper
-            .findAll('button')
-            .find((button) => button.text() === 'admin.users.promote');
-        await promoteButton?.trigger('click');
-
-        const dialog = wrapper.findComponent({ name: 'ConfirmationDialog' });
-        expect(dialog.props('show')).toBe(true);
-        expect(dialog.props('title')).toBe('admin.users.promoteConfirmTitle');
-        expect(dialog.props('message')).toBe(
-            'admin.users.promoteConfirmMessage',
-        );
-        expect(dialog.props('confirmLabel')).toBe('admin.users.promote');
-    });
-
-    it('promotes the user on confirm', async () => {
-        const wrapper = mountPage();
-
-        const promoteButton = wrapper
-            .findAll('button')
-            .find((button) => button.text() === 'admin.users.promote');
-        await promoteButton?.trigger('click');
-
-        const dialog = wrapper.findComponent({ name: 'ConfirmationDialog' });
-        await dialog.vm.$emit('confirm');
-
-        expect(router.post).toHaveBeenCalledWith(
-            'admin.admins.promote',
-            { email: 'jane@example.com' },
-            expect.objectContaining({ preserveScroll: true }),
-        );
-    });
-
-    it('closes the dialog without promoting on cancel', async () => {
-        const wrapper = mountPage();
-
-        const promoteButton = wrapper
-            .findAll('button')
-            .find((button) => button.text() === 'admin.users.promote');
-        await promoteButton?.trigger('click');
-
-        const dialog = wrapper.findComponent({ name: 'ConfirmationDialog' });
-        expect(dialog.props('show')).toBe(true);
-
-        await dialog.vm.$emit('cancel');
-
-        expect(router.post).not.toHaveBeenCalled();
-        expect(
-            wrapper.findComponent({ name: 'ConfirmationDialog' }).props('show'),
-        ).toBe(false);
+    testConfirmationDialogFlow(mountPage, {
+        triggerText: 'admin.users.promote',
+        title: 'admin.users.promoteConfirmTitle',
+        message: 'admin.users.promoteConfirmMessage',
+        confirmLabel: 'admin.users.promote',
+        onConfirm: () =>
+            expect(router.post).toHaveBeenCalledWith(
+                'admin.admins.promote',
+                { email: 'jane@example.com' },
+                expect.objectContaining({ preserveScroll: true }),
+            ),
+        onCancel: () => expect(router.post).not.toHaveBeenCalled(),
     });
 });

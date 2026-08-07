@@ -1,21 +1,15 @@
-import { Head } from '@inertiajs/vue3';
 import { mount } from '@vue/test-utils';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import FormField from '@/components/FormField.vue';
 import AdminsCreatePage from '@/pages/Admin/Admins/Create.vue';
 import { getMockForm, routeMock } from '../../../setup';
-
-beforeEach(() => {
-    routeMock.mockClear();
-});
+import { expectRendersPageTitle } from '../../../utils';
 
 describe('Admin Admins create page', () => {
     it('renders the page title via Head', () => {
         const wrapper = mount(AdminsCreatePage);
 
-        expect(wrapper.findComponent(Head).attributes('title')).toBe(
-            'admin.admins.addAdmin',
-        );
+        expectRendersPageTitle(wrapper, 'admin.admins.addAdmin');
     });
 
     it('renders the promote-admin card copy', () => {

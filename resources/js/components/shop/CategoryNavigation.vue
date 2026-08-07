@@ -1,35 +1,19 @@
 <script setup lang="ts">
 import { usePage } from '@inertiajs/vue3';
 import { computed } from 'vue';
+import type { CatalogCategory } from '@/components/shop/catalog';
 import SidebarNav from '@/components/SidebarNav.vue';
 import type { SidebarNavItem } from '@/components/SidebarNav.vue';
 import { t } from '@/i18n';
-
-interface Category {
-    id: number;
-    name: string;
-    slug: string;
-    children?: Category[];
-}
+import { isCurrentPath } from '@/lib/navigation';
 
 const props = defineProps<{
-    categories?: Category[];
+    categories?: CatalogCategory[];
 }>();
 
 const page = usePage();
 
-// Exact-match (allowing a trailing path segment or query string) rather than
-// a plain prefix match, since sibling category slugs can share a prefix
-// (e.g. "shoes" and "shoes-kids").
-function isCurrent(href: string): boolean {
-    const url = typeof page.url === 'string' ? page.url : '';
-
-    return (
-        url === href || url.startsWith(`${href}/`) || url.startsWith(`${href}?`)
-    );
-}
-
-function toItem(category: Category): SidebarNavItem {
+function toItem(category: CatalogCategory): SidebarNavItem {
     const href = `/categories/${category.slug}`;
 
     return {
@@ -37,7 +21,7 @@ function toItem(category: Category): SidebarNavItem {
         label: category.name,
         href,
         badge: category.children?.length || undefined,
-        active: isCurrent(href),
+        active: isCurrentPath(page.url, href),
         children: category.children?.map((child) => {
             const childHref = `/categories/${child.slug}`;
 
@@ -45,7 +29,7 @@ function toItem(category: Category): SidebarNavItem {
                 key: child.id,
                 label: child.name,
                 href: childHref,
-                active: isCurrent(childHref),
+                active: isCurrentPath(page.url, childHref),
             };
         }),
     };

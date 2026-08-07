@@ -1,18 +1,21 @@
-import { Head } from '@inertiajs/vue3';
+import { MailCheck } from '@lucide/vue';
 import { mount } from '@vue/test-utils';
-import { beforeEach, describe, expect, it } from 'vitest';
-import PrimaryButton from '@/components/PrimaryButton.vue';
+import { describe, expect, it } from 'vitest';
 import SuccessText from '@/components/SuccessText.vue';
 import TextLink from '@/components/TextLink.vue';
-import GuestLayout from '@/Layouts/GuestLayout.vue';
 import VerifyEmail from '@/pages/Auth/VerifyEmail.vue';
-import { getMockForm, routeMock } from '../../setup';
-
-beforeEach(() => {
-    routeMock.mockClear();
-});
+import { routeMock } from '../../setup';
+import { itBehavesLikeGuestAuthPage } from './authAssertions';
 
 describe('VerifyEmail page', () => {
+    itBehavesLikeGuestAuthPage({
+        mount: () => mount(VerifyEmail),
+        titleKey: 'auth.verifyEmail.title',
+        icon: MailCheck,
+        iconName: 'MailCheck',
+        submitKey: 'auth.verifyEmail.resend',
+    });
+
     it('does not show the sent message for other status values', () => {
         const wrapper = mount(VerifyEmail, {
             props: { status: 'something-else' },
@@ -47,42 +50,9 @@ describe('VerifyEmail page', () => {
         expect(logoutLink.text()).toBe('auth.verifyEmail.logOut');
     });
 
-    it('renders within GuestLayout', () => {
-        const wrapper = mount(VerifyEmail);
-
-        expect(wrapper.findComponent(GuestLayout).exists()).toBe(true);
-    });
-
-    it('renders the page title via Head', () => {
-        const wrapper = mount(VerifyEmail);
-        const head = wrapper.findComponent(Head);
-
-        expect(head.exists()).toBe(true);
-        expect(head.attributes('title')).toBe('auth.verifyEmail.title');
-    });
-
     it('renders the description text', () => {
         const wrapper = mount(VerifyEmail);
 
         expect(wrapper.text()).toContain('auth.verifyEmail.description');
-    });
-
-    it('renders the submit button', () => {
-        const wrapper = mount(VerifyEmail);
-        const button = wrapper.findComponent(PrimaryButton);
-
-        expect(button.exists()).toBe(true);
-        expect(button.text()).toBe('auth.verifyEmail.resend');
-    });
-
-    it('disables the submit button while the form is processing', async () => {
-        const wrapper = mount(VerifyEmail);
-
-        getMockForm().processing = true;
-        await wrapper.vm.$nextTick();
-
-        expect(
-            wrapper.findComponent(PrimaryButton).attributes('disabled'),
-        ).not.toBeUndefined();
     });
 });

@@ -1,6 +1,5 @@
 <script setup lang="ts">
-import { router } from '@inertiajs/vue3';
-import { ref } from 'vue';
+import { Eye } from '@lucide/vue';
 import type {
     AdminOrder,
     DataTableColumn,
@@ -8,35 +7,55 @@ import type {
 } from '@/components/admin/admin.ts';
 import AdminPageHeader from '@/components/admin/AdminPageHeader.vue';
 import DataTable from '@/components/admin/DataTable.vue';
-import { filterFormClass } from '@/components/classNames';
+import ButtonLink from '@/components/ButtonLink.vue';
+import {
+    filterFormClass,
+    formGridClass,
+    formGrid3Class,
+} from '@/components/classNames';
+import CustomerContact from '@/components/CustomerContact.vue';
+import FilterSubmitButton from '@/components/FilterSubmitButton.vue';
 import FormField from '@/components/FormField.vue';
+import IconLabel from '@/components/IconLabel.vue';
 import OrderStatusBadge from '@/components/OrderStatusBadge.vue';
 import PaymentStatusBadge from '@/components/PaymentStatusBadge.vue';
-import PrimaryButton from '@/components/PrimaryButton.vue';
+import SelectField from '@/components/SelectField.vue';
+import { submitFilters, useFilterForm } from '@/composables/useFilterForm';
 import { t } from '@/i18n';
 import { formatCurrency, formatDate } from '@/lib/format';
+
+const ORDER_STATUS_VALUES = [
+    'pending',
+    'processing',
+    'completed',
+    'cancelled',
+] as const;
 
 interface Props {
     orders: Paginated<AdminOrder>;
     filters: {
         search?: string | null;
         user_id?: number | null;
+        status?: string | null;
+        date_from?: string | null;
+        date_to?: string | null;
     };
 }
 
 const props = defineProps<Props>();
 
-const search = ref(props.filters.search ?? '');
+const { state: filterState, normalize } = useFilterForm(props.filters, {
+    search: '',
+    status: '',
+    date_from: '',
+    date_to: '',
+});
 
 function applyFilters(): void {
-    router.get(
-        route('admin.orders.index'),
-        {
-            search: search.value || null,
-            user_id: props.filters.user_id ?? null,
-        },
-        { preserveState: true, replace: true },
-    );
+    submitFilters('admin.orders.index', {
+        ...normalize(),
+        user_id: props.filters.user_id ?? null,
+    });
 }
 
 const columns: DataTableColumn<AdminOrder>[] = [
@@ -67,34 +86,57 @@ const columns: DataTableColumn<AdminOrder>[] = [
         :heading="t('admin.orders.heading')"
     >
         <form @submit.prevent="applyFilters" :class="filterFormClass">
-            <FormField
-                v-model="search"
-                type="text"
-                :label="t('admin.users.searchPlaceholder')"
-            />
-            <PrimaryButton type="submit">{{
-                t('common.confirm')
-            }}</PrimaryButton>
+            <div :class="formGrid3Class">
+                <FormField
+                    v-model="filterState.search"
+                    type="text"
+                    :label="t('admin.orders.searchPlaceholder')"
+                />
+                <SelectField
+                    v-model="filterState.status"
+                    :label="t('admin.orders.statusFilter')"
+                >
+                    <option value="">
+                        {{ t('admin.orders.allStatuses') }}
+                    </option>
+                    <option
+                        v-for="value in ORDER_STATUS_VALUES"
+                        :key="value"
+                        :value="value"
+                    >
+                        {{ t(`admin.orders.statuses.${value}`) }}
+                    </option>
+                </SelectField>
+                <div :class="formGridClass">
+                    <FormField
+                        v-model="filterState.date_from"
+                        type="date"
+                        :label="t('admin.orders.dateFrom')"
+                    />
+                    <FormField
+                        v-model="filterState.date_to"
+                        type="date"
+                        :label="t('admin.orders.dateTo')"
+                    />
+                </div>
+            </div>
+            <FilterSubmitButton>{{ t('common.confirm') }}</FilterSubmitButton>
         </form>
 
         <DataTable
             :columns="columns"
-            :rows="orders.data"
-            :from="orders.from"
-            :to="orders.to"
-            :total="orders.total"
-            :links="orders.links"
+            :paginated="orders"
             :empty-message="t('admin.orders.empty')"
         >
             <template #cell-customer="{ row }">
-                <span v-if="row.user"
-                    >{{ row.user.name }} ({{ row.user.email }})</span
-                >
-                <span v-else>—</span>
+                <CustomerContact :user="row.user ?? null" />
             </template>
 
             <template #cell-status="{ row }">
-                <OrderStatusBadge :status="row.status" namespace="admin.orders" />
+                <OrderStatusBadge
+                    :status="row.status"
+                    namespace="admin.orders"
+                />
             </template>
 
             <template #cell-payment="{ row }">
@@ -111,6 +153,14 @@ const columns: DataTableColumn<AdminOrder>[] = [
                         namespace="admin.orders"
                     />
                 </div>
+            </template>
+
+            <template #actions="{ row }">
+                <ButtonLink :href="route('admin.orders.show', row.id)">
+                    <IconLabel :icon="Eye">{{
+                        t('admin.actions.view')
+                    }}</IconLabel>
+                </ButtonLink>
             </template>
         </DataTable>
     </AdminPageHeader>

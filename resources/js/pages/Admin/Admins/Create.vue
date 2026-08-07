@@ -6,21 +6,18 @@ import FormField from '@/components/FormField.vue';
 import FormSectionHeader from '@/components/FormSectionHeader.vue';
 import PasswordConfirmationFields from '@/components/PasswordConfirmationFields.vue';
 import PrimaryButton from '@/components/PrimaryButton.vue';
-import { useAdminResourceForm } from '@/composables/useAdminResourceForm';
+import { useValidatedSubmit } from '@/composables/useValidatedSubmit';
 import { t } from '@/i18n';
-import { confirmedBy, isEmail, maxLength, required } from '@/lib/validation';
+import { emailField, nameEmailPasswordRules } from '@/lib/validation';
 
 const {
     form: promoteForm,
     clientErrors: promoteClientErrors,
     submit: submitPromote,
-} = useAdminResourceForm(
+} = useValidatedSubmit(
     { email: '' },
     {
-        email: [
-            required(t('admin.admins.promoteEmailLabel')),
-            isEmail(t('admin.admins.promoteEmailLabel')),
-        ],
+        email: emailField(t('admin.admins.promoteEmailLabel')),
     },
     (form) =>
         form.post(route('admin.admins.promote'), {
@@ -32,31 +29,19 @@ const {
     form: createForm,
     clientErrors: createClientErrors,
     submit: submitCreate,
-} = useAdminResourceForm(
+} = useValidatedSubmit(
     {
         name: '',
         email: '',
         password: '',
         password_confirmation: '',
     },
-    {
-        name: [
-            required(t('admin.admins.createNameLabel')),
-            maxLength(t('admin.admins.createNameLabel'), 255),
-        ],
-        email: [
-            required(t('admin.admins.createEmailLabel')),
-            isEmail(t('admin.admins.createEmailLabel')),
-            maxLength(t('admin.admins.createEmailLabel'), 255),
-        ],
-        password: [required(t('admin.admins.createPasswordLabel'))],
-        password_confirmation: [
-            confirmedBy(
-                t('admin.admins.createPasswordConfirmationLabel'),
-                'password',
-            ),
-        ],
-    },
+    nameEmailPasswordRules({
+        name: t('admin.admins.createNameLabel'),
+        email: t('admin.admins.createEmailLabel'),
+        password: t('admin.admins.createPasswordLabel'),
+        passwordConfirmation: t('admin.admins.createPasswordConfirmationLabel'),
+    }),
     (form) =>
         form.post(route('admin.admins.store'), {
             onSuccess: () => form.reset(),
@@ -78,7 +63,10 @@ const {
                         v-model="promoteForm.email"
                         type="email"
                         :label="t('admin.admins.promoteEmailLabel')"
-                        :error="promoteClientErrors.email || promoteForm.errors.email"
+                        :error="
+                            promoteClientErrors.email ||
+                            promoteForm.errors.email
+                        "
                         required
                     />
 
@@ -101,14 +89,18 @@ const {
                         v-model="createForm.name"
                         type="text"
                         :label="t('admin.admins.createNameLabel')"
-                        :error="createClientErrors.name || createForm.errors.name"
+                        :error="
+                            createClientErrors.name || createForm.errors.name
+                        "
                         required
                     />
                     <FormField
                         v-model="createForm.email"
                         type="email"
                         :label="t('admin.admins.createEmailLabel')"
-                        :error="createClientErrors.email || createForm.errors.email"
+                        :error="
+                            createClientErrors.email || createForm.errors.email
+                        "
                         required
                     />
                     <PasswordConfirmationFields
@@ -119,7 +111,8 @@ const {
                             t('admin.admins.createPasswordConfirmationLabel')
                         "
                         :password-error="
-                            createClientErrors.password || createForm.errors.password
+                            createClientErrors.password ||
+                            createForm.errors.password
                         "
                         :confirm-error="
                             createClientErrors.password_confirmation ||

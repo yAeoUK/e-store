@@ -14,7 +14,8 @@ function isBlank(value: unknown): boolean {
 }
 
 export function required(field: string): Validator {
-    return (value) => (isBlank(value) ? tp('validation.required', { field }) : null);
+    return (value) =>
+        isBlank(value) ? tp('validation.required', { field }) : null;
 }
 
 export function isEmail(field: string): Validator {
@@ -42,18 +43,6 @@ export function maxLength(field: string, limit: number): Validator {
         return String(value).length <= limit
             ? null
             : tp('validation.maxLength', { field, max: limit });
-    };
-}
-
-export function minLength(field: string, limit: number): Validator {
-    return (value) => {
-        if (isBlank(value)) {
-            return null;
-        }
-
-        return String(value).length >= limit
-            ? null
-            : tp('validation.minLength', { field, min: limit });
     };
 }
 
@@ -93,63 +82,84 @@ export function min(field: string, limit: number): Validator {
     };
 }
 
-export function max(field: string, limit: number): Validator {
-    return (value) => {
-        if (isBlank(value)) {
-            return null;
-        }
-
-        return Number(value) <= limit
-            ? null
-            : tp('validation.max', { field, max: limit });
-    };
-}
-
 export function confirmedBy(field: string, otherField: string): Validator {
     return (value, data) =>
-        value === data[otherField] ? null : tp('validation.confirmed', { field });
+        value === data[otherField]
+            ? null
+            : tp('validation.confirmed', { field });
 }
 
-export function filesRequired(field: string): Validator {
-    return (value) =>
-        Array.isArray(value) && value.length > 0
-            ? null
-            : tp('validation.filesRequired', { field });
-}
-
-export function fileType(
-    field: string,
-    allowedMimes: string[],
-    humanTypes: string,
-): Validator {
-    return (value) => {
-        const files = value as File[] | undefined;
-
-        if (!files || files.length === 0) {
-            return null;
-        }
-
-        return files.every((file) => allowedMimes.includes(file.type))
-            ? null
-            : tp('validation.fileType', { field, types: humanTypes });
+// The password/password_confirmation pair repeated by registration, admin
+// creation, password reset and password change forms.
+export function passwordConfirmationRules(labels: {
+    password: string;
+    passwordConfirmation: string;
+}): Record<'password' | 'password_confirmation', Validator[]> {
+    return {
+        password: [required(labels.password)],
+        password_confirmation: [
+            confirmedBy(labels.passwordConfirmation, 'password'),
+        ],
     };
 }
 
-export function fileMaxSize(
-    field: string,
-    maxBytes: number,
-    humanSize: string,
-): Validator {
-    return (value) => {
-        const files = value as File[] | undefined;
+// Mirrors the backend's SharedRules::nameEmailPasswordRules() - the client
+// side of the name/email/password/password_confirmation shape shared by
+// registration and admin creation.
+export function nameEmailPasswordRules(labels: {
+    name: string;
+    email: string;
+    password: string;
+    passwordConfirmation: string;
+}): Record<
+    'name' | 'email' | 'password' | 'password_confirmation',
+    Validator[]
+> {
+    return {
+        name: [required(labels.name), maxLength(labels.name, 255)],
+        email: [
+            required(labels.email),
+            isEmail(labels.email),
+            maxLength(labels.email, 255),
+        ],
+        ...passwordConfirmationRules(labels),
+    };
+}
 
-        if (!files || files.length === 0) {
-            return null;
-        }
+// Mirrors the backend's SharedRules::nameAndSlugRules() - the client side of
+// the required-name/optional-slug shape shared by category create and edit.
+export function categoryValidationRules(labels: {
+    name: string;
+    slug: string;
+}): Record<'name' | 'slug', Validator[]> {
+    return {
+        name: [required(labels.name), maxLength(labels.name, 255)],
+        slug: [maxLength(labels.slug, 255)],
+    };
+}
 
-        return files.every((file) => file.size <= maxBytes)
-            ? null
-            : tp('validation.fileSize', { field, max: humanSize });
+// The client side of the name/price/stock/short_description/slug shape
+// shared by product create and edit.
+export function productValidationRules(labels: {
+    name: string;
+    price: string;
+    stock: string;
+    shortDescription: string;
+    slug: string;
+}): Record<
+    'name' | 'price' | 'stock' | 'short_description' | 'slug',
+    Validator[]
+> {
+    return {
+        name: [required(labels.name), maxLength(labels.name, 255)],
+        price: [
+            required(labels.price),
+            numeric(labels.price),
+            min(labels.price, 0),
+        ],
+        stock: [integer(labels.stock), min(labels.stock, 0)],
+        short_description: [maxLength(labels.shortDescription, 500)],
+        slug: [maxLength(labels.slug, 255)],
     };
 }
 

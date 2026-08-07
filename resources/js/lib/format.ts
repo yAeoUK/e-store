@@ -1,3 +1,5 @@
+import type { VariantOptions } from '@/types/product';
+
 export const PRODUCT_IMAGE_PLACEHOLDER =
     'https://placehold.co/600x600?text=Product';
 
@@ -10,7 +12,7 @@ export function formatDate(value: string): string {
 }
 
 export function formatVariantOptions(
-    options: Record<string, string | number> | null | undefined,
+    options: VariantOptions | null | undefined,
 ): string {
     return Object.entries(options ?? {})
         .map(([key, value]) => `${key}: ${value}`)
@@ -20,7 +22,7 @@ export function formatVariantOptions(
 export interface SummaryItem {
     id: number;
     name: string;
-    variantOptions?: Record<string, string | number> | null;
+    variantOptions?: VariantOptions | null;
     quantity: number;
     unitPrice: number | string;
 }
@@ -30,9 +32,7 @@ export function toSummaryItems<
 >(
     items: T[],
     getName: (item: T) => string,
-    getVariantOptions: (
-        item: T,
-    ) => Record<string, string | number> | null | undefined,
+    getVariantOptions: (item: T) => VariantOptions | null | undefined,
 ): SummaryItem[] {
     return items.map((item) => ({
         id: item.id,

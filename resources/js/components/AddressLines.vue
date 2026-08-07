@@ -7,16 +7,21 @@ withDefaults(
         address: AddressSnapshot;
         showLabel?: boolean;
         showCountry?: boolean;
+        boldLabel?: boolean;
     }>(),
     {
         showLabel: true,
         showCountry: false,
+        boldLabel: false,
     },
 );
 </script>
 
 <template>
-    <MutedText v-if="showLabel">
+    <span v-if="boldLabel" class="font-medium">
+        {{ address.label || address.name }}
+    </span>
+    <MutedText v-else-if="showLabel">
         {{ address.label || address.name }}
     </MutedText>
     <MutedText>{{ address.line1 }} {{ address.line2 }}</MutedText>

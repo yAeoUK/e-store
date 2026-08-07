@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
+import { computed, onUnmounted, ref, watch } from 'vue';
+import { useEscapeKey } from '@/composables/useEscapeKey';
 
 const props = defineProps({
     show: {
@@ -45,21 +46,15 @@ const close = () => {
     }
 };
 
-const closeOnEscape = (e: KeyboardEvent) => {
-    if (e.key === 'Escape') {
-        e.preventDefault();
+useEscapeKey((e) => {
+    e.preventDefault();
 
-        if (props.show) {
-            close();
-        }
+    if (props.show) {
+        close();
     }
-};
-
-onMounted(() => document.addEventListener('keydown', closeOnEscape));
+});
 
 onUnmounted(() => {
-    document.removeEventListener('keydown', closeOnEscape);
-
     document.body.style.overflow = '';
 });
 

@@ -1,6 +1,7 @@
 import { mount } from '@vue/test-utils';
 import { describe, expect, it, vi } from 'vitest';
 import CatalogLayout from '@/components/shop/CatalogLayout.vue';
+import { defaultCategories, defaultFilters } from '../../utils';
 
 describe('CatalogLayout', () => {
     it('renders heading and description when provided', () => {
@@ -9,12 +10,7 @@ describe('CatalogLayout', () => {
                 heading: 'Products',
                 description: 'Browse our collection',
                 products: { data: [] },
-                filters: {
-                    search: '',
-                    category_id: null,
-                    min_price: null,
-                    max_price: null,
-                },
+                filters: defaultFilters,
                 categories: [],
                 emptyMessage: 'No products',
                 applyFilters: vi.fn(),
@@ -26,9 +22,7 @@ describe('CatalogLayout', () => {
     });
 
     it('renders product cards when products exist', () => {
-        const categories = [
-            { id: 1, name: 'Accessories', slug: 'accessories' },
-        ];
+        const categories = defaultCategories;
         const filters = {
             search: 'keyboard',
             category_id: null,
@@ -99,19 +93,12 @@ describe('CatalogLayout', () => {
     });
 
     it('renders empty state when no products are available', () => {
-        const categories = [
-            { id: 1, name: 'Accessories', slug: 'accessories' },
-        ];
+        const categories = defaultCategories;
         const wrapper = mount(CatalogLayout, {
             props: {
                 heading: 'Products',
                 products: { data: [] },
-                filters: {
-                    search: '',
-                    category_id: null,
-                    min_price: null,
-                    max_price: null,
-                },
+                filters: defaultFilters,
                 categories,
                 emptyMessage: 'No products',
                 applyFilters: vi.fn(),
@@ -133,6 +120,7 @@ describe('CatalogLayout', () => {
         });
 
         expect(wrapper.text()).toContain('No products');
+        expect(wrapper.find('svg').exists()).toBe(true);
         // Assert ProductFilters and CategoryNavigation are rendered (with the
         // right categories) even when there are no products.
         expect(

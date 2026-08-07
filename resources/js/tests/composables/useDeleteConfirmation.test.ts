@@ -28,7 +28,9 @@ describe('useDeleteConfirmation', () => {
     });
 
     it('destroy is a no-op when no id is confirmed', () => {
-        const { destroy } = useDeleteConfirmation<number>((id) => `/items/${id}`);
+        const { destroy } = useDeleteConfirmation<number>(
+            (id) => `/items/${id}`,
+        );
 
         destroy();
 
@@ -38,9 +40,8 @@ describe('useDeleteConfirmation', () => {
     it('destroy deletes the confirmed id and sets deleting while in flight', () => {
         vi.mocked(router.delete).mockImplementation(() => undefined);
 
-        const { deleting, confirmDelete, destroy } = useDeleteConfirmation<number>(
-            (id) => `/items/${id}`,
-        );
+        const { deleting, confirmDelete, destroy } =
+            useDeleteConfirmation<number>((id) => `/items/${id}`);
 
         confirmDelete(3);
         destroy();

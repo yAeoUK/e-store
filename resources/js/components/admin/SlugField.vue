@@ -10,7 +10,14 @@ import {
 import InputError from '@/components/InputError.vue';
 import InputLabel from '@/components/InputLabel.vue';
 import { t } from '@/i18n';
-import { slugify } from '@/lib/slug';
+
+function slugify(value: string): string {
+    return value
+        .toLowerCase()
+        .trim()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '');
+}
 
 const model = defineModel<string>({ required: true });
 

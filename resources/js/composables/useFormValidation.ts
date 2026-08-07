@@ -25,6 +25,15 @@ export function useFormValidation<F extends object>(
         ...clientErrors.value,
     }));
 
+    // Same merge as `errors`, but server-first: for callers that hand a
+    // single errors object to a shared fields component and want a
+    // server-side failure (e.g. a uniqueness check) to win over a stale
+    // client-side error for the same field.
+    const fieldErrors = computed<Partial<Record<keyof F, string>>>(() => ({
+        ...clientErrors.value,
+        ...(form as unknown as FormWithErrors).errors,
+    }));
+
     function attemptSubmit(): boolean {
         attempted.value = true;
 
@@ -35,5 +44,12 @@ export function useFormValidation<F extends object>(
         attempted.value = false;
     }
 
-    return { attempted, clientErrors, errors, attemptSubmit, reset };
+    return {
+        attempted,
+        clientErrors,
+        errors,
+        fieldErrors,
+        attemptSubmit,
+        reset,
+    };
 }

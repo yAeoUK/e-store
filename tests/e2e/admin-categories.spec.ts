@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { ADMIN, login } from './helpers';
+import { ADMIN, deleteViaDialog, login, rowWithText } from './helpers';
 
 test.describe('admin category management', () => {
     test('an admin can list, create, edit/reparent, and delete a category', async ({ page }) => {
@@ -22,7 +22,7 @@ test.describe('admin category management', () => {
         await expect(page.getByText('E2E New Category')).toBeVisible();
 
         // edit it: rename and reparent under "E2E Category"
-        const row = page.locator('tr', { hasText: 'E2E New Category' });
+        const row = rowWithText(page, 'E2E New Category');
         await row.getByRole('link', { name: 'Edit' }).click();
         await page.getByLabel('Name').fill('E2E New Category Renamed');
         await page.getByLabel('Parent Category').selectOption({ label: 'E2E Category' });
@@ -31,10 +31,10 @@ test.describe('admin category management', () => {
         await expect(page.getByText('E2E New Category Renamed')).toBeVisible();
 
         // delete it (a leaf category with no products/children is safe to delete)
-        const renamedRow = page.locator('tr', { hasText: 'E2E New Category Renamed' });
-        await renamedRow.getByRole('button', { name: 'Delete' }).click();
-        await expect(page.getByText('Delete category?')).toBeVisible();
-        await page.locator('dialog').getByRole('button', { name: 'Delete' }).click();
-        await expect(page.getByText('E2E New Category Renamed')).toHaveCount(0);
+        const renamedRow = rowWithText(page, 'E2E New Category Renamed');
+        await deleteViaDialog(page, renamedRow, {
+            confirmPrompt: 'Delete category?',
+            goneText: 'E2E New Category Renamed',
+        });
     });
 });

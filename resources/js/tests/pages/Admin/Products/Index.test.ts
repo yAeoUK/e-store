@@ -1,9 +1,15 @@
-import { Head, router } from '@inertiajs/vue3';
+import { router } from '@inertiajs/vue3';
 import { mount } from '@vue/test-utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import DataTable from '@/components/admin/DataTable.vue';
 import ProductsIndexPage from '@/pages/Admin/Products/Index.vue';
-import { routeMock } from '../../../setup';
+import {
+    expectRendersPageTitle,
+    testConfirmationDialogFlow,
+    testRendersEditLink,
+    testRendersIndexLayout,
+    testRendersLabels,
+} from '../../../utils';
 
 const products = {
     data: [
@@ -23,9 +29,6 @@ const products = {
 const categories = [{ id: 1, name: 'Accessories' }];
 
 beforeEach(() => {
-    HTMLDialogElement.prototype.showModal = vi.fn();
-    HTMLDialogElement.prototype.close = vi.fn();
-    routeMock.mockClear();
     vi.mocked(router.get).mockClear();
     vi.mocked(router.delete).mockClear();
 });
@@ -43,9 +46,8 @@ function mountPage() {
 describe('Admin Products index page', () => {
     it('renders the page title via Head', () => {
         const wrapper = mountPage();
-        const head = wrapper.findComponent(Head);
 
-        expect(head.attributes('title')).toBe('admin.products.pageTitle');
+        expectRendersPageTitle(wrapper, 'admin.products.pageTitle');
     });
 
     it('passes the product rows to the DataTable', () => {
@@ -56,7 +58,9 @@ describe('Admin Products index page', () => {
             props: (name: string) => unknown;
         };
 
-        expect(table.props('rows')).toEqual(products.data);
+        expect((table.props('paginated') as typeof products).data).toEqual(
+            products.data,
+        );
         expect(table.props('emptyMessage')).toBe('admin.products.empty');
     });
 
@@ -101,25 +105,6 @@ describe('Admin Products index page', () => {
         ).toBeUndefined();
     });
 
-    it('opens the delete confirmation dialog and deletes on confirm', async () => {
-        const wrapper = mountPage();
-
-        const deleteButton = wrapper
-            .findAll('button')
-            .find((button) => button.text() === 'admin.actions.delete');
-        await deleteButton?.trigger('click');
-
-        const dialog = wrapper.findComponent({ name: 'ConfirmationDialog' });
-        expect(dialog.props('show')).toBe(true);
-
-        await dialog.vm.$emit('confirm');
-
-        expect(router.delete).toHaveBeenCalledWith(
-            'admin.products.destroy',
-            expect.objectContaining({ preserveScroll: true }),
-        );
-    });
-
     it('renders the heading and create button', () => {
         const wrapper = mountPage();
         const text = wrapper.text();
@@ -143,16 +128,17 @@ describe('Admin Products index page', () => {
         expect(text).toContain('common.confirm');
     });
 
-    it('renders the table column labels', () => {
-        const wrapper = mountPage();
-        const text = wrapper.text();
-
-        expect(text).toContain('admin.products.columns.name');
-        expect(text).toContain('admin.products.columns.category');
-        expect(text).toContain('admin.products.columns.price');
-        expect(text).toContain('admin.products.columns.stock');
-        expect(text).toContain('admin.products.columns.status');
-    });
+    testRendersLabels(
+        mountPage,
+        [
+            'admin.products.columns.name',
+            'admin.products.columns.category',
+            'admin.products.columns.price',
+            'admin.products.columns.stock',
+            'admin.products.columns.status',
+        ],
+        'renders the table column labels',
+    );
 
     it('renders the active status label for an active product', () => {
         const wrapper = mountPage();
@@ -175,50 +161,25 @@ describe('Admin Products index page', () => {
         expect(wrapper.text()).toContain('admin.products.isInactive');
     });
 
-    it('renders an edit link for each row', () => {
-        const wrapper = mountPage();
+    testRendersEditLink(mountPage, 'admin.products.edit');
 
-        const editLink = wrapper
-            .findAll('a')
-            .find((a) => a.text() === 'admin.actions.edit');
-
-        expect(editLink?.attributes('href')).toBe('admin.products.edit');
+    testConfirmationDialogFlow(mountPage, {
+        triggerText: 'admin.actions.delete',
+        title: 'admin.products.deleteConfirmTitle',
+        message: 'admin.products.deleteConfirmMessage',
+        confirmLabel: 'common.delete',
+        onConfirm: () =>
+            expect(router.delete).toHaveBeenCalledWith(
+                'admin.products.destroy',
+                expect.objectContaining({ preserveScroll: true }),
+            ),
     });
 
-    it('renders the delete confirmation dialog copy', async () => {
-        const wrapper = mountPage();
-
-        const deleteButton = wrapper
-            .findAll('button')
-            .find((button) => button.text() === 'admin.actions.delete');
-        await deleteButton?.trigger('click');
-
-        const dialog = wrapper.findComponent({ name: 'ConfirmationDialog' });
-
-        expect(dialog.props('title')).toBe('admin.products.deleteConfirmTitle');
-        expect(dialog.props('message')).toBe(
-            'admin.products.deleteConfirmMessage',
-        );
-        expect(dialog.props('confirmLabel')).toBe('common.delete');
-    });
-
-    it('renders the expected layout and form components', () => {
-        const wrapper = mountPage();
-
-        expect(wrapper.findComponent({ name: 'AdminLayout' }).exists()).toBe(
-            true,
-        );
-        expect(
-            wrapper.findAllComponents({ name: 'ButtonLink' }).length,
-        ).toBeGreaterThan(0);
-        expect(
-            wrapper.findAllComponents({ name: 'InputLabel' }).length,
-        ).toBeGreaterThan(0);
-        expect(wrapper.findComponent({ name: 'Pagination' }).exists()).toBe(
-            true,
-        );
-        expect(wrapper.findComponent({ name: 'PrimaryButton' }).exists()).toBe(
-            true,
-        );
-    });
+    testRendersIndexLayout(mountPage, [
+        'AdminLayout',
+        'ButtonLink',
+        'InputLabel',
+        'Pagination',
+        'PrimaryButton',
+    ]);
 });

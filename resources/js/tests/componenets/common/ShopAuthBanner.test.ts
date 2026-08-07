@@ -2,16 +2,14 @@ import { router, usePage } from '@inertiajs/vue3';
 import { mount } from '@vue/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import ShopAuthBanner from '@/components/ShopAuthBanner.vue';
-
-function pageWith(user: { name: string; email: string } | null) {
-    return { props: { auth: { user }, errors: {} } } as unknown as ReturnType<
-        typeof usePage
-    >;
-}
+import { findButton, pageWith } from '../../utils';
 
 function mountAuthenticated() {
     vi.mocked(usePage).mockReturnValue(
-        pageWith({ name: 'Jane Doe', email: 'jane@example.com' }),
+        pageWith({
+            user: { name: 'Jane Doe', email: 'jane@example.com' },
+            errors: {},
+        }),
     );
 
     return mount(ShopAuthBanner);
@@ -22,19 +20,17 @@ function menuPanel(wrapper: ReturnType<typeof mountAuthenticated>) {
 }
 
 beforeEach(() => {
-    HTMLDialogElement.prototype.showModal = vi.fn();
-    HTMLDialogElement.prototype.close = vi.fn();
     vi.mocked(router.post).mockClear();
     vi.mocked(router.get).mockClear();
 });
 
 afterEach(() => {
-    vi.mocked(usePage).mockReturnValue(pageWith(null));
+    vi.mocked(usePage).mockReturnValue(pageWith({ errors: {} }));
 });
 
 describe('ShopAuthBanner', () => {
     it('renders login/register links when no user is authenticated', () => {
-        vi.mocked(usePage).mockReturnValue(pageWith(null));
+        vi.mocked(usePage).mockReturnValue(pageWith({ errors: {} }));
 
         const wrapper = mount(ShopAuthBanner);
         const links = wrapper.findAllComponents({ name: 'ButtonLink' });
@@ -55,7 +51,10 @@ describe('ShopAuthBanner', () => {
 
     it('falls back to the email when the user has no name', () => {
         vi.mocked(usePage).mockReturnValue(
-            pageWith({ name: '', email: 'jane@example.com' }),
+            pageWith({
+                user: { name: '', email: 'jane@example.com' },
+                errors: {},
+            }),
         );
 
         const wrapper = mount(ShopAuthBanner);
@@ -76,6 +75,18 @@ describe('ShopAuthBanner', () => {
         expect(links[2].text()).toBe('common.nav.cart');
         expect(links[3].attributes('href')).toBe('account.orders');
         expect(links[3].text()).toBe('common.nav.orderHistory');
+
+        links.forEach((link) => {
+            expect(link.find('svg').exists()).toBe(true);
+        });
+    });
+
+    it('renders an icon on the logout button', async () => {
+        const wrapper = mountAuthenticated();
+
+        const logoutButton = findButton(wrapper, 'common.nav.logOut');
+
+        expect(logoutButton?.find('svg').exists()).toBe(true);
     });
 
     it('is closed by default and opens the menu when the trigger is clicked', async () => {
@@ -125,9 +136,7 @@ describe('ShopAuthBanner', () => {
 
         expect(dialog.props('show')).toBe(false);
 
-        const logoutButton = wrapper
-            .findAll('button')
-            .find((button) => button.text() === 'common.nav.logOut');
+        const logoutButton = findButton(wrapper, 'common.nav.logOut');
         await logoutButton?.trigger('click');
 
         const openDialog = wrapper.findComponent({
@@ -144,6 +153,10 @@ describe('ShopAuthBanner', () => {
 
     it('posts to the logout route and resets state on finish when confirmed', async () => {
         const wrapper = mountAuthenticated();
+
+        await wrapper.findAll('button')[0].trigger('click');
+        const logoutButton = findButton(wrapper, 'common.nav.logOut');
+        await logoutButton?.trigger('click');
 
         await wrapper
             .findComponent({ name: 'ConfirmationDialog' })
@@ -178,9 +191,7 @@ describe('ShopAuthBanner', () => {
     it('resets confirmingLogout without posting when the dialog is cancelled', async () => {
         const wrapper = mountAuthenticated();
 
-        const logoutButton = wrapper
-            .findAll('button')
-            .find((button) => button.text() === 'common.nav.logOut');
+        const logoutButton = findButton(wrapper, 'common.nav.logOut');
         await logoutButton?.trigger('click');
         expect(
             wrapper.findComponent({ name: 'ConfirmationDialog' }).props('show'),

@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { computed } from 'vue';
 import { Link } from '@inertiajs/vue3';
+import { computed } from 'vue';
 import {
     cardSurfaceClass,
     compactHeadingClass,
@@ -10,30 +10,13 @@ import {
 import MutedText from '@/components/MutedText.vue';
 import { t } from '@/i18n';
 import { formatCurrency, PRODUCT_IMAGE_PLACEHOLDER } from '@/lib/format';
-
-interface ProductImage {
-    url: string;
-    alt_text?: string | null;
-}
-
-interface Product {
-    id: number;
-    name: string;
-    slug: string;
-    price: number | string;
-    short_description?: string | null;
-    category?: {
-        name?: string | null;
-    } | null;
-    images?: ProductImage[];
-}
+import type { Product } from '@/types/product';
 
 const props = defineProps<{
     product: Product;
 }>();
 
-const imageUrl =
-    props.product.images?.[0]?.url ?? PRODUCT_IMAGE_PLACEHOLDER;
+const imageUrl = props.product.images?.[0]?.url ?? PRODUCT_IMAGE_PLACEHOLDER;
 const imageAlt = props.product.images?.[0]?.alt_text ?? props.product.name;
 const productUrl = computed(() => `/products/${props.product.slug}`);
 </script>

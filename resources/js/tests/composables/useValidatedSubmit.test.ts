@@ -61,6 +61,25 @@ describe('useValidatedSubmit', () => {
         expect(errors.value.email).toBe('Already taken');
     });
 
+    it('fieldErrors lets a server error win over a client error for the same field', () => {
+        const { form, fieldErrors, submit } = setUp();
+
+        form.errors = { name: 'Already taken' };
+        submit();
+
+        expect(fieldErrors.value.name).toBe('Already taken');
+    });
+
+    it('exposes clientErrors without server-side form errors, for callers that merge manually', () => {
+        const { form, clientErrors, submit } = setUp();
+
+        submit();
+        form.errors = { email: 'Already taken' };
+
+        expect(clientErrors.value.name).toBeDefined();
+        expect(clientErrors.value.email).toBeUndefined();
+    });
+
     it('reset clears client errors from a failed submit attempt', () => {
         const { submit, reset, errors } = setUp();
 

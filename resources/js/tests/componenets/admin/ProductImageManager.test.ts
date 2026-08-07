@@ -4,6 +4,7 @@ import imageCompression from 'browser-image-compression';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import ProductImageManager from '@/components/admin/ProductImageManager.vue';
 import { getMockForm, routeMock } from '../../setup';
+import { findButton, testDeleteConfirmationFlow } from '../../utils';
 
 vi.mock('browser-image-compression', () => ({
     default: vi.fn(async (file: File) => file),
@@ -25,10 +26,6 @@ const secondaryImage = {
     is_primary: false,
 };
 
-function findButton(wrapper: ReturnType<typeof mount>, text: string) {
-    return wrapper.findAll('button').find((button) => button.text() === text);
-}
-
 async function selectFiles(wrapper: ReturnType<typeof mount>, files: File[]) {
     const input = wrapper.find('input[type="file"]');
     Object.defineProperty(input.element, 'files', {
@@ -39,8 +36,6 @@ async function selectFiles(wrapper: ReturnType<typeof mount>, files: File[]) {
 }
 
 beforeEach(() => {
-    HTMLDialogElement.prototype.showModal = vi.fn();
-    HTMLDialogElement.prototype.close = vi.fn();
     routeMock.mockClear();
     vi.mocked(router.delete).mockClear();
     vi.mocked(router.post).mockClear();
@@ -104,45 +99,13 @@ describe('ProductImageManager', () => {
         expect(vi.mocked(router.post)).toHaveBeenCalled();
     });
 
-    it('opens the delete confirmation dialog and deletes on confirm', async () => {
-        const wrapper = mount(ProductImageManager, {
-            props: { productId: 5, images: [primaryImage] },
-        });
-
-        await findButton(wrapper, 'common.delete')?.trigger('click');
-
-        const dialog = wrapper.findComponent({ name: 'ConfirmationDialog' });
-        expect(dialog.props('show')).toBe(true);
-        expect(wrapper.text()).toContain(
-            'admin.products.deleteImageConfirmTitle',
-        );
-        expect(wrapper.text()).toContain(
-            'admin.products.deleteImageConfirmMessage',
-        );
-
-        await dialog.vm.$emit('confirm');
-
-        expect(routeMock).toHaveBeenCalledWith(
-            'admin.products.images.destroy',
-            [5, primaryImage.id],
-        );
-        expect(vi.mocked(router.delete)).toHaveBeenCalled();
-    });
-
-    it('does not delete when the dialog is cancelled', async () => {
-        const wrapper = mount(ProductImageManager, {
-            props: { productId: 5, images: [primaryImage] },
-        });
-
-        await findButton(wrapper, 'common.delete')?.trigger('click');
-        await wrapper
-            .findComponent({ name: 'ConfirmationDialog' })
-            .vm.$emit('cancel');
-
-        expect(
-            wrapper.findComponent({ name: 'ConfirmationDialog' }).props('show'),
-        ).toBe(false);
-        expect(router.delete).not.toHaveBeenCalled();
+    testDeleteConfirmationFlow(ProductImageManager, {
+        mountProps: { productId: 5, images: [primaryImage] },
+        deleteButtonText: 'common.delete',
+        title: 'admin.products.deleteImageConfirmTitle',
+        message: 'admin.products.deleteImageConfirmMessage',
+        destroyRoute: 'admin.products.images.destroy',
+        destroyParams: [5, primaryImage.id],
     });
 
     it('compresses every selected file before uploading it', async () => {

@@ -1,8 +1,9 @@
-import { Head, Link } from '@inertiajs/vue3';
+import { Link } from '@inertiajs/vue3';
 import { mount } from '@vue/test-utils';
 import { describe, expect, it } from 'vitest';
 import Pagination from '@/components/Pagination.vue';
 import Orders from '@/pages/Account/Orders.vue';
+import { expectRendersPageTitle } from '../../utils';
 
 const orders = {
     data: [
@@ -33,16 +34,15 @@ function mountPage(overrides: { orders?: typeof orders } = {}) {
 describe('Orders page', () => {
     it('renders the page title via Head', () => {
         const wrapper = mountPage();
-        const head = wrapper.findComponent(Head);
 
-        expect(head.exists()).toBe(true);
-        expect(head.attributes('title')).toBe('account.orders.pageTitle');
+        expectRendersPageTitle(wrapper, 'account.orders.pageTitle');
     });
 
     it('renders the empty message when there are no orders', () => {
         const wrapper = mountPage({ orders: { data: [], links: [] } });
 
         expect(wrapper.text()).toContain('account.orders.empty');
+        expect(wrapper.find('svg').exists()).toBe(true);
         expect(
             wrapper
                 .findAllComponents(Link)
@@ -62,7 +62,7 @@ describe('Orders page', () => {
         expect(wrapper.text()).toContain('account.orders.statuses.cancelled');
     });
 
-    it('renders each order\'s created_at date, formatted', () => {
+    it("renders each order's created_at date, formatted", () => {
         const wrapper = mountPage();
 
         orders.data.forEach((order) => {

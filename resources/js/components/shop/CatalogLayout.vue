@@ -1,10 +1,11 @@
 <script setup lang="ts">
+import { SearchX } from '@lucide/vue';
 import {
     borderColorClass,
     headingTextClass,
-    mutedBodyTextClass,
     surfaceBgClass,
 } from '@/components/classNames';
+import EmptyState from '@/components/EmptyState.vue';
 import MutedText from '@/components/MutedText.vue';
 import PageContainer from '@/components/PageContainer.vue';
 import Pagination from '@/components/Pagination.vue';
@@ -73,17 +74,17 @@ function handleApplyFilters(filters: FilterPayload): void {
                     />
                 </div>
 
-                <div
+                <EmptyState
                     v-else
+                    :icon="SearchX"
                     :class="[
                         borderColorClass,
                         surfaceBgClass,
-                        mutedBodyTextClass,
                         'rounded-xl border border-dashed p-8 text-center',
                     ]"
                 >
-                    {{ emptyMessage }}
-                </div>
+                    <MutedText>{{ emptyMessage }}</MutedText>
+                </EmptyState>
 
                 <Pagination :links="products.links" />
             </div>

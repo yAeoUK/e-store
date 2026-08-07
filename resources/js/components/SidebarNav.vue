@@ -8,6 +8,7 @@ import {
     mutedBorderClass,
     mutedTextClass,
 } from './classNames';
+import IconLabel from './IconLabel.vue';
 
 const activeRowClass =
     'bg-indigo-50 text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-400';
@@ -52,14 +53,9 @@ defineProps<{
                         item.active ? activeRowClass : interactiveRowClass,
                     ]"
                 >
-                    <span class="flex items-center gap-2">
-                        <component
-                            :is="item.icon"
-                            v-if="item.icon"
-                            class="h-4 w-4"
-                        />
+                    <IconLabel :icon="item.icon">
                         <span>{{ item.label }}</span>
-                    </span>
+                    </IconLabel>
                     <span
                         v-if="item.badge !== undefined"
                         class="text-xs text-slate-400 dark:text-slate-500"

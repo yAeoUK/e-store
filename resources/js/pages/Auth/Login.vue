@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Head } from '@inertiajs/vue3';
+import { LogIn } from '@lucide/vue';
 import Checkbox from '@/components/Checkbox.vue';
 import FormActions from '@/components/FormActions.vue';
 import FormField from '@/components/FormField.vue';
@@ -35,7 +36,7 @@ const { form, errors, submit } = useValidatedSubmit(
 </script>
 
 <template>
-    <GuestLayout>
+    <GuestLayout :heading="t('auth.login.title')" :icon="LogIn">
         <Head :title="t('auth.login.title')" />
 
         <SuccessText v-if="status" class="mb-4">

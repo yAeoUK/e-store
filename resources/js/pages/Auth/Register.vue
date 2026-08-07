@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Head } from '@inertiajs/vue3';
+import { UserPlus } from '@lucide/vue';
 import FormActions from '@/components/FormActions.vue';
 import FormField from '@/components/FormField.vue';
 import PasswordConfirmationFields from '@/components/PasswordConfirmationFields.vue';
@@ -8,25 +9,16 @@ import TextLink from '@/components/TextLink.vue';
 import { useValidatedSubmit } from '@/composables/useValidatedSubmit';
 import { t } from '@/i18n';
 import GuestLayout from '@/Layouts/GuestLayout.vue';
-import { confirmedBy, isEmail, maxLength, required } from '@/lib/validation';
+import { nameEmailPasswordRules } from '@/lib/validation';
 
 const { form, errors, submit } = useValidatedSubmit(
     { name: '', email: '', password: '', password_confirmation: '' },
-    {
-        name: [
-            required(t('auth.register.name')),
-            maxLength(t('auth.register.name'), 255),
-        ],
-        email: [
-            required(t('auth.register.email')),
-            isEmail(t('auth.register.email')),
-            maxLength(t('auth.register.email'), 255),
-        ],
-        password: [required(t('auth.register.password'))],
-        password_confirmation: [
-            confirmedBy(t('auth.register.confirmPassword'), 'password'),
-        ],
-    },
+    nameEmailPasswordRules({
+        name: t('auth.register.name'),
+        email: t('auth.register.email'),
+        password: t('auth.register.password'),
+        passwordConfirmation: t('auth.register.confirmPassword'),
+    }),
     (form) =>
         form.post(route('register'), {
             onFinish: () => form.reset('password', 'password_confirmation'),
@@ -35,7 +27,7 @@ const { form, errors, submit } = useValidatedSubmit(
 </script>
 
 <template>
-    <GuestLayout>
+    <GuestLayout :heading="t('auth.register.title')" :icon="UserPlus">
         <Head :title="t('auth.register.title')" />
 
         <form @submit.prevent="submit" class="space-y-6">

@@ -1,6 +1,8 @@
 <script setup lang="ts">
+import { Plus, Trash2 } from '@lucide/vue';
 import { ref } from 'vue';
 import FormField from '@/components/FormField.vue';
+import IconLabel from '@/components/IconLabel.vue';
 import SecondaryButton from '@/components/SecondaryButton.vue';
 import { t } from '@/i18n';
 
@@ -63,12 +65,16 @@ function removeRow(index: number): void {
                 @update:model-value="sync"
             />
             <SecondaryButton type="button" @click="removeRow(index)">
-                {{ t('admin.products.removeOption') }}
+                <IconLabel :icon="Trash2">{{
+                    t('admin.products.removeOption')
+                }}</IconLabel>
             </SecondaryButton>
         </div>
 
         <SecondaryButton type="button" @click="addRow">
-            {{ t('admin.products.addOption') }}
+            <IconLabel :icon="Plus">{{
+                t('admin.products.addOption')
+            }}</IconLabel>
         </SecondaryButton>
     </div>
 </template>

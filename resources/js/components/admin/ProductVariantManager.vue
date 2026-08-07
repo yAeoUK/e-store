@@ -1,6 +1,8 @@
 <script setup lang="ts">
+import { Pencil, Plus, Trash2 } from '@lucide/vue';
 import { ref } from 'vue';
 import type { AdminProductVariant } from '@/components/admin/admin.ts';
+import AdminListCard from '@/components/admin/AdminListCard.vue';
 import AdminSection from '@/components/admin/AdminSection.vue';
 import VariantFormFields from '@/components/admin/VariantFormFields.vue';
 import Card from '@/components/Card.vue';
@@ -8,20 +10,21 @@ import {
     cardPaddingClass,
     mutedTextClass,
     rowActionsClass,
-    sectionHeadingClass,
     stackedRowCardClass,
 } from '@/components/classNames';
-import ConfirmationDialog from '@/components/ConfirmationDialog.vue';
 import DangerButton from '@/components/DangerButton.vue';
+import DeleteConfirmationDialog from '@/components/DeleteConfirmationDialog.vue';
+import EditFormModal from '@/components/EditFormModal.vue';
 import FormActions from '@/components/FormActions.vue';
-import Modal from '@/components/Modal.vue';
+import IconLabel from '@/components/IconLabel.vue';
 import MutedText from '@/components/MutedText.vue';
 import PrimaryButton from '@/components/PrimaryButton.vue';
 import SecondaryButton from '@/components/SecondaryButton.vue';
+import SectionHeading from '@/components/SectionHeading.vue';
 import { useDeleteConfirmation } from '@/composables/useDeleteConfirmation';
 import { useEditableForm } from '@/composables/useEditableForm';
 import { t } from '@/i18n';
-import { formatCurrency } from '@/lib/format';
+import { formatCurrency, formatVariantOptions } from '@/lib/format';
 import { integer, maxLength, min, numeric, required } from '@/lib/validation';
 
 const props = defineProps<{
@@ -30,13 +33,7 @@ const props = defineProps<{
 }>();
 
 function optionsSummary(options: Record<string, string> | null): string {
-    if (!options || Object.keys(options).length === 0) {
-        return '—';
-    }
-
-    return Object.entries(options)
-        .map(([key, value]) => `${key}: ${value}`)
-        .join(', ');
+    return formatVariantOptions(options) || '—';
 }
 
 // Bumped after every successful add-variant submission to force
@@ -129,6 +126,7 @@ const {
     confirmingId: confirmingDeleteId,
     deleting,
     confirmDelete,
+    cancel,
     destroy,
 } = useDeleteConfirmation((id: number) =>
     route('admin.products.variants.destroy', [props.productId, id]),
@@ -137,11 +135,10 @@ const {
 
 <template>
     <AdminSection :title="t('admin.products.variants')">
-        <Card :class="cardPaddingClass">
-            <MutedText v-if="variants.length === 0" class="mb-4">
-                {{ t('admin.products.empty') }}
-            </MutedText>
-
+        <AdminListCard
+            :empty="variants.length === 0"
+            :empty-message="t('admin.products.empty')"
+        >
             <ul class="space-y-3">
                 <li
                     v-for="variant in variants"
@@ -173,20 +170,22 @@ const {
                     </div>
                     <div :class="rowActionsClass">
                         <SecondaryButton type="button" @click="edit(variant)">
-                            {{ t('admin.actions.edit') }}
+                            <IconLabel :icon="Pencil">{{
+                                t('admin.actions.edit')
+                            }}</IconLabel>
                         </SecondaryButton>
                         <DangerButton @click="confirmDelete(variant.id)">
-                            {{ t('admin.actions.delete') }}
+                            <IconLabel :icon="Trash2">{{
+                                t('admin.actions.delete')
+                            }}</IconLabel>
                         </DangerButton>
                     </div>
                 </li>
             </ul>
-        </Card>
+        </AdminListCard>
 
         <Card :class="cardPaddingClass">
-            <h3 :class="['mb-4', sectionHeadingClass]">
-                {{ t('admin.products.addVariant') }}
-            </h3>
+            <SectionHeading :heading="t('admin.products.addVariant')" />
             <form @submit.prevent="submit" class="space-y-4">
                 <VariantFormFields
                     :form="form"
@@ -196,41 +195,32 @@ const {
 
                 <FormActions>
                     <PrimaryButton :disabled="form.processing">
-                        {{ t('admin.products.addVariant') }}
+                        <IconLabel :icon="Plus">{{
+                            t('admin.products.addVariant')
+                        }}</IconLabel>
                     </PrimaryButton>
                 </FormActions>
             </form>
         </Card>
 
-        <Modal :show="editingVariantId !== null" @close="closeEdit">
-            <div class="p-6">
-                <h3 :class="['mb-4', sectionHeadingClass]">
-                    {{ t('admin.products.editVariant') }}
-                </h3>
-                <form @submit.prevent="submitEdit" class="space-y-4">
-                    <VariantFormFields :form="editForm" :errors="editErrors" />
+        <EditFormModal
+            :show="editingVariantId !== null"
+            :title="t('admin.products.editVariant')"
+            :processing="editForm.processing"
+            :save-label="t('admin.products.save')"
+            @close="closeEdit"
+            @submit="submitEdit"
+        >
+            <VariantFormFields :form="editForm" :errors="editErrors" />
+        </EditFormModal>
 
-                    <FormActions>
-                        <SecondaryButton type="button" @click="closeEdit">
-                            {{ t('common.cancel') }}
-                        </SecondaryButton>
-                        <PrimaryButton :disabled="editForm.processing">
-                            {{ t('admin.products.save') }}
-                        </PrimaryButton>
-                    </FormActions>
-                </form>
-            </div>
-        </Modal>
-
-        <ConfirmationDialog
+        <DeleteConfirmationDialog
             :show="confirmingDeleteId !== null"
             :title="t('admin.products.deleteVariantConfirmTitle')"
             :message="t('admin.products.deleteVariantConfirmMessage')"
-            :confirm-label="t('common.delete')"
-            danger
             :processing="deleting"
             @confirm="destroy"
-            @cancel="confirmingDeleteId = null"
+            @cancel="cancel"
         />
     </AdminSection>
 </template>

@@ -1,31 +1,70 @@
 <script setup lang="ts">
 import { router, useForm } from '@inertiajs/vue3';
+import { Plus, Star, Trash2 } from '@lucide/vue';
 import imageCompression from 'browser-image-compression';
 import { ref } from 'vue';
 import type { AdminProductImage } from '@/components/admin/admin.ts';
+import AdminListCard from '@/components/admin/AdminListCard.vue';
 import AdminSection from '@/components/admin/AdminSection.vue';
-import Card from '@/components/Card.vue';
 import {
     accentBadgeTextClass,
     buttonVariants,
-    cardPaddingClass,
     hintTextClass,
     mutedBorderClass,
     wrapBetweenClass,
 } from '@/components/classNames';
-import ConfirmationDialog from '@/components/ConfirmationDialog.vue';
 import DangerButton from '@/components/DangerButton.vue';
+import DeleteConfirmationDialog from '@/components/DeleteConfirmationDialog.vue';
+import IconLabel from '@/components/IconLabel.vue';
 import InputError from '@/components/InputError.vue';
-import MutedText from '@/components/MutedText.vue';
 import SecondaryButton from '@/components/SecondaryButton.vue';
 import { useDeleteConfirmation } from '@/composables/useDeleteConfirmation';
-import { t } from '@/i18n';
-import {
-    fileMaxSize,
-    fileType,
-    filesRequired,
-    validateFields,
-} from '@/lib/validation';
+import { t, tp } from '@/i18n';
+import type { Validator } from '@/lib/validation';
+import { validateFields } from '@/lib/validation';
+
+function filesRequired(field: string): Validator {
+    return (value) =>
+        Array.isArray(value) && value.length > 0
+            ? null
+            : tp('validation.filesRequired', { field });
+}
+
+function fileType(
+    field: string,
+    allowedMimes: string[],
+    humanTypes: string,
+): Validator {
+    return (value) => {
+        const files = value as File[] | undefined;
+
+        if (!files || files.length === 0) {
+            return null;
+        }
+
+        return files.every((file) => allowedMimes.includes(file.type))
+            ? null
+            : tp('validation.fileType', { field, types: humanTypes });
+    };
+}
+
+function fileMaxSize(
+    field: string,
+    maxBytes: number,
+    humanSize: string,
+): Validator {
+    return (value) => {
+        const files = value as File[] | undefined;
+
+        if (!files || files.length === 0) {
+            return null;
+        }
+
+        return files.every((file) => file.size <= maxBytes)
+            ? null
+            : tp('validation.fileSize', { field, max: humanSize });
+    };
+}
 
 const props = defineProps<{
     productId: number;
@@ -100,6 +139,7 @@ const {
     confirmingId: confirmingDeleteId,
     deleting,
     confirmDelete,
+    cancel,
     destroy,
 } = useDeleteConfirmation((id: number) =>
     route('admin.products.images.destroy', [props.productId, id]),
@@ -116,11 +156,10 @@ function setPrimary(id: number): void {
 
 <template>
     <AdminSection :title="t('admin.products.images')">
-        <Card :class="cardPaddingClass">
-            <MutedText v-if="images.length === 0" class="mb-4">
-                {{ t('admin.products.empty') }}
-            </MutedText>
-
+        <AdminListCard
+            :empty="images.length === 0"
+            :empty-message="t('admin.products.empty')"
+        >
             <div class="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
                 <div
                     v-for="image in images"
@@ -144,10 +183,14 @@ function setPrimary(id: number): void {
                             type="button"
                             @click="setPrimary(image.id)"
                         >
-                            {{ t('admin.products.setPrimary') }}
+                            <IconLabel :icon="Star">{{
+                                t('admin.products.setPrimary')
+                            }}</IconLabel>
                         </SecondaryButton>
                         <DangerButton @click="confirmDelete(image.id)">
-                            {{ t('common.delete') }}
+                            <IconLabel :icon="Trash2">{{
+                                t('common.delete')
+                            }}</IconLabel>
                         </DangerButton>
                     </div>
                 </div>
@@ -155,7 +198,9 @@ function setPrimary(id: number): void {
 
             <div class="mt-4">
                 <label :class="[buttonVariants.secondary, 'cursor-pointer']">
-                    {{ t('admin.products.addImages') }}
+                    <IconLabel :icon="Plus">{{
+                        t('admin.products.addImages')
+                    }}</IconLabel>
                     <input
                         ref="fileInput"
                         type="file"
@@ -171,17 +216,15 @@ function setPrimary(id: number): void {
                     {{ t('admin.products.uploadingImages') }}
                 </p>
             </div>
-        </Card>
+        </AdminListCard>
 
-        <ConfirmationDialog
+        <DeleteConfirmationDialog
             :show="confirmingDeleteId !== null"
             :title="t('admin.products.deleteImageConfirmTitle')"
             :message="t('admin.products.deleteImageConfirmMessage')"
-            :confirm-label="t('common.delete')"
-            danger
             :processing="deleting"
             @confirm="destroy"
-            @cancel="confirmingDeleteId = null"
+            @cancel="cancel"
         />
     </AdminSection>
 </template>

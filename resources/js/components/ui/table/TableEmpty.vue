@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import type { HTMLAttributes } from "vue"
+import { Inbox } from "@lucide/vue"
 import { reactiveOmit } from "@vueuse/core"
 import { mutedTextClass } from "@/components/classNames"
+import EmptyState from "@/components/EmptyState.vue"
 import { cn } from "@/lib/utils"
 import TableCell from "./TableCell.vue"
 import TableRow from "./TableRow.vue"
@@ -28,9 +30,9 @@ const delegatedProps = reactiveOmit(props, "class")
       "
       v-bind="delegatedProps"
     >
-      <div class="flex items-center justify-center py-10">
+      <EmptyState :icon="Inbox" class="justify-center py-10">
         <slot />
-      </div>
+      </EmptyState>
     </TableCell>
   </TableRow>
 </template>

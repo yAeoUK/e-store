@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Head } from '@inertiajs/vue3';
+import { Lock } from '@lucide/vue';
 import FormActions from '@/components/FormActions.vue';
 import FormField from '@/components/FormField.vue';
 import PasswordConfirmationFields from '@/components/PasswordConfirmationFields.vue';
@@ -7,7 +8,7 @@ import PrimaryButton from '@/components/PrimaryButton.vue';
 import { useValidatedSubmit } from '@/composables/useValidatedSubmit';
 import { t } from '@/i18n';
 import GuestLayout from '@/Layouts/GuestLayout.vue';
-import { confirmedBy, emailField, required } from '@/lib/validation';
+import { emailField, passwordConfirmationRules } from '@/lib/validation';
 
 const props = defineProps({
     email: {
@@ -29,10 +30,10 @@ const { form, errors, submit } = useValidatedSubmit(
     },
     {
         email: emailField(t('auth.resetPassword.email')),
-        password: [required(t('auth.resetPassword.password'))],
-        password_confirmation: [
-            confirmedBy(t('auth.resetPassword.confirmPassword'), 'password'),
-        ],
+        ...passwordConfirmationRules({
+            password: t('auth.resetPassword.password'),
+            passwordConfirmation: t('auth.resetPassword.confirmPassword'),
+        }),
     },
     (form) =>
         form.post(route('password.store'), {
@@ -42,7 +43,7 @@ const { form, errors, submit } = useValidatedSubmit(
 </script>
 
 <template>
-    <GuestLayout>
+    <GuestLayout :heading="t('auth.resetPassword.title')" :icon="Lock">
         <Head :title="t('auth.resetPassword.title')" />
 
         <form @submit.prevent="submit" class="space-y-6">

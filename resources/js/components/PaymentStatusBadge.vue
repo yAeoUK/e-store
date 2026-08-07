@@ -1,8 +1,7 @@
 <script setup lang="ts">
-import { Badge, type BadgeVariants } from '@/components/ui/badge';
-import { t } from '@/i18n';
-
-type Variant = NonNullable<BadgeVariants['variant']>;
+import StatusBadge from '@/components/StatusBadge.vue';
+import type { Variant } from '@/components/ui/badge';
+import type { OrdersNamespace } from '@/lib/orderStatus';
 
 const paymentStatusVariants: Record<string, Variant> = {
     unpaid: 'outline',
@@ -11,18 +10,16 @@ const paymentStatusVariants: Record<string, Variant> = {
     refunded: 'secondary',
 };
 
-function paymentStatusVariant(status: string): Variant {
-    return paymentStatusVariants[status] ?? 'outline';
-}
-
 defineProps<{
     status: string;
-    namespace: 'account.orders' | 'admin.orders';
+    namespace: OrdersNamespace;
 }>();
 </script>
 
 <template>
-    <Badge :variant="paymentStatusVariant(status)">
-        {{ t(`${namespace}.paymentStatuses.${status}`) }}
-    </Badge>
+    <StatusBadge
+        :status="status"
+        :variants="paymentStatusVariants"
+        :translation-key="`${namespace}.paymentStatuses`"
+    />
 </template>

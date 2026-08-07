@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Head, router } from '@inertiajs/vue3';
+import { Pencil, Plus, Star, Trash2 } from '@lucide/vue';
 import AddressLines from '@/components/AddressLines.vue';
 import Card from '@/components/Card.vue';
 import {
@@ -9,15 +10,15 @@ import {
     narrowPageWidthClass,
     pageHeaderTextClass,
     rowActionsClass,
-    sectionHeadingClass,
 } from '@/components/classNames';
-import ConfirmationDialog from '@/components/ConfirmationDialog.vue';
 import DangerButton from '@/components/DangerButton.vue';
-import FormActions from '@/components/FormActions.vue';
-import Modal from '@/components/Modal.vue';
+import DeleteConfirmationDialog from '@/components/DeleteConfirmationDialog.vue';
+import EditFormModal from '@/components/EditFormModal.vue';
+import IconLabel from '@/components/IconLabel.vue';
 import MutedText from '@/components/MutedText.vue';
 import PrimaryButton from '@/components/PrimaryButton.vue';
 import SecondaryButton from '@/components/SecondaryButton.vue';
+import SectionHeading from '@/components/SectionHeading.vue';
 import { useDeleteConfirmation } from '@/composables/useDeleteConfirmation';
 import { useEditableForm } from '@/composables/useEditableForm';
 import { t } from '@/i18n';
@@ -56,12 +57,12 @@ const addressRules = {
 
 const {
     form,
-    clientErrors,
+    fieldErrors,
     attemptSubmit,
     resetAttempted,
     editingId: editingAddressId,
     editForm,
-    editClientErrors,
+    editFieldErrors,
     attemptEditSubmit,
     edit,
     closeEdit,
@@ -110,6 +111,7 @@ const {
     confirmingId: confirmingDeleteId,
     deleting,
     confirmDelete,
+    cancel,
     destroy,
 } = useDeleteConfirmation((id: number) =>
     route('account.addresses.destroy', id),
@@ -193,22 +195,26 @@ function submitEdit() {
                                             type="button"
                                             @click="setDefault(addr.id)"
                                         >
-                                            {{
+                                            <IconLabel :icon="Star">{{
                                                 t(
                                                     'account.addresses.setDefault',
                                                 )
-                                            }}
+                                            }}</IconLabel>
                                         </SecondaryButton>
                                         <SecondaryButton
                                             type="button"
                                             @click="edit(addr)"
                                         >
-                                            {{ t('account.addresses.edit') }}
+                                            <IconLabel :icon="Pencil">{{
+                                                t('account.addresses.edit')
+                                            }}</IconLabel>
                                         </SecondaryButton>
                                         <DangerButton
                                             @click="confirmDelete(addr.id)"
                                         >
-                                            {{ t('common.delete') }}
+                                            <IconLabel :icon="Trash2">{{
+                                                t('common.delete')
+                                            }}</IconLabel>
                                         </DangerButton>
                                     </div>
                                 </div>
@@ -217,17 +223,21 @@ function submitEdit() {
                     </Card>
 
                     <Card :class="cardPaddingClass">
-                        <h3 :class="['mb-4', sectionHeadingClass]">
-                            {{ t('account.addresses.addHeading') }}
-                        </h3>
+                        <SectionHeading
+                            :heading="t('account.addresses.addHeading')"
+                            :icon="Plus"
+                            icon-class="text-indigo-600 dark:text-indigo-400"
+                        />
                         <form @submit.prevent="submit" class="space-y-4">
                             <AddressFormFields
                                 :form="form"
-                                :errors="{ ...clientErrors, ...form.errors }"
+                                :errors="fieldErrors"
                             />
                             <div>
                                 <PrimaryButton :disabled="form.processing">
-                                    {{ t('account.addresses.submit') }}
+                                    <IconLabel :icon="Plus">{{
+                                        t('account.addresses.submit')
+                                    }}</IconLabel>
                                 </PrimaryButton>
                             </div>
                         </form>
@@ -236,37 +246,25 @@ function submitEdit() {
             </div>
         </div>
 
-        <Modal :show="editingAddressId !== null" @close="closeEdit">
-            <div class="p-6">
-                <h3 :class="['mb-4', sectionHeadingClass]">
-                    {{ t('account.addresses.editHeading') }}
-                </h3>
-                <form @submit.prevent="submitEdit" class="space-y-4">
-                    <AddressFormFields
-                        :form="editForm"
-                        :errors="{ ...editClientErrors, ...editForm.errors }"
-                    />
-                    <FormActions>
-                        <SecondaryButton type="button" @click="closeEdit">
-                            {{ t('common.cancel') }}
-                        </SecondaryButton>
-                        <PrimaryButton :disabled="editForm.processing">
-                            {{ t('account.addresses.saveChanges') }}
-                        </PrimaryButton>
-                    </FormActions>
-                </form>
-            </div>
-        </Modal>
+        <EditFormModal
+            :show="editingAddressId !== null"
+            :icon="Pencil"
+            :title="t('account.addresses.editHeading')"
+            :processing="editForm.processing"
+            :save-label="t('account.addresses.saveChanges')"
+            @close="closeEdit"
+            @submit="submitEdit"
+        >
+            <AddressFormFields :form="editForm" :errors="editFieldErrors" />
+        </EditFormModal>
 
-        <ConfirmationDialog
+        <DeleteConfirmationDialog
             :show="confirmingDeleteId !== null"
             :title="t('account.addresses.deleteConfirmTitle')"
             :message="t('account.addresses.deleteConfirmMessage')"
-            :confirm-label="t('common.delete')"
-            danger
             :processing="deleting"
             @confirm="destroy"
-            @cancel="confirmingDeleteId = null"
+            @cancel="cancel"
         />
     </ShopLayout>
 </template>

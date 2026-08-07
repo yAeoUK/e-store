@@ -2,15 +2,15 @@
 import type { AdminCategoryRef } from '@/components/admin/admin.ts';
 import AdminResourceForm from '@/components/admin/AdminResourceForm.vue';
 import ProductFormFields from '@/components/admin/ProductFormFields.vue';
-import { useAdminResourceForm } from '@/composables/useAdminResourceForm';
+import { useValidatedSubmit } from '@/composables/useValidatedSubmit';
 import { t } from '@/i18n';
-import { integer, maxLength, min, numeric, required } from '@/lib/validation';
+import { productValidationRules } from '@/lib/validation';
 
 defineProps<{
     categories: AdminCategoryRef[];
 }>();
 
-const { form, clientErrors, submit } = useAdminResourceForm(
+const { form, fieldErrors, submit } = useValidatedSubmit(
     {
         category_id: '' as number | '',
         name: '',
@@ -21,25 +21,13 @@ const { form, clientErrors, submit } = useAdminResourceForm(
         description: '',
         is_active: true,
     },
-    {
-        name: [
-            required(t('admin.products.name')),
-            maxLength(t('admin.products.name'), 255),
-        ],
-        price: [
-            required(t('admin.products.price')),
-            numeric(t('admin.products.price')),
-            min(t('admin.products.price'), 0),
-        ],
-        stock: [
-            integer(t('admin.products.stock')),
-            min(t('admin.products.stock'), 0),
-        ],
-        short_description: [
-            maxLength(t('admin.products.shortDescription'), 500),
-        ],
-        slug: [maxLength(t('admin.products.slug'), 255)],
-    },
+    productValidationRules({
+        name: t('admin.products.name'),
+        price: t('admin.products.price'),
+        stock: t('admin.products.stock'),
+        shortDescription: t('admin.products.shortDescription'),
+        slug: t('admin.products.slug'),
+    }),
     (form) => form.post(route('admin.products.store')),
 );
 </script>
@@ -55,7 +43,7 @@ const { form, clientErrors, submit } = useAdminResourceForm(
         <ProductFormFields
             :form="form"
             :categories="categories"
-            :errors="{ ...clientErrors, ...form.errors }"
+            :errors="fieldErrors"
             auto-slug
         />
     </AdminResourceForm>

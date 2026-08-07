@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { router, usePage } from '@inertiajs/vue3';
-import { computed, ref } from 'vue';
+import { usePage } from '@inertiajs/vue3';
+import { Plus, Trash2 } from '@lucide/vue';
 import type {
     AdminAdmin,
     DataTableColumn,
@@ -12,7 +12,11 @@ import ButtonLink from '@/components/ButtonLink.vue';
 import ConfirmationDialog from '@/components/ConfirmationDialog.vue';
 import DangerButton from '@/components/DangerButton.vue';
 import ErrorBanner from '@/components/ErrorBanner.vue';
+import IconLabel from '@/components/IconLabel.vue';
+import { useDeleteConfirmation } from '@/composables/useDeleteConfirmation';
+import { useServerError } from '@/composables/useServerError';
 import { t } from '@/i18n';
+import { formatDate } from '@/lib/format';
 
 defineProps<{
     admins: Paginated<AdminAdmin>;
@@ -21,7 +25,7 @@ defineProps<{
 const page = usePage();
 // Non-null: this page is only reachable behind the `auth` + `admin` middleware.
 const currentUserId = page.props.auth.user!.id;
-const revokeBlockedMessage = computed(() => page.props.errors?.admin ?? null);
+const revokeBlockedMessage = useServerError('admin');
 
 const columns: DataTableColumn<AdminAdmin>[] = [
     { key: 'name', label: t('admin.admins.columns.name') },
@@ -29,32 +33,17 @@ const columns: DataTableColumn<AdminAdmin>[] = [
     {
         key: 'created_at',
         label: t('admin.admins.columns.joined'),
-        render: (row) => new Date(row.created_at).toLocaleDateString(),
+        render: (row) => formatDate(row.created_at),
     },
 ];
 
-const revokingAdmin = ref<AdminAdmin | null>(null);
-const revoking = ref(false);
-
-function confirmRevoke(admin: AdminAdmin): void {
-    revokingAdmin.value = admin;
-}
-
-function revoke(): void {
-    if (!revokingAdmin.value) {
-        return;
-    }
-
-    revoking.value = true;
-
-    router.delete(route('admin.admins.revoke', revokingAdmin.value.id), {
-        preserveScroll: true,
-        onFinish: () => {
-            revoking.value = false;
-            revokingAdmin.value = null;
-        },
-    });
-}
+const {
+    confirmingId: revokingAdminId,
+    deleting: revoking,
+    confirmDelete: confirmRevoke,
+    cancel: cancelRevoke,
+    destroy: revoke,
+} = useDeleteConfirmation((id: number) => route('admin.admins.revoke', id));
 </script>
 
 <template>
@@ -64,7 +53,9 @@ function revoke(): void {
     >
         <template #actions>
             <ButtonLink variant="primary" :href="route('admin.admins.create')">
-                {{ t('admin.admins.addAdmin') }}
+                <IconLabel :icon="Plus">{{
+                    t('admin.admins.addAdmin')
+                }}</IconLabel>
             </ButtonLink>
         </template>
 
@@ -74,32 +65,30 @@ function revoke(): void {
 
         <DataTable
             :columns="columns"
-            :rows="admins.data"
-            :from="admins.from"
-            :to="admins.to"
-            :total="admins.total"
-            :links="admins.links"
+            :paginated="admins"
             :empty-message="t('admin.admins.empty')"
         >
             <template #actions="{ row }">
                 <DangerButton
                     v-if="row.id !== currentUserId"
-                    @click="confirmRevoke(row)"
+                    @click="confirmRevoke(row.id)"
                 >
-                    {{ t('admin.admins.revoke') }}
+                    <IconLabel :icon="Trash2">{{
+                        t('admin.admins.revoke')
+                    }}</IconLabel>
                 </DangerButton>
             </template>
         </DataTable>
 
         <ConfirmationDialog
-            :show="revokingAdmin !== null"
+            :show="revokingAdminId !== null"
             :title="t('admin.admins.revokeConfirmTitle')"
             :message="t('admin.admins.revokeConfirmMessage')"
             :confirm-label="t('admin.admins.revoke')"
             danger
             :processing="revoking"
             @confirm="revoke"
-            @cancel="revokingAdmin = null"
+            @cancel="cancelRevoke"
         />
     </AdminPageHeader>
 </template>

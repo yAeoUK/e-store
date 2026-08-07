@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import FilterSubmitButton from '@/components/FilterSubmitButton.vue';
 import FormField from '@/components/FormField.vue';
-import PrimaryButton from '@/components/PrimaryButton.vue';
 import SelectField from '@/components/SelectField.vue';
+import { useFilterForm } from '@/composables/useFilterForm';
 import { t } from '@/i18n';
 import { cardSurfaceClass } from '../classNames';
 
@@ -20,20 +20,15 @@ const emit = defineEmits<{
     (e: 'apply', value: Record<string, string | number | null>): void;
 }>();
 
-const localFilters = ref({
-    search: props.filters?.search ?? '',
-    category_id: props.filters?.category_id ?? '',
-    min_price: props.filters?.min_price ?? '',
-    max_price: props.filters?.max_price ?? '',
+const { state: localFilters, normalize } = useFilterForm(props.filters, {
+    search: '',
+    category_id: '' as string | number,
+    min_price: '' as string | number,
+    max_price: '' as string | number,
 });
 
 function applyFilters(): void {
-    emit('apply', {
-        search: localFilters.value.search || null,
-        category_id: localFilters.value.category_id || null,
-        min_price: localFilters.value.min_price || null,
-        max_price: localFilters.value.max_price || null,
-    });
+    emit('apply', normalize());
 }
 </script>
 
@@ -88,9 +83,9 @@ function applyFilters(): void {
         </div>
 
         <div class="mt-4 flex justify-end">
-            <PrimaryButton type="submit">
-                {{ t('shop.products.filters.apply') }}
-            </PrimaryButton>
+            <FilterSubmitButton>{{
+                t('shop.products.filters.apply')
+            }}</FilterSubmitButton>
         </div>
     </form>
 </template>

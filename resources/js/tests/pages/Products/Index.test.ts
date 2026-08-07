@@ -1,24 +1,19 @@
-import { Head } from '@inertiajs/vue3';
 import { shallowMount } from '@vue/test-utils';
 import { describe, expect, it } from 'vitest';
 import ShopLayout from '@/Layouts/ShopLayout.vue';
 import ProductsIndexPage from '@/pages/Products/Index.vue';
-import { defaultProducts } from '../../utils';
-
-const defaultProductFilters = {
-    search: '',
-    category_id: null,
-    min_price: null,
-    max_price: null,
-};
-
-const defaultCategories = [{ id: 1, name: 'Accessories', slug: 'accessories' }];
+import {
+    defaultCategories,
+    defaultFilters,
+    defaultProducts,
+    expectRendersPageTitle,
+} from '../../utils';
 
 function mountProductsIndexPage(props = {}) {
     return shallowMount(ProductsIndexPage, {
         props: {
             products: defaultProducts,
-            filters: defaultProductFilters,
+            filters: defaultFilters,
             categories: defaultCategories,
             ...props,
         },
@@ -27,11 +22,10 @@ function mountProductsIndexPage(props = {}) {
 
 describe('Products index page', () => {
     it('renders the page title via Head', () => {
-        const wrapper = mountProductsIndexPage();
-        const head = wrapper.findComponent(Head);
-
-        expect(head.exists()).toBe(true);
-        expect(head.attributes('title')).toBe('shop.products.pageTitle');
+        expectRendersPageTitle(
+            mountProductsIndexPage(),
+            'shop.products.pageTitle',
+        );
     });
 
     it('renders the product grid through the catalog layout', () => {

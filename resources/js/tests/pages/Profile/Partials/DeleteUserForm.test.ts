@@ -1,17 +1,9 @@
 import { mount } from '@vue/test-utils';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import FormField from '@/components/FormField.vue';
 import DeleteUserForm from '@/pages/Profile/Partials/DeleteUserForm.vue';
 import { getMockForm, routeMock } from '../../../setup';
-
-beforeEach(() => {
-    HTMLDialogElement.prototype.showModal = vi.fn();
-    HTMLDialogElement.prototype.close = vi.fn();
-});
-
-function findButton(wrapper: ReturnType<typeof mount>, text: string) {
-    return wrapper.findAll('button').find((button) => button.text() === text);
-}
+import { findButton } from '../../../utils';
 
 describe('DeleteUserForm', () => {
     it('does not show the confirmation modal initially', () => {
