@@ -1,10 +1,12 @@
 <script setup lang="ts">
+import { Check, Trash2 } from '@lucide/vue';
+import CancelButton from '@/components/CancelButton.vue';
 import DangerButton from '@/components/DangerButton.vue';
 import FormActions from '@/components/FormActions.vue';
 import FormSectionHeader from '@/components/FormSectionHeader.vue';
+import IconLabel from '@/components/IconLabel.vue';
 import Modal from '@/components/Modal.vue';
 import PrimaryButton from '@/components/PrimaryButton.vue';
-import SecondaryButton from '@/components/SecondaryButton.vue';
 import { t } from '@/i18n';
 
 defineProps({
@@ -49,23 +51,23 @@ const emit = defineEmits(['confirm', 'cancel']);
             <slot />
 
             <FormActions class="mt-6">
-                <SecondaryButton @click="emit('cancel')">
-                    {{ cancelLabel }}
-                </SecondaryButton>
+                <CancelButton @click="emit('cancel')">{{
+                    cancelLabel
+                }}</CancelButton>
 
                 <DangerButton
                     v-if="danger"
                     :disabled="processing"
                     @click="emit('confirm')"
                 >
-                    {{ confirmLabel }}
+                    <IconLabel :icon="Trash2">{{ confirmLabel }}</IconLabel>
                 </DangerButton>
                 <PrimaryButton
                     v-else
                     :disabled="processing"
                     @click="emit('confirm')"
                 >
-                    {{ confirmLabel }}
+                    <IconLabel :icon="Check">{{ confirmLabel }}</IconLabel>
                 </PrimaryButton>
             </FormActions>
         </div>

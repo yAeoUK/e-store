@@ -1,11 +1,13 @@
 import { router } from '@inertiajs/vue3';
 import { mount } from '@vue/test-utils';
+import type { DOMWrapper } from '@vue/test-utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import ProductVariantManager from '@/components/admin/ProductVariantManager.vue';
 import VariantOptionsEditor from '@/components/admin/VariantOptionsEditor.vue';
 import Card from '@/components/Card.vue';
 import FormField from '@/components/FormField.vue';
 import { getMockForm, routeMock } from '../../setup';
+import { findButton, testDeleteConfirmationFlow } from '../../utils';
 
 const variant = {
     id: 1,
@@ -16,13 +18,19 @@ const variant = {
     is_active: true,
 };
 
-function findButton(wrapper: ReturnType<typeof mount>, text: string) {
-    return wrapper.findAll('button').find((button) => button.text() === text);
+function expectOnlySkuRequired(form: DOMWrapper<Element>) {
+    const fields = form.findAllComponents(FormField);
+    expect(fields[0].props('required')).toBe(true);
+    expect(fields[1].props('required')).toBeFalsy();
+    expect(fields[2].props('required')).toBeFalsy();
+
+    const inputs = form.findAll('input[type="text"], input[type="number"]');
+    expect((inputs[0].element as HTMLInputElement).required).toBe(true);
+    expect((inputs[1].element as HTMLInputElement).required).toBe(false);
+    expect((inputs[2].element as HTMLInputElement).required).toBe(false);
 }
 
 beforeEach(() => {
-    HTMLDialogElement.prototype.showModal = vi.fn();
-    HTMLDialogElement.prototype.close = vi.fn();
     routeMock.mockClear();
     vi.mocked(router.delete).mockClear();
     vi.mocked(router.post).mockClear();
@@ -82,18 +90,7 @@ describe('ProductVariantManager', () => {
             props: { productId: 1, variants: [] },
         });
 
-        const addForm = wrapper.findAll('form')[0];
-        const fields = addForm.findAllComponents(FormField);
-        expect(fields[0].props('required')).toBe(true);
-        expect(fields[1].props('required')).toBeFalsy();
-        expect(fields[2].props('required')).toBeFalsy();
-
-        const inputs = addForm.findAll(
-            'input[type="text"], input[type="number"]',
-        );
-        expect((inputs[0].element as HTMLInputElement).required).toBe(true);
-        expect((inputs[1].element as HTMLInputElement).required).toBe(false);
-        expect((inputs[2].element as HTMLInputElement).required).toBe(false);
+        expectOnlySkuRequired(wrapper.findAll('form')[0]);
     });
 
     it('marks only the sku field as required in the edit-variant form', async () => {
@@ -103,18 +100,9 @@ describe('ProductVariantManager', () => {
 
         await findButton(wrapper, 'admin.actions.edit')?.trigger('click');
 
-        const editForm = wrapper.findComponent({ name: 'Modal' }).find('form');
-        const fields = editForm.findAllComponents(FormField);
-        expect(fields[0].props('required')).toBe(true);
-        expect(fields[1].props('required')).toBeFalsy();
-        expect(fields[2].props('required')).toBeFalsy();
-
-        const inputs = editForm.findAll(
-            'input[type="text"], input[type="number"]',
+        expectOnlySkuRequired(
+            wrapper.findComponent({ name: 'Modal' }).find('form'),
         );
-        expect((inputs[0].element as HTMLInputElement).required).toBe(true);
-        expect((inputs[1].element as HTMLInputElement).required).toBe(false);
-        expect((inputs[2].element as HTMLInputElement).required).toBe(false);
     });
 
     it('shows an inactive marker for an inactive variant', () => {
@@ -168,9 +156,10 @@ describe('ProductVariantManager', () => {
             .setValue('SKU-NEW-1');
 
         const optionsEditor = wrapper.findComponent(VariantOptionsEditor);
-        const addOptionButton = optionsEditor
-            .findAll('button')
-            .find((b) => b.text() === 'admin.products.addOption');
+        const addOptionButton = findButton(
+            optionsEditor,
+            'admin.products.addOption',
+        );
         await addOptionButton?.trigger('click');
 
         const rowInputs = wrapper
@@ -273,45 +262,13 @@ describe('ProductVariantManager', () => {
         );
     });
 
-    it('opens the delete confirmation dialog and deletes on confirm', async () => {
-        const wrapper = mount(ProductVariantManager, {
-            props: { productId: 9, variants: [variant] },
-        });
-
-        await findButton(wrapper, 'admin.actions.delete')?.trigger('click');
-
-        const dialog = wrapper.findComponent({ name: 'ConfirmationDialog' });
-        expect(dialog.props('show')).toBe(true);
-        expect(dialog.props('title')).toBe(
-            'admin.products.deleteVariantConfirmTitle',
-        );
-        expect(dialog.props('message')).toBe(
-            'admin.products.deleteVariantConfirmMessage',
-        );
-        expect(dialog.props('confirmLabel')).toBe('common.delete');
-
-        await dialog.vm.$emit('confirm');
-
-        expect(routeMock).toHaveBeenCalledWith(
-            'admin.products.variants.destroy',
-            [9, variant.id],
-        );
-        expect(vi.mocked(router.delete)).toHaveBeenCalled();
-    });
-
-    it('does not delete when the dialog is cancelled', async () => {
-        const wrapper = mount(ProductVariantManager, {
-            props: { productId: 1, variants: [variant] },
-        });
-
-        await findButton(wrapper, 'admin.actions.delete')?.trigger('click');
-        await wrapper
-            .findComponent({ name: 'ConfirmationDialog' })
-            .vm.$emit('cancel');
-
-        expect(
-            wrapper.findComponent({ name: 'ConfirmationDialog' }).props('show'),
-        ).toBe(false);
-        expect(router.delete).not.toHaveBeenCalled();
+    testDeleteConfirmationFlow(ProductVariantManager, {
+        mountProps: { productId: 9, variants: [variant] },
+        deleteButtonText: 'admin.actions.delete',
+        title: 'admin.products.deleteVariantConfirmTitle',
+        message: 'admin.products.deleteVariantConfirmMessage',
+        confirmLabel: 'common.delete',
+        destroyRoute: 'admin.products.variants.destroy',
+        destroyParams: [9, variant.id],
     });
 });

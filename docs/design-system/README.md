@@ -116,6 +116,14 @@ plain `string`/`object`).
 **Buttons & links**
 - `PrimaryButton`, `SecondaryButton`, `DangerButton` — plain `<button>`s,
   forward `$attrs` (so `type`, `disabled`, etc. pass straight through).
+- `CancelButton` — an optional-`href` cancel control: renders `ButtonLink` if
+  `href` is given, else `SecondaryButton`; wraps its default-slotted text
+  (falls back to `t('common.cancel')`) in `IconLabel` with an X icon. Used by
+  `EditFormModal`, `ConfirmationDialog`, and `admin/AdminResourceForm` — reach
+  for this instead of hand-wrapping another cancel `SecondaryButton`/`ButtonLink`.
+- `FilterSubmitButton` — a funnel-icon submit button (no props) for the
+  search-field-plus-submit-button filter bars on the admin index pages and
+  `shop/ProductFilters`; pairs with `filterFormClass` (see above).
 - `ButtonLink` — an Inertia `Link` styled as a button (`variant: primary | secondary`).
 - `TextLink` — an Inertia `Link` styled as inline text (`variant: muted | slate`).
   `ShopAuthBanner`'s account-menu links use `dropdownItemBaseClass` directly on
@@ -189,10 +197,14 @@ plain `string`/`object`).
   optional `message`, a `danger` prop that swaps the confirm button between
   `PrimaryButton` and `DangerButton`, and a `processing` prop that disables
   the confirm button (the cancel button is intentionally *not* disabled while
-  processing). The `confirmingId`/`deleting` state feeding a delete
-  `ConfirmationDialog` no longer needs to be hand-rolled per page — the
-  `useDeleteConfirmation<T = number>(buildRoute)` composable
-  (`resources/js/composables/useDeleteConfirmation.ts`) owns
+  processing). Its cancel button is `CancelButton` (see "Buttons & links"
+  above) and its confirm-button text is wrapped in `IconLabel` (a `Trash2`
+  icon when `danger`, `Check` otherwise). The `confirmingId`/`deleting` state
+  feeding a delete `ConfirmationDialog` no longer needs to be hand-rolled per
+  page — the `useDeleteConfirmation<T = number>(buildRoute)` composable
+  (`resources/js/composables/useDeleteConfirmation.ts`, itself now a thin
+  wrapper over the more generic `useConfirmAction` — see
+  [docs/frontend/README.md](../frontend/README.md)) owns
   `confirmingId`/`deleting` plus `confirmDelete(id)`/`cancel()`/`destroy()`
   (an Inertia `router.delete(buildRoute(id), { preserveScroll: true, ... })`
   call), and is generic over the id type so a route needing no id at all
@@ -202,16 +214,51 @@ plain `string`/`object`).
   `Account/Addresses.vue`, `Cart/Index.vue`, `ProductVariantManager`, and
   `ProductImageManager` — reach for this rather than re-declaring the same
   `confirmingId ref` + `confirmDelete`/`cancel`/`destroy` trio again.
+- `DeleteConfirmationDialog` — a thin wrapper over `ConfirmationDialog` that
+  fixes `danger` and the delete-flavored confirm label, taking just
+  `show`/`title`/`message`/`processing` and emitting `confirm`/`cancel`. Used
+  by `Admin/Categories/Index.vue`, `Admin/Products/Index.vue`,
+  `ProductVariantManager`, `ProductImageManager`, and `Account/Addresses.vue`
+  — the same delete-dialog call sites listed above now go through this
+  rather than passing `danger: true` to `ConfirmationDialog` by hand.
+- `EditFormModal` — the `Modal`-based chrome for an "edit in a modal" flow:
+  `show`/`title`/`processing`/`saveLabel`/optional `icon` props, emits
+  `close`/`submit`, composes `SectionHeading` + a `<form>` slot +
+  `CancelButton`/`PrimaryButton`. Used by `ProductVariantManager` (edit
+  variant) and `Account/Addresses.vue` (edit address) — reach for this
+  instead of hand-building another `Modal` + form-footer pair for an edit
+  flow.
 
 **Typography / layout**
 - `Card` — bordered surface wrapper (`cardSurfaceClass`).
 - `PageContainer` — the standard max-width page padding wrapper.
+- `SectionHeading` — a `heading` + optional `icon`/`iconClass` (default
+  muted slate)/`spacingClass` (default `mb-4`) heading row, with a default
+  slot rendered inline after the heading when an icon is present. A genuinely
+  shared primitive, not a decomposition-only one: used internally by
+  `OrderNoteCard`, `OrderItemsSummary`, `OrderShippingAddressCard`, and
+  `EditFormModal`, and directly in `Checkout/Index.vue`,
+  `Account/Addresses.vue`, `ProductVariantManager`, and
+  `Admin/Orders/Show.vue`.
+- `EmptyState` — a required `icon: Component` prop, centers the icon above
+  default-slot text (the `h-8 w-8` muted empty-state icon treatment
+  described in "Icons" below). Used by `Cart/Index.vue`,
+  `ui/table/TableEmpty.vue`, `Account/Orders.vue`, and
+  `shop/CatalogLayout.vue` — reach for this instead of hand-building another
+  centered icon + message block for a table/list/cart with no rows.
+- `TotalRow` — a `label` + `total` (number or string) row, formats `total`
+  via `resources/js/lib/format.ts`. Used by `Cart/Index.vue` and
+  `OrderItemsSummary`.
 - `LabelText`, `MutedText`, `SuccessText`, `ErrorBanner` — small colored text
   wrappers (slate, muted slate, green, red) for consistent copy styling.
   `ErrorBanner` is the one bordered/padded banner of the group (rather than
   plain inline text) — used for the "can't delete/revoke" messages on the
   admin categories and admins index pages.
 - `ApplicationLogo` — the inline SVG site logo.
+- `AppHeader` — the header shell shared by `Layouts/ShopLayout.vue` and
+  `Layouts/AdminLayout.vue`: a `logoHref` prop plus `logo-suffix`/`actions`/
+  `subheader` slots for each layout's own logo caption, `ShopAuthBanner`/nav
+  controls, and optional page-title row.
 - `FormSectionHeader` — a `heading` + optional `description` header for a
   form section (`Profile/Edit.vue`'s three partial forms); declares its own
   local `dialogTitleClass` rather than importing one from `classNames.ts`,
@@ -244,14 +291,39 @@ plain `string`/`object`).
   its `items` prop via `resources/js/lib/format.ts`'s `toSummaryItems()`
   helper rather than mapping the shape inline, so both pages stay in sync if
   the summary item shape ever changes.
-- `OrderStatusBadge` / `PaymentStatusBadge` — thin wrappers around `Badge`
-  (see the `ui/badge/` primitive below) that map an `OrderStatus`/
-  `PaymentStatus` string to a `Badge` variant and an already-translated
-  label. Both take a `namespace: 'account.orders' | 'admin.orders'` prop
-  since the same status strings are shown to a shopper and an admin but read
-  from different i18n domains (`account.orders.statuses.*` vs
-  `admin.orders.statuses.*`, and the `paymentStatuses.*` sibling key) —
-  don't hardcode a single namespace into either component.
+- `StatusBadge` — the generic engine both status badges below delegate to:
+  `status`, a `variants: Record<string, Variant>` map, and a
+  `translationKey` prop, rendered through `ui/badge/`'s `Badge`. Also used
+  directly (not through `OrderStatusBadge`/`PaymentStatusBadge`) in
+  `Admin/Orders/Index.vue` and `Account/Orders.vue`.
+- `OrderStatusBadge` / `PaymentStatusBadge` — thin wrappers around
+  `StatusBadge` that map an `OrderStatus`/`PaymentStatus` string to a
+  variant map and an already-translated label. Both take a `namespace:
+  OrdersNamespace` prop (`'account.orders' | 'admin.orders'`, the type
+  exported from `resources/js/lib/orderStatus.ts`) since the same status
+  strings are shown to a shopper and an admin but read from different i18n
+  domains (`account.orders.statuses.*` vs `admin.orders.statuses.*`, and the
+  `paymentStatuses.*` sibling key) — don't hardcode a single namespace into
+  either component.
+- `CustomerContact` — a `user: { name, email } | null` prop, renders `"Name
+  (email)"` or an em dash. Used by `Admin/Orders/Index.vue` and
+  `Admin/Orders/Show.vue`.
+- `OrderShippingAddressCard` — `namespace`/`address: AddressSnapshot` props,
+  wraps `Card` + `SectionHeading` + `AddressLines` (see above). Used by
+  `Account/Orders/Show.vue` and `Admin/Orders/Show.vue`.
+- `OrderSummaryCard` — `namespace`/`status`/`paymentStatus`/`createdAt`/
+  `orderItems`/`total` props, composes `OrderStatusBadge` + `PaymentStatusBadge`
+  + `OrderItemsSummary` with a default slot for page-specific extra content
+  (e.g. `Admin/Orders/Show.vue` slots in `CustomerContact`). Used by
+  `Account/Orders/Show.vue` and `Admin/Orders/Show.vue`.
+- `OrderNoteCard` — a generic note display card: `heading`/`note`/optional
+  `icon`/`iconClass`/`badgeLabel`/`accentClass` props over `Card` +
+  `SectionHeading`. Used for the *customer* note on both
+  `Account/Orders/Show.vue` and `Admin/Orders/Show.vue` — the admin *note*
+  section on `Admin/Orders/Show.vue` is hand-built with `Card` +
+  `SectionHeading` + `TextareaField` instead (it's an editable form, not a
+  read-only display), so don't assume every note-shaped block on that page
+  goes through `OrderNoteCard`.
 
 **Auth/shop-specific composite**
 - `ShopAuthBanner` — the header-right auth widget used by `ShopLayout`:
@@ -282,7 +354,7 @@ under `pages/Admin/` — not part of the general-purpose top-level inventory)
   `processing` — the page supplies its own field markup via the default
   slot (the shared `<Entity>FormFields` component) and an `#after` slot for
   anything that renders below the form card (none currently use it). Pairs
-  with the `useAdminResourceForm` composable — see
+  with the `useValidatedSubmit` composable — see
   [docs/frontend/README.md](../frontend/README.md)'s "Form validation"
   section.
 - `AdminSection` — a plain `title` + `<h2>` + slot wrapper
@@ -303,25 +375,63 @@ under `pages/Admin/` — not part of the general-purpose top-level inventory)
   on screen.
 - `DataTable` — the composition wrapper around the `ui/table/*` primitives
   below: generic over a `Row` type, takes `columns: DataTableColumn<Row>[]`
-  and `rows: Row[]`, an `emptyMessage`, and optional pagination metadata
-  (`from`/`to`/`total`/`links`, straight off a Laravel paginator). Renders a
-  per-column `#cell-${key}` slot (fall back to the raw field value or a
-  column's own `render()`) and an `#actions` slot for a trailing per-row
-  button group; shows a `TableEmpty` row when `rows` is empty, and a footer
-  "Showing X–Y of Z" summary + `Pagination` when pagination metadata is given.
+  and a single `paginated: Paginated<Row>` prop (rows plus pagination
+  metadata collapsed into one object, typed in `admin.ts` — this used to be
+  separate `rows`/`from`/`to`/`total`/`links` props) and an `emptyMessage`.
+  Renders a per-column `#cell-${key}` slot (fall back to the raw field value
+  or a column's own `render()`) and an `#actions` slot for a trailing
+  per-row button group — callers typically slot in `RowEditDeleteActions`
+  (below) rather than hand-building edit/delete buttons per row. Shows a
+  `TableEmpty` row when there are no rows, and a footer "Showing X–Y of Z"
+  summary + `Pagination` when pagination metadata is given.
+- `RowEditDeleteActions` — an `editHref` prop plus a `delete` emit, rendering
+  an edit `Link` and a danger delete button; slotted into `DataTable`'s
+  `#actions` slot by `Admin/Categories/Index.vue` and `Admin/Products/Index.vue`
+  rather than `DataTable` rendering it itself.
+- `AdminListCard` — an `empty: boolean` + `emptyMessage` slot-based card
+  wrapper for a non-tabular list (as opposed to `DataTable`'s tabular one).
+  Used by `ProductVariantManager` and `ProductImageManager`.
+- `LinkOrFallback` — `show: boolean`/`href?`/`fallback` props: renders a
+  `Link` when `show` and `href` are present, otherwise the plain `fallback`
+  text. Used by `Admin/Users/Index.vue` and `Admin/Categories/Index.vue` for
+  a cell that's sometimes a link (e.g. a category with a parent) and
+  sometimes plain text (no parent).
 - `CategoryFormFields` / `ProductFormFields` — the shared field markup for
   each entity's Create *and* Edit pages (name/slug grid, category/parent
   select, description, and for products: price/stock/short-description/
   active-checkbox). Each page keeps its own `useForm()`, submit route/verb,
   and outer `Card`/`FormActions` — only the field markup is shared, via
-  `v-model:<field>="form.<field>"` bindings and an `errors` prop. An
-  `autoSlug` prop (only passed `true` on the Create page) controls whether
-  the slug field auto-fills from the name as it's typed.
+  `v-model:<field>="form.<field>"` bindings and an `errors` prop. Both now
+  compose their fields from the smaller, more granular field components
+  below (`NameSlugFields`, `CategorySelectField`, `PriceField`, `StockField`,
+  `DescriptionField`, `IsActiveField`) rather than inlining
+  `FormField`/`SelectField`/`TextareaField`/`CheckboxField` directly.
+- `NameSlugFields` — the name+slug grid row itself (a `form:
+  InertiaForm<{name, slug}>` prop, `nameLabel`/`slugLabel`, `errors`, and the
+  `autoSlug` prop described above). Used by both `ProductFormFields` and
+  `CategoryFormFields`.
+- `CategorySelectField` — a `label`/`noneLabel`/`categories: AdminCategoryRef[]`
+  + `v-model` category picker (the `SelectField` instance for choosing a
+  parent/category). Used by `ProductFormFields`, `CategoryFormFields`, and
+  as the products index page's category filter control.
+- `PriceField` / `StockField` — `label`/`error?`/`v-model` number inputs
+  (`PriceField` also takes `required?`/`hint?`, `min="0" step="0.01"`;
+  `StockField` is `min="0"`, integer). Used by both `ProductFormFields` and
+  `VariantFormFields`.
+- `DescriptionField` — a `label` + `v-model` fixed-`rows="4"` textarea. Used
+  by `ProductFormFields` and `CategoryFormFields`.
+- `IsActiveField` — a fixed-label (`t('admin.products.isActive')`)
+  `v-model:checked` checkbox, no other props. Used by `ProductFormFields` and
+  `VariantFormFields`.
 - `SlugField` — a slug input that shows the current value as read-only text
   with an "edit" affordance by default; while not manually edited, it
-  live-updates from an optional `source` prop (the name field) via
-  `resources/js/lib/slug.ts`'s `slugify()`. Once the admin clicks "edit" and
-  types a custom slug, it stops auto-syncing from `source`.
+  live-updates from an optional `source` prop (the name field) via its own
+  inline `slugify()` (mirrors the backend's `HasUniqueSlug` trait's own
+  slugification, but doesn't call the backend — client-side preview only).
+  `slugify()` used to be a shared export from `resources/js/lib/slug.ts`;
+  that file was deleted once `SlugField` became its only caller, and the
+  function moved in-component. Once the admin clicks "edit" and types a
+  custom slug, `SlugField` stops auto-syncing from `source`.
 - `ProductImageManager` / `ProductVariantManager` — the image gallery and
   variant list on the product Edit page; each manages its own upload/add
   form, edit (variant only — images have no separate fields to edit besides
@@ -393,6 +503,45 @@ Established pairings, reuse these rather than inventing new ones:
   (`borderColorClass`) for inputs, buttons, and dividers.
 - Indigo accents (links, "default" badges): `text-indigo-600 dark:text-indigo-400`.
 - Destructive/error text: `text-red-600 dark:text-red-400`.
+
+## Icons
+
+Icons come from `@lucide/vue` (already a dependency — see `package.json`);
+don't add a second icon library for a one-off need. Two established sizes,
+depending on role:
+- **Inline icon** (next to a heading, nav label, or piece of body text) —
+  `h-4 w-4` inside a `flex items-center gap-2` wrapper. See `SidebarNav.vue`'s
+  nav item icons and `Admin/Orders/Show.vue`'s `MessageSquareText`/`Lock`
+  section-heading icons. When the icon sits next to button or link text
+  specifically, use the `IconLabel.vue` component (`:icon="Trash2"`) rather
+  than hand-wrapping a `span` — see `ConfirmationDialog.vue`. Pass `trailing`
+  for icon-after-text buttons like "Proceed to checkout".
+- **Boxed/accent icon** (a dashboard stat tile) — `h-5 w-5` centered inside a
+  fixed `h-10 w-10` rounded accent box (`rounded-lg bg-indigo-50
+  dark:bg-indigo-500/10`). See `StatCard.vue`.
+- **Empty-state icon** (a table/list with no rows, an empty cart) — `h-8 w-8`,
+  centered above the empty message, no accent box, colored `text-slate-300
+  dark:text-slate-700` — more muted than a boxed accent icon since it's
+  decorative negative space rather than a call-to-action.
+
+Icon color always pairs a light/dark variant, matching whatever accent the
+element it decorates already uses — `text-indigo-600 dark:text-indigo-400`
+for a primary/accent icon, `text-slate-500 dark:text-slate-400` for a muted
+or internal-only one (e.g. `Show.vue`'s admin-note `Lock`) — never a bare
+color utility with no `dark:` counterpart (see "Dark mode" above).
+
+A component that accepts a caller-supplied icon (`StatCard`, `SidebarNav`'s
+`SidebarNavItem.icon`) types the prop `icon?: Component` (`import type {
+Component } from 'vue'`) and renders it with
+`<component :is="icon" v-if="icon" class="h-4 w-4" />` — don't type it as a
+string name resolved from a lookup map.
+
+Icons are decorative alongside existing text by default — a section heading,
+nav label, or button that already reads e.g. "Delete" needs no extra
+`aria-*` wiring for the icon next to it. An icon-only control with no
+visible text label needs its own `aria-label` on the surrounding
+`<button>`/`<Link>` instead — there's no existing icon-only control to copy
+yet, so add the `aria-label` by hand the first time one is built.
 
 ## Conventions
 

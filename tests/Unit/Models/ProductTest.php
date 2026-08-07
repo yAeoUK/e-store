@@ -7,16 +7,7 @@ use App\Models\ProductImage;
 use App\Models\ProductVariant;
 
 test('category relationship returns the correct category', function () {
-    $category = Category::factory()->create(['name' => 'Electronics']);
-    $product = Product::factory()->create(['category_id' => $category->id, 'name' => 'Smartphone']);
-
-    // Unrelated data: another category with its own product, so the relation
-    // must resolve via category_id and not just grab any category row.
-    $otherCategory = Category::factory()->create(['name' => 'Home Appliances']);
-    Product::factory()->create(['category_id' => $otherCategory->id, 'name' => 'Blender']);
-
-    expect($product->category->id)->toBe($category->id)
-        ->and($product->category->id)->not->toBe($otherCategory->id);
+    assertBelongsToResolvesCorrectOwner(Category::class, Product::class, 'category_id', 'category');
 });
 
 test('images relationship returns images ordered by sort_order', function () {
@@ -34,31 +25,11 @@ test('images relationship returns images ordered by sort_order', function () {
 });
 
 test('variants relationship returns the related variants', function () {
-    $product = Product::factory()->create();
-    $variant = ProductVariant::factory()->create(['product_id' => $product->id]);
-
-    // Unrelated data: another product with its own variant, so the relation
-    // must filter by product_id and not just return every variant.
-    $otherProduct = Product::factory()->create();
-    $otherVariant = ProductVariant::factory()->create(['product_id' => $otherProduct->id]);
-
-    expect($product->variants)->toHaveCount(1)
-        ->and($product->variants->first()->id)->toBe($variant->id)
-        ->and($product->variants->pluck('id'))->not->toContain($otherVariant->id);
+    assertHasManyResolvesCorrectOwner(Product::class, ProductVariant::class, 'product_id', 'variants');
 });
 
 test('orderItems relationship returns the related order items', function () {
-    $product = Product::factory()->create();
-    $orderItem = OrderItem::factory()->create(['product_id' => $product->id]);
-
-    // Unrelated data: another product with its own order item, so the
-    // relation must filter by product_id and not just return every order item.
-    $otherProduct = Product::factory()->create();
-    $otherOrderItem = OrderItem::factory()->create(['product_id' => $otherProduct->id]);
-
-    expect($product->orderItems)->toHaveCount(1)
-        ->and($product->orderItems->first()->id)->toBe($orderItem->id)
-        ->and($product->orderItems->pluck('id'))->not->toContain($otherOrderItem->id);
+    assertHasManyResolvesCorrectOwner(Product::class, OrderItem::class, 'product_id', 'orderItems');
 });
 
 test('lowStock scope returns only products at or below the threshold but above zero', function () {

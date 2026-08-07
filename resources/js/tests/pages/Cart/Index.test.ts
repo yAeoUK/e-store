@@ -1,8 +1,9 @@
-import { Head, router } from '@inertiajs/vue3';
+import { router } from '@inertiajs/vue3';
 import { mount } from '@vue/test-utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import CartIndexPage from '@/pages/Cart/Index.vue';
 import { routeMock } from '../../setup';
+import { expectRendersPageTitle } from '../../utils';
 
 const cart = {
     id: 1,
@@ -18,8 +19,6 @@ const cart = {
 };
 
 beforeEach(() => {
-    HTMLDialogElement.prototype.showModal = vi.fn();
-    HTMLDialogElement.prototype.close = vi.fn();
     routeMock.mockClear();
     vi.mocked(router.patch).mockClear();
 });
@@ -35,9 +34,7 @@ describe('Cart index page', () => {
     it('renders the page title via Head', () => {
         const wrapper = mount(CartIndexPage, { props: { cart } });
 
-        expect(wrapper.findComponent(Head).attributes('title')).toBe(
-            'shop.cart.pageTitle',
-        );
+        expectRendersPageTitle(wrapper, 'shop.cart.pageTitle');
     });
 
     it('shows the empty state when the cart has no items', () => {
@@ -46,6 +43,7 @@ describe('Cart index page', () => {
         });
 
         expect(wrapper.text()).toContain('shop.cart.empty');
+        expect(wrapper.find('svg').exists()).toBe(true);
     });
 
     it('opens the quantity dialog pre-filled with the item quantity', async () => {
@@ -120,12 +118,14 @@ describe('Cart index page', () => {
         await openQuantityDialog(wrapper);
         const dialog = wrapper.findComponent({ name: 'ConfirmationDialog' });
 
-        await dialog
-            .find('input[type="number"]')
-            .setValue(1);
+        await dialog.find('input[type="number"]').setValue(1);
         await wrapper
             .findAll('button')
-            .find((button) => button.attributes('aria-label') === 'shop.cart.decreaseQuantity')
+            .find(
+                (button) =>
+                    button.attributes('aria-label') ===
+                    'shop.cart.decreaseQuantity',
+            )
             ?.trigger('click');
 
         expect(
@@ -135,7 +135,11 @@ describe('Cart index page', () => {
 
         await wrapper
             .findAll('button')
-            .find((button) => button.attributes('aria-label') === 'shop.cart.increaseQuantity')
+            .find(
+                (button) =>
+                    button.attributes('aria-label') ===
+                    'shop.cart.increaseQuantity',
+            )
             ?.trigger('click');
 
         expect(

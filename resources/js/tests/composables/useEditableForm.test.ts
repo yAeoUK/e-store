@@ -9,7 +9,10 @@ interface Item {
 }
 
 function setUp() {
-    return useEditableForm<{ name: string; options: Record<string, string> }, Item>(
+    return useEditableForm<
+        { name: string; options: Record<string, string> },
+        Item
+    >(
         () => ({ name: '', options: {} }),
         { name: [required('Name')] },
         (form, item) => {
@@ -39,6 +42,24 @@ describe('useEditableForm', () => {
 
         expect(attemptSubmit()).toBe(false);
         expect(errors.value.name).toBeDefined();
+    });
+
+    it('fieldErrors lets a server error win over a client error for the same field', () => {
+        const { form, fieldErrors, attemptSubmit } = setUp();
+
+        form.errors = { name: 'Already taken' };
+        attemptSubmit();
+
+        expect(fieldErrors.value.name).toBe('Already taken');
+    });
+
+    it('editFieldErrors lets a server error win over a client error for the same field', () => {
+        const { editForm, editFieldErrors, attemptEditSubmit } = setUp();
+
+        editForm.errors = { name: 'Already taken' };
+        attemptEditSubmit();
+
+        expect(editFieldErrors.value.name).toBe('Already taken');
     });
 
     it('edit() records the id, clears stale edit-form errors, and populates the form', () => {

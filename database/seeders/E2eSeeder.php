@@ -14,7 +14,6 @@ use App\Models\ProductImage;
 use App\Models\ProductVariant;
 use App\Models\User;
 use Illuminate\Database\Seeder;
-use Spatie\Permission\Models\Role;
 
 class E2eSeeder extends Seeder
 {
@@ -26,13 +25,11 @@ class E2eSeeder extends Seeder
      */
     public function run(): void
     {
-        Role::findOrCreate('admin');
+        $this->call(RoleSeeder::class);
 
         $customer = User::factory()->create([
             'name' => 'E2E Customer',
             'email' => 'e2e-customer@example.com',
-            'password' => bcrypt('password'),
-            'email_verified_at' => now(),
         ]);
 
         // Kept separate from the customer above so the "abandoned cart" test
@@ -40,15 +37,11 @@ class E2eSeeder extends Seeder
         User::factory()->create([
             'name' => 'E2E Cart Abandoner',
             'email' => 'e2e-cart-abandoner@example.com',
-            'password' => bcrypt('password'),
-            'email_verified_at' => now(),
         ]);
 
         $admin = User::factory()->create([
             'name' => 'E2E Admin',
             'email' => 'e2e-admin@example.com',
-            'password' => bcrypt('password'),
-            'email_verified_at' => now(),
         ]);
         $admin->assignRole('admin');
 
@@ -58,8 +51,6 @@ class E2eSeeder extends Seeder
         $addressOwner = User::factory()->create([
             'name' => 'E2E Address Owner',
             'email' => 'e2e-address-owner@example.com',
-            'password' => bcrypt('password'),
-            'email_verified_at' => now(),
         ]);
         Address::factory()->create([
             'user_id' => $addressOwner->id,
@@ -81,8 +72,6 @@ class E2eSeeder extends Seeder
         User::factory()->create([
             'name' => 'E2E Promotable User',
             'email' => 'e2e-promotable@example.com',
-            'password' => bcrypt('password'),
-            'email_verified_at' => now(),
         ]);
 
         $category = Category::factory()->create([
@@ -170,14 +159,24 @@ class E2eSeeder extends Seeder
         $orderHistoryCustomer = User::factory()->create([
             'name' => 'E2E Order History Customer',
             'email' => 'e2e-order-history@example.com',
-            'password' => bcrypt('password'),
-            'email_verified_at' => now(),
         ]);
 
         $this->seedHistoricalOrder($orderHistoryCustomer, $product, OrderStatus::Completed, PaymentStatus::Paid, 199.99);
         $this->seedHistoricalOrder($orderHistoryCustomer, $product, OrderStatus::Processing, PaymentStatus::Paid, 89.50);
         $this->seedHistoricalOrder($orderHistoryCustomer, $product, OrderStatus::Cancelled, PaymentStatus::Unpaid, 45.00);
         $this->seedHistoricalOrder($customer, $product, OrderStatus::Completed, PaymentStatus::Paid, 150.00);
+
+        // Kept separate from the order-history customer above so the admin
+        // order-management spec (status transitions, admin note, refund) can
+        // freely mutate its own rows without corrupting the exact
+        // status/payment counts the order-history search test asserts on.
+        $orderManagementCustomer = User::factory()->create([
+            'name' => 'E2E Order Management Customer',
+            'email' => 'e2e-order-management@example.com',
+        ]);
+
+        $this->seedHistoricalOrder($orderManagementCustomer, $product, OrderStatus::Pending, PaymentStatus::Unpaid, 75.00);
+        $this->seedHistoricalOrder($orderManagementCustomer, $product, OrderStatus::Processing, PaymentStatus::Paid, 60.00);
     }
 
     private function seedHistoricalOrder(User $user, Product $product, OrderStatus $status, PaymentStatus $paymentStatus, float $total): void
@@ -194,13 +193,7 @@ class E2eSeeder extends Seeder
             'product_variant_id' => null,
             'quantity' => 1,
             'unit_price' => $total,
-            'product_snapshot' => [
-                'name' => $product->name,
-                'slug' => $product->slug,
-                'image_url' => null,
-                'category' => null,
-                'variant' => null,
-            ],
+            'product_snapshot' => OrderItem::buildProductSnapshot($product, null),
         ]);
     }
 }

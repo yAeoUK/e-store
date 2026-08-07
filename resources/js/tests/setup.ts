@@ -28,10 +28,20 @@ let mockForms: MockForm[] = [];
 
 beforeEach(() => {
     mockForms = [];
+    HTMLDialogElement.prototype.showModal = vi.fn();
+    HTMLDialogElement.prototype.close = vi.fn();
+    routeMock.mockClear();
 });
 
 function useForm<T extends Record<string, unknown>>(initial: T) {
     const initialData: Record<string, unknown> = { ...initial };
+
+    function mockSubmit(_url: string, options: FormOptions = {}) {
+        (form as unknown as MockForm).lastPostUrl = _url;
+        (form as unknown as MockForm).lastPostOptions = options;
+        options.onSuccess?.();
+        options.onFinish?.();
+    }
 
     const form = reactive({
         ...initial,
@@ -40,30 +50,10 @@ function useForm<T extends Record<string, unknown>>(initial: T) {
         data() {
             return { ...initialData };
         },
-        post(_url: string, options: FormOptions = {}) {
-            (form as unknown as MockForm).lastPostUrl = _url;
-            (form as unknown as MockForm).lastPostOptions = options;
-            options.onSuccess?.();
-            options.onFinish?.();
-        },
-        patch(_url: string, options: FormOptions = {}) {
-            (form as unknown as MockForm).lastPostUrl = _url;
-            (form as unknown as MockForm).lastPostOptions = options;
-            options.onSuccess?.();
-            options.onFinish?.();
-        },
-        put(_url: string, options: FormOptions = {}) {
-            (form as unknown as MockForm).lastPostUrl = _url;
-            (form as unknown as MockForm).lastPostOptions = options;
-            options.onSuccess?.();
-            options.onFinish?.();
-        },
-        delete(_url: string, options: FormOptions = {}) {
-            (form as unknown as MockForm).lastPostUrl = _url;
-            (form as unknown as MockForm).lastPostOptions = options;
-            options.onSuccess?.();
-            options.onFinish?.();
-        },
+        post: mockSubmit,
+        patch: mockSubmit,
+        put: mockSubmit,
+        delete: mockSubmit,
         get(_url: string, options: FormOptions = {}) {
             options.onFinish?.();
         },

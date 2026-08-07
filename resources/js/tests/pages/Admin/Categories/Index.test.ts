@@ -1,8 +1,16 @@
-import { Head, router, usePage } from '@inertiajs/vue3';
+import { router, usePage } from '@inertiajs/vue3';
 import { mount } from '@vue/test-utils';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import CategoriesIndexPage from '@/pages/Admin/Categories/Index.vue';
-import { routeMock } from '../../../setup';
+import {
+    expectRendersPageTitle,
+    pageWith,
+    testConfirmationDialogFlow,
+    testRendersEditLink,
+    testRendersIndexLayout,
+    testRendersLabels,
+    testServerErrorFlash,
+} from '../../../utils';
 
 const categories = {
     data: [
@@ -18,22 +26,9 @@ const categories = {
     links: [],
 };
 
-function pageWith(errors: Record<string, string> = {}) {
-    return { props: { auth: { user: null }, errors } } as unknown as ReturnType<
-        typeof usePage
-    >;
-}
-
 beforeEach(() => {
-    HTMLDialogElement.prototype.showModal = vi.fn();
-    HTMLDialogElement.prototype.close = vi.fn();
-    routeMock.mockClear();
     vi.mocked(router.delete).mockClear();
-    vi.mocked(usePage).mockReturnValue(pageWith());
-});
-
-afterEach(() => {
-    vi.mocked(usePage).mockReturnValue(pageWith());
+    vi.mocked(usePage).mockReturnValue(pageWith({ errors: {} }));
 });
 
 function mountPage() {
@@ -43,26 +38,9 @@ function mountPage() {
 }
 
 describe('Admin Categories index page', () => {
-    it('does not show a delete-blocked message by default', () => {
-        const wrapper = mountPage();
-
-        expect(wrapper.text()).not.toContain(
-            'Cannot delete a category that still has children.',
-        );
-    });
-
-    it('shows the server error message when the server flashes a category error', () => {
-        vi.mocked(usePage).mockReturnValue(
-            pageWith({
-                category: 'Cannot delete a category that still has children.',
-            }),
-        );
-
-        const wrapper = mountPage();
-
-        expect(wrapper.text()).toContain(
-            'Cannot delete a category that still has children.',
-        );
+    testServerErrorFlash(mountPage, {
+        errorKey: 'category',
+        message: 'Cannot delete a category that still has children.',
     });
 
     it('shows plain text for a null parent and a zero subcategories count', () => {
@@ -110,31 +88,10 @@ describe('Admin Categories index page', () => {
         expect(childrenLink?.attributes('href')).toBe('admin.categories.index');
     });
 
-    it('deletes a category on confirm', async () => {
-        const wrapper = mountPage();
-
-        const deleteButton = wrapper
-            .findAll('button')
-            .find((button) => button.text() === 'admin.actions.delete');
-        await deleteButton?.trigger('click');
-
-        const dialog = wrapper.findComponent({ name: 'ConfirmationDialog' });
-        expect(dialog.props('show')).toBe(true);
-
-        await dialog.vm.$emit('confirm');
-
-        expect(router.delete).toHaveBeenCalledWith(
-            'admin.categories.destroy',
-            expect.objectContaining({ preserveScroll: true }),
-        );
-    });
-
     it('renders the page title, heading and create action', () => {
         const wrapper = mountPage();
 
-        expect(wrapper.findComponent(Head).attributes('title')).toBe(
-            'admin.categories.pageTitle',
-        );
+        expectRendersPageTitle(wrapper, 'admin.categories.pageTitle');
         expect(wrapper.text()).toContain('admin.categories.heading');
 
         const createLink = wrapper
@@ -143,15 +100,16 @@ describe('Admin Categories index page', () => {
         expect(createLink?.props('href')).toBe('admin.categories.create');
     });
 
-    it('renders the expected column headers', () => {
-        const wrapper = mountPage();
-        const text = wrapper.text();
-
-        expect(text).toContain('admin.categories.columns.name');
-        expect(text).toContain('admin.categories.columns.parent');
-        expect(text).toContain('admin.categories.columns.products');
-        expect(text).toContain('admin.categories.columns.subcategories');
-    });
+    testRendersLabels(
+        mountPage,
+        [
+            'admin.categories.columns.name',
+            'admin.categories.columns.parent',
+            'admin.categories.columns.products',
+            'admin.categories.columns.subcategories',
+        ],
+        'renders the expected column headers',
+    );
 
     it('renders the search field and its submit button', () => {
         const wrapper = mountPage();
@@ -175,42 +133,24 @@ describe('Admin Categories index page', () => {
         expect(wrapper.text()).toContain('admin.categories.empty');
     });
 
-    it('renders an edit link for each row', () => {
-        const wrapper = mountPage();
+    testRendersEditLink(mountPage, 'admin.categories.edit');
 
-        const editLink = wrapper
-            .findAll('a')
-            .find((a) => a.text() === 'admin.actions.edit');
-        expect(editLink?.attributes('href')).toBe('admin.categories.edit');
+    testConfirmationDialogFlow(mountPage, {
+        triggerText: 'admin.actions.delete',
+        title: 'admin.categories.deleteConfirmTitle',
+        message: 'admin.categories.deleteConfirmMessage',
+        confirmLabel: 'common.delete',
+        onConfirm: () =>
+            expect(router.delete).toHaveBeenCalledWith(
+                'admin.categories.destroy',
+                expect.objectContaining({ preserveScroll: true }),
+            ),
     });
 
-    it('passes the expected copy to the delete confirmation dialog', () => {
-        const wrapper = mountPage();
-
-        const dialog = wrapper.findComponent({ name: 'ConfirmationDialog' });
-        expect(dialog.props('title')).toBe(
-            'admin.categories.deleteConfirmTitle',
-        );
-        expect(dialog.props('message')).toBe(
-            'admin.categories.deleteConfirmMessage',
-        );
-        expect(dialog.props('confirmLabel')).toBe('common.delete');
-    });
-
-    it('renders inside the expected layout and table components', () => {
-        const wrapper = mountPage();
-
-        expect(wrapper.findComponent({ name: 'AdminLayout' }).exists()).toBe(
-            true,
-        );
-        expect(wrapper.findComponent({ name: 'Pagination' }).exists()).toBe(
-            true,
-        );
-        expect(wrapper.findComponent({ name: 'PrimaryButton' }).exists()).toBe(
-            true,
-        );
-        expect(
-            wrapper.findAllComponents({ name: 'ButtonLink' }).length,
-        ).toBeGreaterThan(0);
-    });
+    testRendersIndexLayout(mountPage, [
+        'AdminLayout',
+        'Pagination',
+        'PrimaryButton',
+        'ButtonLink',
+    ]);
 });

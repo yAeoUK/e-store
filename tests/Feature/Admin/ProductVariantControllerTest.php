@@ -2,7 +2,6 @@
 
 use App\Models\Product;
 use App\Models\ProductVariant;
-use App\Models\User;
 
 test('admin can create a variant for a product', function () {
     $admin = actingAsAdmin();
@@ -102,24 +101,21 @@ test('admin can delete a variant', function () {
 });
 
 test('a variant belonging to a different product cannot be managed via this product', function () {
-    $admin = actingAsAdmin();
     $product = Product::factory()->create();
     $otherProduct = Product::factory()->create();
     $variant = ProductVariant::factory()->for($otherProduct)->create();
 
-    $this->actingAs($admin)->patch(route('admin.products.variants.update', [$product, $variant]), [
-        'sku' => $variant->sku,
-    ])->assertNotFound();
-
-    $this->actingAs($admin)->delete(route('admin.products.variants.destroy', [$product, $variant]))->assertNotFound();
+    assertScopedChildNotFoundForWrongParent($product, $variant, [
+        ['patch', 'admin.products.variants.update', ['sku' => $variant->sku]],
+        ['delete', 'admin.products.variants.destroy', []],
+    ]);
 });
 
 test('non-admin cannot manage product variants', function () {
-    $user = User::factory()->create();
     $product = Product::factory()->create();
     $variant = ProductVariant::factory()->for($product)->create();
 
-    $this->actingAs($user)->post(route('admin.products.variants.store', $product), ['sku' => 'X'])->assertForbidden();
-    $this->actingAs($user)->patch(route('admin.products.variants.update', [$product, $variant]), ['sku' => 'X'])->assertForbidden();
-    $this->actingAs($user)->delete(route('admin.products.variants.destroy', [$product, $variant]))->assertForbidden();
+    assertNonAdminForbidden('post', route('admin.products.variants.store', $product), ['sku' => 'X']);
+    assertNonAdminForbidden('patch', route('admin.products.variants.update', [$product, $variant]), ['sku' => 'X']);
+    assertNonAdminForbidden('delete', route('admin.products.variants.destroy', [$product, $variant]));
 });

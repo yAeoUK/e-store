@@ -1,24 +1,19 @@
 import { describe, expect, it } from 'vitest';
 import {
+    categoryValidationRules,
     confirmedBy,
     emailField,
-    fileMaxSize,
-    filesRequired,
-    fileType,
     integer,
     isEmail,
-    max,
     maxLength,
     min,
-    minLength,
+    nameEmailPasswordRules,
     numeric,
+    passwordConfirmationRules,
+    productValidationRules,
     required,
     validateFields,
 } from '@/lib/validation';
-
-function file(type: string, size: number): File {
-    return new File([new Uint8Array(size)], 'file', { type });
-}
 
 describe('required', () => {
     it('rejects null, undefined, empty and whitespace-only strings', () => {
@@ -75,21 +70,16 @@ describe('emailField', () => {
     it('accepts a well-formed email', () => {
         const rules = emailField('Email');
 
-        expect(rules.every((rule) => rule('jane@example.com', {}) === null)).toBe(
-            true,
-        );
+        expect(
+            rules.every((rule) => rule('jane@example.com', {}) === null),
+        ).toBe(true);
     });
 });
 
-describe('maxLength / minLength', () => {
+describe('maxLength', () => {
     it('rejects a value longer than the limit', () => {
         expect(maxLength('Name', 3)('abcd', {})).not.toBeNull();
         expect(maxLength('Name', 3)('abc', {})).toBeNull();
-    });
-
-    it('rejects a value shorter than the limit', () => {
-        expect(minLength('Password', 8)('short', {})).not.toBeNull();
-        expect(minLength('Password', 8)('longenough', {})).toBeNull();
     });
 });
 
@@ -106,12 +96,10 @@ describe('numeric / integer', () => {
     });
 });
 
-describe('min / max', () => {
+describe('min', () => {
     it('rejects values outside the bound', () => {
         expect(min('Price', 0)('-1', {})).not.toBeNull();
         expect(min('Price', 0)('0', {})).toBeNull();
-        expect(max('Price', 100)('101', {})).not.toBeNull();
-        expect(max('Price', 100)('100', {})).toBeNull();
     });
 });
 
@@ -121,31 +109,6 @@ describe('confirmedBy', () => {
 
         expect(validate('secret2', { password: 'secret' })).not.toBeNull();
         expect(validate('secret', { password: 'secret' })).toBeNull();
-    });
-});
-
-describe('filesRequired / fileType / fileMaxSize', () => {
-    it('rejects an empty file list', () => {
-        expect(filesRequired('Images')([], {})).not.toBeNull();
-        expect(filesRequired('Images')([file('image/png', 10)], {})).toBeNull();
-    });
-
-    it('rejects a disallowed mime type', () => {
-        const validate = fileType(
-            'Images',
-            ['image/jpeg', 'image/png', 'image/webp'],
-            'JPEG, PNG, WEBP',
-        );
-
-        expect(validate([file('image/gif', 10)], {})).not.toBeNull();
-        expect(validate([file('image/png', 10)], {})).toBeNull();
-    });
-
-    it('rejects an oversized file', () => {
-        const validate = fileMaxSize('Images', 100, '100 bytes');
-
-        expect(validate([file('image/png', 101)], {})).not.toBeNull();
-        expect(validate([file('image/png', 100)], {})).toBeNull();
     });
 });
 
@@ -171,5 +134,141 @@ describe('validateFields', () => {
         );
 
         expect(errors).toEqual({});
+    });
+});
+
+describe('passwordConfirmationRules', () => {
+    const labels = {
+        password: 'Password',
+        passwordConfirmation: 'Confirm Password',
+    };
+
+    it('rejects a missing password and mismatched confirmation', () => {
+        const rules = passwordConfirmationRules(labels);
+        const data = { password: '', password_confirmation: 'mismatch' };
+
+        const errors = validateFields(data, rules);
+
+        expect(Object.keys(errors)).toEqual([
+            'password',
+            'password_confirmation',
+        ]);
+    });
+
+    it('accepts a fully valid submission', () => {
+        const rules = passwordConfirmationRules(labels);
+        const data = { password: 'secret', password_confirmation: 'secret' };
+
+        expect(validateFields(data, rules)).toEqual({});
+    });
+});
+
+describe('nameEmailPasswordRules', () => {
+    const labels = {
+        name: 'Name',
+        email: 'Email',
+        password: 'Password',
+        passwordConfirmation: 'Confirm Password',
+    };
+
+    it('rejects missing name, malformed email and mismatched confirmation', () => {
+        const rules = nameEmailPasswordRules(labels);
+        const data = {
+            name: '',
+            email: 'not-an-email',
+            password: 'secret',
+            password_confirmation: 'mismatch',
+        };
+
+        const errors = validateFields(data, rules);
+
+        expect(Object.keys(errors)).toEqual([
+            'name',
+            'email',
+            'password_confirmation',
+        ]);
+    });
+
+    it('accepts a fully valid submission', () => {
+        const rules = nameEmailPasswordRules(labels);
+        const data = {
+            name: 'Jane',
+            email: 'jane@example.com',
+            password: 'secret',
+            password_confirmation: 'secret',
+        };
+
+        expect(validateFields(data, rules)).toEqual({});
+    });
+});
+
+describe('categoryValidationRules', () => {
+    const labels = { name: 'Name', slug: 'Slug' };
+
+    it('rejects a missing name', () => {
+        const rules = categoryValidationRules(labels);
+        const errors = validateFields({ name: '', slug: '' }, rules);
+
+        expect(Object.keys(errors)).toEqual(['name']);
+    });
+
+    it('accepts a fully valid submission', () => {
+        const rules = categoryValidationRules(labels);
+        const data = { name: 'Shoes', slug: 'shoes' };
+
+        expect(validateFields(data, rules)).toEqual({});
+    });
+});
+
+describe('productValidationRules', () => {
+    const labels = {
+        name: 'Name',
+        price: 'Price',
+        stock: 'Stock',
+        shortDescription: 'Short Description',
+        slug: 'Slug',
+    };
+
+    it('rejects a missing name, missing price and non-integer stock', () => {
+        const rules = productValidationRules(labels);
+        const data = {
+            name: '',
+            price: '',
+            stock: '1.5',
+            short_description: '',
+            slug: '',
+        };
+
+        const errors = validateFields(data, rules);
+
+        expect(Object.keys(errors)).toEqual(['name', 'price', 'stock']);
+    });
+
+    it('rejects a negative price and negative stock', () => {
+        const rules = productValidationRules(labels);
+        const data = {
+            name: 'Shoes',
+            price: '-1',
+            stock: '-1',
+            short_description: '',
+            slug: '',
+        };
+
+        const errors = validateFields(data, rules);
+
+        expect(Object.keys(errors)).toEqual(['price', 'stock']);
+    });
+
+    it('accepts a fully valid submission', () => {
+        const rules = productValidationRules(labels);
+        const data = {
+            name: 'Shoes',
+            price: '19.99',
+            stock: '5',
+            short_description: 'Comfortable shoes',
+            slug: 'shoes',
+        };
+
+        expect(validateFields(data, rules)).toEqual({});
     });
 });

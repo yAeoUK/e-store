@@ -1,12 +1,12 @@
-import { Head, router } from '@inertiajs/vue3';
+import { router } from '@inertiajs/vue3';
 import { mount } from '@vue/test-utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import FormField from '@/components/FormField.vue';
-import Pagination from '@/components/Pagination.vue';
-import PrimaryButton from '@/components/PrimaryButton.vue';
-import AdminLayout from '@/Layouts/AdminLayout.vue';
 import OrdersIndexPage from '@/pages/Admin/Orders/Index.vue';
-import { routeMock } from '../../../setup';
+import {
+    expectRendersPageTitle,
+    testRendersIndexLayout,
+    testRendersLabels,
+} from '../../../utils';
 
 const orders = {
     data: [
@@ -33,7 +33,6 @@ const orders = {
 };
 
 beforeEach(() => {
-    routeMock.mockClear();
     vi.mocked(router.get).mockClear();
 });
 
@@ -41,7 +40,13 @@ function mountPage(overrides: { orders?: typeof orders } = {}) {
     return mount(OrdersIndexPage, {
         props: {
             orders: overrides.orders ?? orders,
-            filters: { search: null, user_id: null },
+            filters: {
+                search: null,
+                user_id: null,
+                status: null,
+                date_from: null,
+                date_to: null,
+            },
         },
     });
 }
@@ -50,9 +55,7 @@ describe('Admin Orders index page', () => {
     it('renders the page title via Head', () => {
         const wrapper = mountPage();
 
-        expect(wrapper.findComponent(Head).attributes('title')).toBe(
-            'admin.orders.pageTitle',
-        );
+        expectRendersPageTitle(wrapper, 'admin.orders.pageTitle');
     });
 
     it('renders the customer name and email when present', () => {
@@ -82,15 +85,25 @@ describe('Admin Orders index page', () => {
         expect(wrapper.text()).toContain('admin.orders.statuses.cancelled');
     });
 
-    it('submits the search filter via router.get', async () => {
+    it('submits the search and filter fields via router.get', async () => {
         const wrapper = mountPage();
 
         await wrapper.find('input[type="text"]').setValue('jane');
+        await wrapper.find('select').setValue('processing');
+        const dateInputs = wrapper.findAll('input[type="date"]');
+        await dateInputs[0].setValue('2026-01-01');
+        await dateInputs[1].setValue('2026-02-01');
         await wrapper.find('form').trigger('submit');
 
         expect(router.get).toHaveBeenCalledWith(
             'admin.orders.index',
-            { search: 'jane', user_id: null },
+            {
+                search: 'jane',
+                user_id: null,
+                status: 'processing',
+                date_from: '2026-01-01',
+                date_to: '2026-02-01',
+            },
             { preserveState: true, replace: true },
         );
     });
@@ -101,16 +114,18 @@ describe('Admin Orders index page', () => {
         expect(wrapper.text()).toContain('admin.orders.heading');
     });
 
-    it('renders the translated column headers', () => {
-        const wrapper = mountPage();
-
-        expect(wrapper.text()).toContain('admin.orders.columns.id');
-        expect(wrapper.text()).toContain('admin.orders.columns.customer');
-        expect(wrapper.text()).toContain('admin.orders.columns.total');
-        expect(wrapper.text()).toContain('admin.orders.columns.status');
-        expect(wrapper.text()).toContain('admin.orders.columns.payment');
-        expect(wrapper.text()).toContain('admin.orders.columns.date');
-    });
+    testRendersLabels(
+        mountPage,
+        [
+            'admin.orders.columns.id',
+            'admin.orders.columns.customer',
+            'admin.orders.columns.total',
+            'admin.orders.columns.status',
+            'admin.orders.columns.payment',
+            'admin.orders.columns.date',
+        ],
+        'renders the translated column headers',
+    );
 
     it('renders the payment method and status for each order', () => {
         const wrapper = mountPage();
@@ -124,8 +139,27 @@ describe('Admin Orders index page', () => {
     it('renders the search field label and submit button text', () => {
         const wrapper = mountPage();
 
-        expect(wrapper.text()).toContain('admin.users.searchPlaceholder');
+        expect(wrapper.text()).toContain('admin.orders.searchPlaceholder');
         expect(wrapper.text()).toContain('common.confirm');
+    });
+
+    it('renders the status filter options and date range fields', () => {
+        const wrapper = mountPage();
+
+        expect(wrapper.text()).toContain('admin.orders.statusFilter');
+        expect(wrapper.text()).toContain('admin.orders.allStatuses');
+        expect(wrapper.text()).toContain('admin.orders.dateFrom');
+        expect(wrapper.text()).toContain('admin.orders.dateTo');
+        expect(wrapper.findAll('input[type="date"]')).toHaveLength(2);
+    });
+
+    it('renders a view link for each row', () => {
+        const wrapper = mountPage();
+
+        const viewLink = wrapper
+            .findAll('a')
+            .find((a) => a.text() === 'admin.actions.view');
+        expect(viewLink?.attributes('href')).toBe('admin.orders.show');
     });
 
     it('renders the empty message when there are no orders', () => {
@@ -134,12 +168,10 @@ describe('Admin Orders index page', () => {
         expect(wrapper.text()).toContain('admin.orders.empty');
     });
 
-    it('renders the FormField, Pagination, PrimaryButton and AdminLayout components', () => {
-        const wrapper = mountPage();
-
-        expect(wrapper.findComponent(FormField).exists()).toBe(true);
-        expect(wrapper.findComponent(Pagination).exists()).toBe(true);
-        expect(wrapper.findComponent(PrimaryButton).exists()).toBe(true);
-        expect(wrapper.findComponent(AdminLayout).exists()).toBe(true);
-    });
+    testRendersIndexLayout(mountPage, [
+        'FormField',
+        'Pagination',
+        'PrimaryButton',
+        'AdminLayout',
+    ]);
 });

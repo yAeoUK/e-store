@@ -24,7 +24,37 @@
       "Bash(composer require *)",
       "Bash(npm test *)",
       "Bash(vendor/bin/pint --test app/Http/Controllers/CartController.php tests/Feature/CartControllerTest.php routes/web.php)",
-      "Bash(./vendor/bin/pest tests/Unit/Models/ProductTest.php tests/Feature/Admin/ProductControllerTest.php tests/Feature/Admin/DashboardControllerTest.php)"
+      "Bash(./vendor/bin/pest tests/Unit/Models/ProductTest.php tests/Feature/Admin/ProductControllerTest.php tests/Feature/Admin/DashboardControllerTest.php)",
+      "Bash(vendor/bin/pint tests/Pest.php)",
+      "Bash(vendor/bin/pint --test app/Http/Controllers/Admin/CategoryController.php app/Http/Controllers/Admin/ProductController.php app/Http/Controllers/Concerns/FillsSlugAndForeignKey.php app/Http/Controllers/Concerns/GuardsRelatedDeletes.php app/Models/Category.php app/Models/Product.php app/Models/Concerns/GeneratesUniqueSlug.php tests/Pest.php tests/Feature/Admin/CategoryControllerTest.php tests/Feature/Admin/ProductControllerTest.php)",
+      "Bash(./vendor/bin/pest tests/Unit/Models/ProductImageTest.php tests/Unit/Models/AddressTest.php tests/Feature/Admin/ProductImageControllerTest.php)",
+      "Bash(./vendor/bin/pest --filter=Category)",
+      "Bash(./vendor/bin/pest --filter=Product)",
+      "Bash(./vendor/bin/pint --test tests/Pest.php tests/Unit/Models/ProductVariantTest.php tests/Unit/Models/ProductImageTest.php tests/Unit/Models/OrderItemTest.php tests/Unit/Models/ProductTest.php tests/Unit/Models/OrderTest.php)",
+      "Bash(composer exec *)",
+      "Bash(php -l app/Http/Requests/Concerns/SharedRules.php)",
+      "Bash(php -l app/Http/Requests/Admin/UpdateProductVariantRequest.php)",
+      "Bash(php -l app/Http/Requests/ProfileUpdateRequest.php)",
+      "Bash(./vendor/bin/pest --filter=\"guest\" tests/Feature/AccountTest.php tests/Feature/CartControllerTest.php tests/Feature/Account/OrderControllerTest.php tests/Feature/Admin/OrderControllerTest.php tests/Feature/CheckoutControllerTest.php)",
+      "Bash(./vendor/bin/pest --filter=\"guest\" tests/Feature/CartControllerTest.php)",
+      "Bash(./vendor/bin/pest --filter=\"guest\" tests/Feature/Account/OrderControllerTest.php)",
+      "Bash(./vendor/bin/pest --filter=\"guest\" tests/Feature/Admin/OrderControllerTest.php)",
+      "Bash(./vendor/bin/pest --filter=\"guest\" tests/Feature/CheckoutControllerTest.php)",
+      "Bash(npx tsc *)",
+      "Bash(./vendor/bin/pest --filter=\"guest\" tests/Feature/AccountTest.php --log-junit /tmp/junit.xml >/tmp/pest_out.txt 2>&1; echo done)",
+      "Bash(./vendor/bin/pest --filter=\"guest\" tests/Feature/AccountTest.php --log-junit \"C:/Users/ASUS/AppData/Local/Temp/claude/d--e-store/0f73f58c-5bab-4fb9-8c5e-00e1f104d839/scratchpad/junit.xml\")",
+      "Bash(vendor/bin/pint --test tests/Pest.php tests/Feature/AccountTest.php tests/Feature/CartControllerTest.php tests/Feature/Account/OrderControllerTest.php tests/Feature/Admin/OrderControllerTest.php tests/Feature/CheckoutControllerTest.php)",
+      "Bash(vendor/bin/pint --test \"C:/Users/ASUS/AppData/Local/Temp/claude/d--e-store/0f73f58c-5bab-4fb9-8c5e-00e1f104d839/scratchpad/CheckoutControllerTest_HEAD.php\")",
+      "Bash(./vendor/bin/pest tests/Feature/CartControllerTest.php tests/Feature/Account/OrderControllerTest.php tests/Feature/StripeWebhookControllerTest.php)",
+      "Bash(./vendor/bin/pest tests/Feature/CheckoutControllerTest.php tests/Feature/CartControllerTest.php tests/Feature/Account/OrderControllerTest.php tests/Feature/StripeWebhookControllerTest.php)",
+      "Bash(./vendor/bin/pest)",
+      "Bash(./vendor/bin/pint --test tests/Pest.php tests/Feature/CartControllerTest.php tests/Feature/CheckoutControllerTest.php tests/Feature/Admin/AdminControllerTest.php tests/Feature/Admin/ProductVariantControllerTest.php tests/Feature/Admin/ProductImageControllerTest.php tests/Feature/Admin/OrderControllerTest.php)",
+      "Bash(./vendor/bin/pint tests/Feature/CheckoutControllerTest.php)",
+      "Bash(./vendor/bin/pest tests/Unit/Models/AddressTest.php tests/Unit/Models/ProductImageTest.php)",
+      "Bash(echo \"EXIT:$?\")"
+    ],
+    "additionalDirectories": [
+      "\\tmp"
     ]
   }
 }

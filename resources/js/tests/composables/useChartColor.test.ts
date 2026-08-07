@@ -1,12 +1,13 @@
 import { flushPromises, mount } from '@vue/test-utils';
-import { defineComponent } from 'vue';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { defineComponent } from 'vue';
 import { useChartColor } from '@/composables/useChartColor';
 
 function mountWithColor(cssVariable: string, fallback: string) {
     const Host = defineComponent({
         setup() {
             const color = useChartColor(cssVariable, fallback);
+
             return { color };
         },
         template: '<div>{{ color }}</div>',

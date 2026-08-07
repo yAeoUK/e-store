@@ -1,10 +1,7 @@
 <?php
 
-use App\Enums\PaymentMethod;
 use App\Enums\PaymentStatus;
 use App\Models\Order;
-use App\Models\OrderItem;
-use App\Models\Product;
 use App\Models\User;
 
 function signedStripeRequest(array $payload, string $secret): array
@@ -19,18 +16,12 @@ function signedStripeRequest(array $payload, string $secret): array
 function unpaidStripeOrder(): Order
 {
     $user = User::factory()->create();
-    $product = Product::factory()->create(['price' => 20]);
-    $order = $user->cart();
-    OrderItem::factory()->create(['order_id' => $order->id, 'product_id' => $product->id, 'quantity' => 1]);
-    $order->forceFill([
-        'status' => 'pending',
-        'total' => 20,
-        'payment_method' => PaymentMethod::Stripe,
-        'payment_status' => PaymentStatus::Unpaid,
-        'stripe_checkout_session_id' => 'cs_test_webhook',
-    ])->save();
+    $order = createCartWithItems($user, itemCount: 1, quantity: 1);
 
-    return $order;
+    return stripeOrderInState($order, [
+        'total' => 20,
+        'stripe_checkout_session_id' => 'cs_test_webhook',
+    ]);
 }
 
 test('checkout.session.completed marks the matching order as paid', function () {

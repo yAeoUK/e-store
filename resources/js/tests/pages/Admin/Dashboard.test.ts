@@ -1,4 +1,3 @@
-import { Head } from '@inertiajs/vue3';
 import { mount } from '@vue/test-utils';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -14,6 +13,7 @@ import Card from '@/components/Card.vue';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import DashboardPage from '@/pages/Admin/Dashboard.vue';
 import { routeMock } from '../../setup';
+import { expectRendersPageTitle, testRendersLabels } from '../../utils';
 
 const stats = {
     total_products: 42,
@@ -41,9 +41,7 @@ describe('Admin Dashboard page', () => {
     it('renders the page title via Head', () => {
         const wrapper = mountPage();
 
-        expect(wrapper.findComponent(Head).attributes('title')).toBe(
-            'admin.dashboard.pageTitle',
-        );
+        expectRendersPageTitle(wrapper, 'admin.dashboard.pageTitle');
     });
 
     it('renders a stat card value for every stat', () => {
@@ -92,17 +90,19 @@ describe('Admin Dashboard page', () => {
         });
     });
 
-    it('renders the translated label for every stat card', () => {
-        const wrapper = mountPage();
-
-        expect(wrapper.text()).toContain('admin.dashboard.totalProducts');
-        expect(wrapper.text()).toContain('admin.dashboard.totalCategories');
-        expect(wrapper.text()).toContain('admin.dashboard.totalUsers');
-        expect(wrapper.text()).toContain('admin.dashboard.totalOrders');
-        expect(wrapper.text()).toContain('admin.dashboard.lowStock');
-        expect(wrapper.text()).toContain('admin.dashboard.outOfStock');
-        expect(wrapper.text()).toContain('admin.dashboard.totalRevenue');
-    });
+    testRendersLabels(
+        mountPage,
+        [
+            'admin.dashboard.totalProducts',
+            'admin.dashboard.totalCategories',
+            'admin.dashboard.totalUsers',
+            'admin.dashboard.totalOrders',
+            'admin.dashboard.lowStock',
+            'admin.dashboard.outOfStock',
+            'admin.dashboard.totalRevenue',
+        ],
+        'renders the translated label for every stat card',
+    );
 
     it('renders the chart card titles', () => {
         const wrapper = mountPage();

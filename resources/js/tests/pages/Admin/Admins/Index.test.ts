@@ -1,8 +1,14 @@
-import { Head, router, usePage } from '@inertiajs/vue3';
+import { router, usePage } from '@inertiajs/vue3';
 import { mount } from '@vue/test-utils';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import AdminsIndexPage from '@/pages/Admin/Admins/Index.vue';
 import { routeMock } from '../../../setup';
+import {
+    expectRendersPageTitle,
+    findButton,
+    pageWith,
+    testServerErrorFlash,
+} from '../../../utils';
 
 const admins = {
     data: [
@@ -22,30 +28,15 @@ const admins = {
     links: [],
 };
 
-function pageWith(errors: Record<string, string> = {}) {
-    return {
-        props: { auth: { user: { id: 1 } }, errors },
-    } as unknown as ReturnType<typeof usePage>;
-}
-
 beforeEach(() => {
-    HTMLDialogElement.prototype.showModal = vi.fn();
-    HTMLDialogElement.prototype.close = vi.fn();
-    routeMock.mockClear();
     vi.mocked(router.delete).mockClear();
-    vi.mocked(usePage).mockReturnValue(pageWith());
-});
-
-afterEach(() => {
-    vi.mocked(usePage).mockReturnValue(pageWith());
+    vi.mocked(usePage).mockReturnValue(
+        pageWith({ user: { id: 1 }, errors: {} }),
+    );
 });
 
 function mountPage() {
     return mount(AdminsIndexPage, { props: { admins } });
-}
-
-function findButton(wrapper: ReturnType<typeof mount>, text: string) {
-    return wrapper.findAll('button').find((button) => button.text() === text);
 }
 
 // AdminLayout's header renders its own logout ConfirmationDialog (via
@@ -66,9 +57,7 @@ describe('Admin Admins index page', () => {
         const wrapper = mountPage();
         const text = wrapper.text();
 
-        expect(wrapper.findComponent(Head).attributes('title')).toBe(
-            'admin.admins.pageTitle',
-        );
+        expectRendersPageTitle(wrapper, 'admin.admins.pageTitle');
         expect(text).toContain('admin.admins.heading');
         expect(text).toContain('admin.admins.addAdmin');
         expect(text).toContain('admin.admins.columns.name');
@@ -130,24 +119,10 @@ describe('Admin Admins index page', () => {
         expect(revokeButtons).toHaveLength(1);
     });
 
-    it('does not show a revoke-blocked message by default', () => {
-        const wrapper = mountPage();
-
-        expect(wrapper.text()).not.toContain(
-            'You cannot revoke your own admin access.',
-        );
-    });
-
-    it('shows the server error message when the server flashes an admin error', () => {
-        vi.mocked(usePage).mockReturnValue(
-            pageWith({ admin: 'You cannot revoke your own admin access.' }),
-        );
-
-        const wrapper = mountPage();
-
-        expect(wrapper.text()).toContain(
-            'You cannot revoke your own admin access.',
-        );
+    testServerErrorFlash(mountPage, {
+        errorKey: 'admin',
+        message: 'You cannot revoke your own admin access.',
+        pageProps: { user: { id: 1 } },
     });
 
     it('opens the confirmation dialog and revokes on confirm', async () => {

@@ -1,5 +1,7 @@
 <script setup lang="ts">
+import { Save } from '@lucide/vue';
 import { t } from '@/i18n';
+import IconLabel from './IconLabel.vue';
 import MutedText from './MutedText.vue';
 import PrimaryButton from './PrimaryButton.vue';
 
@@ -18,7 +20,9 @@ defineProps({
 <template>
     <div class="flex items-center gap-4">
         <PrimaryButton :disabled="processing">
-            <slot>{{ t('common.save') }}</slot>
+            <IconLabel :icon="Save"
+                ><slot>{{ t('common.save') }}</slot></IconLabel
+            >
         </PrimaryButton>
 
         <Transition

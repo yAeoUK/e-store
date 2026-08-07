@@ -1,28 +1,25 @@
 <script setup lang="ts">
-import { Badge, type BadgeVariants } from '@/components/ui/badge';
-import { t } from '@/i18n';
+import StatusBadge from '@/components/StatusBadge.vue';
+import type { Variant } from '@/components/ui/badge';
+import type { OrdersNamespace } from '@/lib/orderStatus';
 
-type Variant = NonNullable<BadgeVariants['variant']>;
-
-const orderStatusVariants: Record<string, Variant> = {
+const orderStatusVariants = {
     pending: 'outline',
     processing: 'secondary',
     completed: 'default',
     cancelled: 'destructive',
-};
-
-function orderStatusVariant(status: string): Variant {
-    return orderStatusVariants[status] ?? 'outline';
-}
+} satisfies Record<string, Variant>;
 
 defineProps<{
     status: string;
-    namespace: 'account.orders' | 'admin.orders';
+    namespace: OrdersNamespace;
 }>();
 </script>
 
 <template>
-    <Badge :variant="orderStatusVariant(status)">
-        {{ t(`${namespace}.statuses.${status}`) }}
-    </Badge>
+    <StatusBadge
+        :status="status"
+        :variants="orderStatusVariants"
+        :translation-key="`${namespace}.statuses`"
+    />
 </template>

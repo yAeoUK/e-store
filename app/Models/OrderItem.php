@@ -50,4 +50,32 @@ class OrderItem extends Model
     {
         return $this->belongsTo(ProductVariant::class);
     }
+
+    /**
+     * @return numeric-string
+     */
+    public static function resolveUnitPrice(Product $product, ?ProductVariant $variant): string
+    {
+        return $variant->price ?? $product->price;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public static function buildProductSnapshot(Product $product, ?ProductVariant $variant): array
+    {
+        return [
+            'name' => $product->name,
+            'slug' => $product->slug,
+            'image_url' => $product->images()->where('is_primary', true)->first()?->url,
+            'category' => $product->category ? [
+                'name' => $product->category->name,
+                'slug' => $product->category->slug,
+            ] : null,
+            'variant' => $variant ? [
+                'sku' => $variant->sku,
+                'options' => $variant->options,
+            ] : null,
+        ];
+    }
 }

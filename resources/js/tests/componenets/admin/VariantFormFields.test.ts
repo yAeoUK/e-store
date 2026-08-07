@@ -1,27 +1,20 @@
-import { useForm } from '@inertiajs/vue3';
-import { mount } from '@vue/test-utils';
 import { describe, expect, it } from 'vitest';
 import VariantFormFields from '@/components/admin/VariantFormFields.vue';
 import VariantOptionsEditor from '@/components/admin/VariantOptionsEditor.vue';
 import CheckboxField from '@/components/CheckboxField.vue';
 import FormField from '@/components/FormField.vue';
+import {
+    createFieldsHarness,
+    testErrorsAssignedToFormFields,
+} from '../../utils';
 
-function makeForm(overrides = {}) {
-    return useForm({
-        sku: '',
-        options: {} as Record<string, string>,
-        price: '' as number | string,
-        stock: 0,
-        is_active: true,
-        ...overrides,
-    });
-}
-
-function mountFields(props = {}) {
-    return mount(VariantFormFields, {
-        props: { form: makeForm(), errors: {}, ...props },
-    });
-}
+const { makeForm, mountFields } = createFieldsHarness(VariantFormFields, {
+    sku: '',
+    options: {} as Record<string, string>,
+    price: '' as number | string,
+    stock: 0,
+    is_active: true as boolean,
+});
 
 describe('VariantFormFields', () => {
     it('renders the sku, price, stock, options, and active fields', () => {
@@ -33,9 +26,7 @@ describe('VariantFormFields', () => {
         expect(fields[2].props('label')).toBe('admin.products.stock');
         expect(wrapper.text()).toContain('admin.products.variantPriceHint');
         expect(wrapper.text()).toContain('admin.products.options');
-        expect(wrapper.findComponent(VariantOptionsEditor).exists()).toBe(
-            true,
-        );
+        expect(wrapper.findComponent(VariantOptionsEditor).exists()).toBe(true);
         expect(wrapper.findComponent(CheckboxField).props('label')).toBe(
             'admin.products.isActive',
         );
@@ -55,9 +46,7 @@ describe('VariantFormFields', () => {
         const inputs = wrapper.findAll(
             'input[type="text"], input[type="number"]',
         );
-        expect((inputs[0].element as HTMLInputElement).value).toBe(
-            'SKU-RED-M',
-        );
+        expect((inputs[0].element as HTMLInputElement).value).toBe('SKU-RED-M');
         expect((inputs[1].element as HTMLInputElement).value).toBe('24.99');
         expect((inputs[2].element as HTMLInputElement).value).toBe('5');
         expect(
@@ -89,10 +78,9 @@ describe('VariantFormFields', () => {
         const form = makeForm();
         const wrapper = mountFields({ form });
 
-        await wrapper.findComponent(VariantOptionsEditor).vm.$emit(
-            'update:modelValue',
-            { color: 'Blue' },
-        );
+        await wrapper
+            .findComponent(VariantOptionsEditor)
+            .vm.$emit('update:modelValue', { color: 'Blue' });
 
         expect(form.options).toEqual({ color: 'Blue' });
     });
@@ -108,23 +96,10 @@ describe('VariantFormFields', () => {
         expect(form.is_active).toBe(false);
     });
 
-    it('passes each error to its matching field', () => {
-        const wrapper = mountFields({
-            errors: {
-                sku: 'The sku field is required.',
-                price: 'The price must be a number.',
-                stock: 'The stock field is required.',
-            },
-        });
-
-        const fields = wrapper.findAllComponents(FormField);
-        expect(fields[0].props('error')).toBe('The sku field is required.');
-        expect(fields[1].props('error')).toBe(
-            'The price must be a number.',
-        );
-        expect(fields[2].props('error')).toBe(
-            'The stock field is required.',
-        );
+    testErrorsAssignedToFormFields(mountFields, {
+        sku: 'The sku field is required.',
+        price: 'The price must be a number.',
+        stock: 'The stock field is required.',
     });
 
     it('marks only the sku field as required', () => {
@@ -147,9 +122,9 @@ describe('VariantFormFields', () => {
         form.options = { size: 'M' };
         await wrapper.setProps({ optionsResetKey: 2 });
 
-        const inputs = wrapper.findComponent(VariantOptionsEditor).findAll(
-            'input',
-        );
+        const inputs = wrapper
+            .findComponent(VariantOptionsEditor)
+            .findAll('input');
         expect((inputs[0].element as HTMLInputElement).value).toBe('size');
         expect((inputs[1].element as HTMLInputElement).value).toBe('M');
     });

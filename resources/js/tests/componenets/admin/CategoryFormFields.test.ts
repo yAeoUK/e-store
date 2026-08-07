@@ -1,30 +1,24 @@
-import { useForm } from '@inertiajs/vue3';
-import { mount } from '@vue/test-utils';
 import { describe, expect, it } from 'vitest';
 import CategoryFormFields from '@/components/admin/CategoryFormFields.vue';
 import SlugField from '@/components/admin/SlugField.vue';
 import FormField from '@/components/FormField.vue';
+import {
+    adminCategoryRefs,
+    createFieldsHarness,
+    testAutoSlugSourceProp,
+    testErrorsAssignedToFormFields,
+} from '../../utils';
 
-function makeForm(overrides = {}) {
-    return useForm({
+const { makeForm, mountFields } = createFieldsHarness(
+    CategoryFormFields,
+    {
         parent_id: '' as number | '',
         name: '',
         slug: '',
         description: '',
-        ...overrides,
-    });
-}
-
-const categories = [
-    { id: 1, name: 'Electronics' },
-    { id: 2, name: 'Furniture' },
-];
-
-function mountFields(props = {}) {
-    return mount(CategoryFormFields, {
-        props: { form: makeForm(), categories: [], errors: {}, ...props },
-    });
-}
+    },
+    { categories: [] },
+);
 
 describe('CategoryFormFields', () => {
     it('renders the name field, slug field, parent select and description', () => {
@@ -75,7 +69,7 @@ describe('CategoryFormFields', () => {
 
     it('lists the categories prop as parent options and updates form.parent_id when selected', async () => {
         const form = makeForm();
-        const wrapper = mountFields({ form, categories });
+        const wrapper = mountFields({ form, categories: adminCategoryRefs });
 
         expect(wrapper.text()).toContain('Electronics');
         expect(wrapper.text()).toContain('Furniture');
@@ -84,28 +78,15 @@ describe('CategoryFormFields', () => {
         expect(form.parent_id).toBe(2);
     });
 
-    it('passes each error to its matching field', () => {
-        const wrapper = mountFields({
-            errors: {
-                name: 'The name field is required.',
-                slug: 'The slug has already been taken.',
-            },
-        });
-
-        expect(wrapper.findComponent(FormField).props('error')).toBe(
-            'The name field is required.',
-        );
-        expect(wrapper.findComponent(SlugField).props('error')).toBe(
-            'The slug has already been taken.',
-        );
+    testErrorsAssignedToFormFields(mountFields, {
+        name: 'The name field is required.',
+        slug: 'The slug has already been taken.',
     });
 
     it('marks only the name field as required', () => {
         const wrapper = mountFields();
 
-        expect(wrapper.findComponent(FormField).props('required')).toBe(
-            true,
-        );
+        expect(wrapper.findComponent(FormField).props('required')).toBe(true);
         expect(
             (wrapper.find('input').element as HTMLInputElement).required,
         ).toBe(true);
@@ -113,25 +94,9 @@ describe('CategoryFormFields', () => {
             (wrapper.find('select').element as HTMLSelectElement).required,
         ).toBe(false);
         expect(
-            (wrapper.find('textarea').element as HTMLTextAreaElement)
-                .required,
+            (wrapper.find('textarea').element as HTMLTextAreaElement).required,
         ).toBe(false);
     });
 
-    it('only passes a slug source when autoSlug is enabled', () => {
-        const withoutAutoSlug = mountFields({
-            form: makeForm({ name: 'Home Appliances' }),
-        });
-        expect(
-            withoutAutoSlug.findComponent(SlugField).props('source'),
-        ).toBeUndefined();
-
-        const withAutoSlug = mountFields({
-            form: makeForm({ name: 'Home Appliances' }),
-            autoSlug: true,
-        });
-        expect(withAutoSlug.findComponent(SlugField).props('source')).toBe(
-            'Home Appliances',
-        );
-    });
+    testAutoSlugSourceProp(mountFields, makeForm, 'Home Appliances');
 });

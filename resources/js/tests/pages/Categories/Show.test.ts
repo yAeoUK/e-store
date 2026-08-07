@@ -1,9 +1,8 @@
-import { Head } from '@inertiajs/vue3';
 import { shallowMount } from '@vue/test-utils';
 import { describe, expect, it } from 'vitest';
 import ShopLayout from '@/Layouts/ShopLayout.vue';
 import CategoriesShowPage from '@/pages/Categories/Show.vue';
-import { defaultProducts } from '../../utils';
+import { defaultProducts, expectRendersPageTitle } from '../../utils';
 
 function mountCategoriesShowPage(props = {}) {
     return shallowMount(CategoriesShowPage, {
@@ -29,17 +28,14 @@ function mountCategoriesShowPage(props = {}) {
 describe('Categories show page', () => {
     it('renders the page title via Head, using the category name', () => {
         const wrapper = mountCategoriesShowPage();
-        const head = wrapper.findComponent(Head);
 
-        expect(head.exists()).toBe(true);
-        expect(head.attributes('title')).toBe('Furniture');
+        expectRendersPageTitle(wrapper, 'Furniture');
     });
 
     it('falls back to the default page title via Head when there is no category', () => {
         const wrapper = mountCategoriesShowPage({ category: undefined });
-        const head = wrapper.findComponent(Head);
 
-        expect(head.attributes('title')).toBe('shop.categories.pageTitle');
+        expectRendersPageTitle(wrapper, 'shop.categories.pageTitle');
     });
 
     it('renders the category content', () => {

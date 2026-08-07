@@ -1,7 +1,7 @@
-import { Head } from '@inertiajs/vue3';
 import { mount } from '@vue/test-utils';
 import { describe, expect, it } from 'vitest';
 import AdminPageHeader from '@/components/admin/AdminPageHeader.vue';
+import { expectRendersPageTitle } from '../../utils';
 
 describe('AdminPageHeader', () => {
     it('sets the Head title and uses it as the h1 when no heading is given', () => {
@@ -9,20 +9,19 @@ describe('AdminPageHeader', () => {
             props: { title: 'Products' },
         });
 
-        expect(wrapper.findComponent(Head).attributes('title')).toBe(
-            'Products',
-        );
+        expectRendersPageTitle(wrapper, 'Products');
         expect(wrapper.find('h1').text()).toBe('Products');
     });
 
     it('uses a distinct heading for the h1 when given, independent of the Head title', () => {
         const wrapper = mount(AdminPageHeader, {
-            props: { title: 'admin.products.pageTitle', heading: 'admin.products.heading' },
+            props: {
+                title: 'admin.products.pageTitle',
+                heading: 'admin.products.heading',
+            },
         });
 
-        expect(wrapper.findComponent(Head).attributes('title')).toBe(
-            'admin.products.pageTitle',
-        );
+        expectRendersPageTitle(wrapper, 'admin.products.pageTitle');
         expect(wrapper.find('h1').text()).toBe('admin.products.heading');
     });
 
@@ -41,9 +40,9 @@ describe('AdminPageHeader', () => {
         });
 
         const heading = wrapper.find('h1').element;
-        expect(heading.parentElement?.classList.contains('justify-between')).toBe(
-            false,
-        );
+        expect(
+            heading.parentElement?.classList.contains('justify-between'),
+        ).toBe(false);
     });
 
     it('renders the actions slot alongside the heading when provided', () => {

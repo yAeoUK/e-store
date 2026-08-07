@@ -21,6 +21,7 @@ class StoreCheckoutRequest extends FormRequest
         return [
             'address_id' => ['required', 'integer', 'exists:addresses,id'],
             'payment_method' => ['required', Rule::enum(PaymentMethod::class)],
+            'customer_note' => ['nullable', 'string', 'max:1000'],
         ];
     }
 }

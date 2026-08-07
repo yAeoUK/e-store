@@ -47,10 +47,24 @@ describe('useFormValidation', () => {
         expect(errors.value.email).toBe('Already taken');
     });
 
-    it('reset clears the attempted flag so client errors disappear again', () => {
-        const { attemptSubmit, reset, clientErrors } = useFormValidation(form(), {
+    it('fieldErrors lets a server error win over a client error for the same field', () => {
+        const theForm = form({ name: '', errors: { name: 'Already taken' } });
+        const { attemptSubmit, fieldErrors } = useFormValidation(theForm, {
             name: [required('Name')],
         });
+
+        attemptSubmit();
+
+        expect(fieldErrors.value.name).toBe('Already taken');
+    });
+
+    it('reset clears the attempted flag so client errors disappear again', () => {
+        const { attemptSubmit, reset, clientErrors } = useFormValidation(
+            form(),
+            {
+                name: [required('Name')],
+            },
+        );
 
         attemptSubmit();
         expect(clientErrors.value.name).toBeDefined();

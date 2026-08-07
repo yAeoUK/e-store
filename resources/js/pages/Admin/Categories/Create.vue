@@ -2,28 +2,25 @@
 import type { AdminCategoryRef } from '@/components/admin/admin.ts';
 import AdminResourceForm from '@/components/admin/AdminResourceForm.vue';
 import CategoryFormFields from '@/components/admin/CategoryFormFields.vue';
-import { useAdminResourceForm } from '@/composables/useAdminResourceForm';
+import { useValidatedSubmit } from '@/composables/useValidatedSubmit';
 import { t } from '@/i18n';
-import { maxLength, required } from '@/lib/validation';
+import { categoryValidationRules } from '@/lib/validation';
 
 defineProps<{
     categories: AdminCategoryRef[];
 }>();
 
-const { form, clientErrors, submit } = useAdminResourceForm(
+const { form, fieldErrors, submit } = useValidatedSubmit(
     {
         parent_id: '' as number | '',
         name: '',
         slug: '',
         description: '',
     },
-    {
-        name: [
-            required(t('admin.categories.name')),
-            maxLength(t('admin.categories.name'), 255),
-        ],
-        slug: [maxLength(t('admin.categories.slug'), 255)],
-    },
+    categoryValidationRules({
+        name: t('admin.categories.name'),
+        slug: t('admin.categories.slug'),
+    }),
     (form) => form.post(route('admin.categories.store')),
 );
 </script>
@@ -39,7 +36,7 @@ const { form, clientErrors, submit } = useAdminResourceForm(
         <CategoryFormFields
             :form="form"
             :categories="categories"
-            :errors="{ ...clientErrors, ...form.errors }"
+            :errors="fieldErrors"
             auto-slug
         />
     </AdminResourceForm>

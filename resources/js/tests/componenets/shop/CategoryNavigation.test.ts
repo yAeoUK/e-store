@@ -2,13 +2,7 @@ import { usePage } from '@inertiajs/vue3';
 import { mount } from '@vue/test-utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import CategoryNavigation from '@/components/shop/CategoryNavigation.vue';
-
-function pageWithUrl(url: string) {
-    return {
-        props: { auth: { user: null } },
-        url,
-    } as unknown as ReturnType<typeof usePage>;
-}
+import { pageWithUrl } from '../../utils';
 
 beforeEach(() => {
     vi.mocked(usePage).mockReturnValue(pageWithUrl('/categories/accessories'));

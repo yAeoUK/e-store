@@ -1,8 +1,11 @@
-import { Head } from '@inertiajs/vue3';
 import { mount } from '@vue/test-utils';
 import { describe, expect, it } from 'vitest';
 import AdminResourceForm from '@/components/admin/AdminResourceForm.vue';
 import FormActions from '@/components/FormActions.vue';
+import {
+    expectRendersPageTitle,
+    testEmitsSubmitOnFormSubmit,
+} from '../../utils';
 
 function mountForm(props = {}, slots = {}) {
     return mount(AdminResourceForm, {
@@ -27,9 +30,7 @@ describe('AdminResourceForm', () => {
         expect(wrapper.findComponent({ name: 'AdminLayout' }).exists()).toBe(
             true,
         );
-        expect(wrapper.findComponent(Head).attributes('title')).toBe(
-            'Create widget',
-        );
+        expectRendersPageTitle(wrapper, 'Create widget');
         expect(wrapper.find('h1').text()).toBe('Create widget');
     });
 
@@ -56,13 +57,7 @@ describe('AdminResourceForm', () => {
         expect(saveButton.attributes('disabled')).toBeDefined();
     });
 
-    it('emits submit when the form is submitted', async () => {
-        const wrapper = mountForm();
-
-        await wrapper.find('form').trigger('submit');
-
-        expect(wrapper.emitted('submit')).toHaveLength(1);
-    });
+    testEmitsSubmitOnFormSubmit(() => mountForm());
 
     it('renders the after slot below the form card', () => {
         const wrapper = mountForm(

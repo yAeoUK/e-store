@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Head, useForm } from '@inertiajs/vue3';
+import { MailCheck } from '@lucide/vue';
 import { computed } from 'vue';
 import MutedText from '@/components/MutedText.vue';
 import PrimaryButton from '@/components/PrimaryButton.vue';
@@ -26,7 +27,7 @@ const verificationLinkSent = computed(
 </script>
 
 <template>
-    <GuestLayout>
+    <GuestLayout :heading="t('auth.verifyEmail.title')" :icon="MailCheck">
         <Head :title="t('auth.verifyEmail.title')" />
 
         <MutedText class="mb-4">

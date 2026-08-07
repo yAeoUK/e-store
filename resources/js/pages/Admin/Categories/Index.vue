@@ -1,6 +1,5 @@
 <script setup lang="ts">
-import { Link, router, usePage } from '@inertiajs/vue3';
-import { computed, ref } from 'vue';
+import { Plus } from '@lucide/vue';
 import type {
     AdminCategory,
     DataTableColumn,
@@ -8,14 +7,18 @@ import type {
 } from '@/components/admin/admin.ts';
 import AdminPageHeader from '@/components/admin/AdminPageHeader.vue';
 import DataTable from '@/components/admin/DataTable.vue';
+import LinkOrFallback from '@/components/admin/LinkOrFallback.vue';
+import RowEditDeleteActions from '@/components/admin/RowEditDeleteActions.vue';
 import ButtonLink from '@/components/ButtonLink.vue';
-import { filterFormClass, linkClass } from '@/components/classNames';
-import ConfirmationDialog from '@/components/ConfirmationDialog.vue';
-import DangerButton from '@/components/DangerButton.vue';
+import { filterFormClass } from '@/components/classNames';
+import DeleteConfirmationDialog from '@/components/DeleteConfirmationDialog.vue';
 import ErrorBanner from '@/components/ErrorBanner.vue';
+import FilterSubmitButton from '@/components/FilterSubmitButton.vue';
 import FormField from '@/components/FormField.vue';
-import PrimaryButton from '@/components/PrimaryButton.vue';
+import IconLabel from '@/components/IconLabel.vue';
 import { useDeleteConfirmation } from '@/composables/useDeleteConfirmation';
+import { submitFilters, useFilterForm } from '@/composables/useFilterForm';
+import { useServerError } from '@/composables/useServerError';
 import { t } from '@/i18n';
 
 interface Props {
@@ -28,19 +31,14 @@ interface Props {
 
 const props = defineProps<Props>();
 
-const page = usePage();
-const deleteBlockedMessage = computed(
-    () => page.props.errors?.category ?? null,
-);
+const deleteBlockedMessage = useServerError('category');
 
-const search = ref(props.filters.search ?? '');
+const { state: filterState, normalize } = useFilterForm(props.filters, {
+    search: '',
+});
 
 function applyFilters(): void {
-    router.get(
-        route('admin.categories.index'),
-        { search: search.value || null },
-        { preserveState: true, replace: true },
-    );
+    submitFilters('admin.categories.index', normalize());
 }
 
 const columns: DataTableColumn<AdminCategory>[] = [
@@ -62,6 +60,7 @@ const {
     confirmingId: confirmingDeleteId,
     deleting,
     confirmDelete,
+    cancel,
     destroy,
 } = useDeleteConfirmation((id: number) =>
     route('admin.categories.destroy', id),
@@ -78,7 +77,9 @@ const {
                 variant="primary"
                 :href="route('admin.categories.create')"
             >
-                {{ t('admin.categories.create') }}
+                <IconLabel :icon="Plus">{{
+                    t('admin.categories.create')
+                }}</IconLabel>
             </ButtonLink>
         </template>
 
@@ -88,82 +89,71 @@ const {
 
         <form @submit.prevent="applyFilters" :class="filterFormClass">
             <FormField
-                v-model="search"
+                v-model="filterState.search"
                 type="text"
                 :label="t('admin.categories.searchPlaceholder')"
             />
-            <PrimaryButton type="submit">{{
-                t('common.confirm')
-            }}</PrimaryButton>
+            <FilterSubmitButton>{{ t('common.confirm') }}</FilterSubmitButton>
         </form>
 
         <DataTable
             :columns="columns"
-            :rows="categories.data"
-            :from="categories.from"
-            :to="categories.to"
-            :total="categories.total"
-            :links="categories.links"
+            :paginated="categories"
             :empty-message="t('admin.categories.empty')"
         >
             <template #cell-parent="{ row }">
-                <Link
-                    v-if="row.parent"
-                    :href="route('admin.categories.edit', row.parent.id)"
-                    :class="linkClass"
+                <LinkOrFallback
+                    :show="!!row.parent"
+                    :href="
+                        row.parent
+                            ? route('admin.categories.edit', row.parent.id)
+                            : undefined
+                    "
+                    :fallback="t('admin.categories.none')"
                 >
-                    {{ row.parent.name }}
-                </Link>
-                <span v-else>{{ t('admin.categories.none') }}</span>
+                    {{ row.parent?.name }}
+                </LinkOrFallback>
             </template>
 
             <template #cell-products_count="{ row }">
-                <Link
-                    v-if="row.products_count"
+                <LinkOrFallback
+                    :show="!!row.products_count"
                     :href="
                         route('admin.products.index', { category_id: row.id })
                     "
-                    :class="linkClass"
+                    fallback="0"
                 >
                     {{ row.products_count }}
-                </Link>
-                <span v-else>0</span>
+                </LinkOrFallback>
             </template>
 
             <template #cell-children_count="{ row }">
-                <Link
-                    v-if="row.children_count"
+                <LinkOrFallback
+                    :show="!!row.children_count"
                     :href="
                         route('admin.categories.index', { parent_id: row.id })
                     "
-                    :class="linkClass"
+                    fallback="0"
                 >
                     {{ row.children_count }}
-                </Link>
-                <span v-else>0</span>
+                </LinkOrFallback>
             </template>
 
             <template #actions="{ row }">
-                <div class="flex justify-end gap-2">
-                    <ButtonLink :href="route('admin.categories.edit', row.id)">
-                        {{ t('admin.actions.edit') }}
-                    </ButtonLink>
-                    <DangerButton @click="confirmDelete(row.id)">
-                        {{ t('admin.actions.delete') }}
-                    </DangerButton>
-                </div>
+                <RowEditDeleteActions
+                    :edit-href="route('admin.categories.edit', row.id)"
+                    @delete="confirmDelete(row.id)"
+                />
             </template>
         </DataTable>
 
-        <ConfirmationDialog
+        <DeleteConfirmationDialog
             :show="confirmingDeleteId !== null"
             :title="t('admin.categories.deleteConfirmTitle')"
             :message="t('admin.categories.deleteConfirmMessage')"
-            :confirm-label="t('common.delete')"
-            danger
             :processing="deleting"
             @confirm="destroy"
-            @cancel="confirmingDeleteId = null"
+            @cancel="cancel"
         />
     </AdminPageHeader>
 </template>

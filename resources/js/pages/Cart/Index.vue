@@ -1,5 +1,12 @@
 <script setup lang="ts">
 import { Head, router } from '@inertiajs/vue3';
+import {
+    ArrowLeft,
+    ArrowRight,
+    Pencil,
+    ShoppingCart,
+    Trash2,
+} from '@lucide/vue';
 import { computed, ref } from 'vue';
 import ButtonLink from '@/components/ButtonLink.vue';
 import Card from '@/components/Card.vue';
@@ -7,52 +14,36 @@ import {
     borderColorClass,
     cardPaddingClass,
     controlShapeClass,
-    headingTextClass,
     mutedTextClass,
     pageHeaderTextClass,
     rowActionsClass,
     stackedRowCardClass,
-    totalRowClass,
 } from '@/components/classNames';
 import ConfirmationDialog from '@/components/ConfirmationDialog.vue';
 import DangerButton from '@/components/DangerButton.vue';
+import EmptyState from '@/components/EmptyState.vue';
+import IconLabel from '@/components/IconLabel.vue';
 import InputError from '@/components/InputError.vue';
 import LabelText from '@/components/LabelText.vue';
 import MutedText from '@/components/MutedText.vue';
 import PageContainer from '@/components/PageContainer.vue';
 import SecondaryButton from '@/components/SecondaryButton.vue';
+import TotalRow from '@/components/TotalRow.vue';
 import { useCartSubtotal } from '@/composables/useCartSubtotal';
 import { useDeleteConfirmation } from '@/composables/useDeleteConfirmation';
 import { t } from '@/i18n';
 import ShopLayout from '@/Layouts/ShopLayout.vue';
 import { formatCurrency, formatVariantOptions } from '@/lib/format';
 import { integer, min, required, validateFields } from '@/lib/validation';
-import type { Cart } from '@/types/cart';
+import type { Cart, CartOrderItem } from '@/types/cart';
 
 const quantityBoxClass = `w-20 ${controlShapeClass} ${borderColorClass} text-center text-slate-900 dark:bg-slate-950 dark:text-slate-100`;
 
-interface OrderItem {
-    id: number;
-    quantity: number;
-    unit_price: number | string;
-    product: {
-        id: number;
-        name: string;
-        slug: string;
-        images?: { url: string; alt_text?: string | null }[];
-    };
-    product_variant: {
-        id: number;
-        sku: string;
-        options?: Record<string, string | number> | null;
-    } | null;
-}
-
-const props = defineProps<{ cart: Cart<OrderItem> }>();
+const props = defineProps<{ cart: Cart<CartOrderItem> }>();
 
 const subtotal = useCartSubtotal(() => props.cart.order_items);
 
-function updateQuantity(item: OrderItem, quantity: number) {
+function updateQuantity(item: CartOrderItem, quantity: number) {
     if (quantity < 1) {
         return;
     }
@@ -72,7 +63,7 @@ function updateQuantity(item: OrderItem, quantity: number) {
     );
 }
 
-const editingItem = ref<OrderItem | null>(null);
+const editingItem = ref<CartOrderItem | null>(null);
 const editQuantity = ref<number | string>(1);
 const updatingQuantity = ref(false);
 
@@ -91,7 +82,7 @@ const quantityClientErrors = computed(() =>
         : {},
 );
 
-function openQuantityDialog(item: OrderItem) {
+function openQuantityDialog(item: CartOrderItem) {
     editingItem.value = item;
     editQuantity.value = item.quantity;
     quantityAttempted.value = false;
@@ -155,9 +146,15 @@ const {
 
         <PageContainer>
             <Card :class="cardPaddingClass">
-                <MutedText v-if="cart.order_items.length === 0">
-                    {{ t('shop.cart.empty') }}
-                </MutedText>
+                <EmptyState
+                    v-if="cart.order_items.length === 0"
+                    :icon="ShoppingCart"
+                    class="text-center"
+                >
+                    <MutedText>
+                        {{ t('shop.cart.empty') }}
+                    </MutedText>
+                </EmptyState>
 
                 <template v-else>
                     <ul class="mb-6 space-y-3">
@@ -189,43 +186,47 @@ const {
                                     <SecondaryButton
                                         @click="openQuantityDialog(item)"
                                     >
-                                        {{ t('shop.cart.editQuantity') }}
+                                        <IconLabel :icon="Pencil">{{
+                                            t('shop.cart.editQuantity')
+                                        }}</IconLabel>
                                     </SecondaryButton>
                                 </div>
                                 <DangerButton @click="confirmRemove(item.id)">
-                                    {{ t('shop.cart.remove') }}
+                                    <IconLabel :icon="Trash2">{{
+                                        t('shop.cart.remove')
+                                    }}</IconLabel>
                                 </DangerButton>
                             </div>
                         </li>
                     </ul>
 
-                    <div :class="totalRowClass">
-                        <span :class="['font-semibold', headingTextClass]">
-                            {{ t('shop.cart.subtotal') }}
-                        </span>
-                        <span
-                            :class="['text-lg font-semibold', headingTextClass]"
-                        >
-                            {{ formatCurrency(subtotal) }}
-                        </span>
-                    </div>
+                    <TotalRow
+                        :label="t('shop.cart.subtotal')"
+                        :total="subtotal"
+                    />
 
                     <div class="mt-6 flex items-center justify-between">
                         <DangerButton @click="confirmClear(true)">
-                            {{ t('shop.cart.clearCart') }}
+                            <IconLabel :icon="Trash2">{{
+                                t('shop.cart.clearCart')
+                            }}</IconLabel>
                         </DangerButton>
                         <ButtonLink
                             variant="primary"
                             :href="route('checkout.index')"
                         >
-                            {{ t('shop.cart.proceedToCheckout') }}
+                            <IconLabel :icon="ArrowRight" trailing>{{
+                                t('shop.cart.proceedToCheckout')
+                            }}</IconLabel>
                         </ButtonLink>
                     </div>
                 </template>
 
                 <p v-if="cart.order_items.length === 0" class="mt-4">
                     <ButtonLink :href="route('home')" :class="mutedTextClass">
-                        {{ t('shop.cart.continueShopping') }}
+                        <IconLabel :icon="ArrowLeft">{{
+                            t('shop.cart.continueShopping')
+                        }}</IconLabel>
                     </ButtonLink>
                 </p>
             </Card>

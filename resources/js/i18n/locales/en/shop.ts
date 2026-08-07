@@ -54,6 +54,7 @@ const shop = {
             cod: 'Cash on Delivery',
             stripe: 'Pay by Card',
         },
+        note: 'Note (optional)',
     },
 };
 

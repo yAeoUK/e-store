@@ -2,13 +2,18 @@
 
 namespace App\Http\Requests;
 
+use App\Http\Requests\Concerns\AuthorizesUpdateVia;
+use App\Http\Requests\Concerns\SharedRules;
 use Illuminate\Foundation\Http\FormRequest;
 
 class UpdateCartItemRequest extends FormRequest
 {
+    use AuthorizesUpdateVia;
+    use SharedRules;
+
     public function authorize(): bool
     {
-        return $this->user()->can('update', $this->route('orderItem'));
+        return $this->authorizeUpdate('orderItem');
     }
 
     /**
@@ -17,7 +22,7 @@ class UpdateCartItemRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'quantity' => ['required', 'integer', 'min:1'],
+            'quantity' => $this->quantityRule(),
         ];
     }
 }

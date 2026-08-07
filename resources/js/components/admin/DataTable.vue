@@ -14,20 +14,15 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import { t } from '@/i18n';
-import type { DataTableColumn, PaginationLink } from './admin';
+import type { DataTableColumn, Paginated } from './admin';
 
 const props = defineProps<{
     columns: DataTableColumn<Row>[];
-    rows: Row[];
+    paginated: Paginated<Row>;
     emptyMessage: string;
-    // Pagination metadata (Laravel's paginator already provides these), used
-    // to render a "Showing X to Y of Z results" summary and the page links.
-    // Omit on non-paginated tables.
-    from?: number | null;
-    to?: number | null;
-    total?: number;
-    links?: PaginationLink[];
 }>();
+
+const rows = computed(() => props.paginated.data);
 
 const slots = defineSlots<{
     actions?: (props: { row: Row }) => unknown;
@@ -41,11 +36,13 @@ const fullRowColspan = computed(
 );
 
 const summaryText = computed(() => {
-    if (!props.total) {
+    const { from, to, total } = props.paginated;
+
+    if (!total) {
         return null;
     }
 
-    return `${t('admin.table.showing')} ${props.from}–${props.to} ${t('admin.table.of')} ${props.total} ${t('admin.table.results')}`;
+    return `${t('admin.table.showing')} ${from}–${to} ${t('admin.table.of')} ${total} ${t('admin.table.results')}`;
 });
 
 function alignClass(align?: 'start' | 'center' | 'end'): string {
@@ -112,7 +109,7 @@ function cellValue(row: Row, column: DataTableColumn<Row>): string {
                 <TableCell :colspan="fullRowColspan">
                     <div :class="wrapBetweenClass">
                         <span v-if="summaryText">{{ summaryText }}</span>
-                        <Pagination :links="links" />
+                        <Pagination :links="paginated.links" />
                     </div>
                 </TableCell>
             </TableRow>

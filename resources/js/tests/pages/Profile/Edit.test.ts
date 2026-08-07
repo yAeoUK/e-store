@@ -1,4 +1,4 @@
-import { Head, usePage } from '@inertiajs/vue3';
+import { usePage } from '@inertiajs/vue3';
 import { mount } from '@vue/test-utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import Card from '@/components/Card.vue';
@@ -6,32 +6,23 @@ import ProfileEditPage from '@/pages/Profile/Edit.vue';
 import DeleteUserForm from '@/pages/Profile/Partials/DeleteUserForm.vue';
 import UpdatePasswordForm from '@/pages/Profile/Partials/UpdatePasswordForm.vue';
 import UpdateProfileInformationForm from '@/pages/Profile/Partials/UpdateProfileInformationForm.vue';
-
-function pageWithUser() {
-    return {
-        props: {
-            auth: {
-                user: {
-                    name: 'Jane Doe',
-                    email: 'jane@example.com',
-                    email_verified_at: '2026-01-01T00:00:00.000Z',
-                },
-            },
-        },
-    } as unknown as ReturnType<typeof usePage>;
-}
+import { expectRendersPageTitle, pageWith } from '../../utils';
 
 beforeEach(() => {
-    vi.mocked(usePage).mockReturnValue(pageWithUser());
+    vi.mocked(usePage).mockReturnValue(
+        pageWith({
+            user: {
+                name: 'Jane Doe',
+                email: 'jane@example.com',
+                email_verified_at: '2026-01-01T00:00:00.000Z',
+            },
+        }),
+    );
 });
 
 describe('Profile edit page', () => {
     it('renders the page title via Head', () => {
-        const wrapper = mount(ProfileEditPage);
-        const head = wrapper.findComponent(Head);
-
-        expect(head.exists()).toBe(true);
-        expect(head.attributes('title')).toBe('profile.title');
+        expectRendersPageTitle(mount(ProfileEditPage), 'profile.title');
     });
 
     it('renders the profile information, password and delete-account sections in order', () => {

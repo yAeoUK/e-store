@@ -43,7 +43,5 @@ test('dashboard returns expected stats and revenue by day', function () {
 });
 
 test('non-admin cannot view the dashboard', function () {
-    $user = User::factory()->create();
-
-    $this->actingAs($user)->get(route('admin.dashboard'))->assertForbidden();
+    assertNonAdminCannotView('admin.dashboard');
 });

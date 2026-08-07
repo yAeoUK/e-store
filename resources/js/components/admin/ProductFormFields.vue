@@ -1,12 +1,17 @@
 <script setup lang="ts">
 import type { InertiaForm } from '@inertiajs/vue3';
-import type { AdminCategoryRef } from '@/components/admin/admin.ts';
-import SlugField from '@/components/admin/SlugField.vue';
-import CheckboxField from '@/components/CheckboxField.vue';
-import { formGrid3Class, formGridClass } from '@/components/classNames';
+import type {
+    AdminCategoryRef,
+    AutoSlugProp,
+} from '@/components/admin/admin.ts';
+import CategorySelectField from '@/components/admin/CategorySelectField.vue';
+import DescriptionField from '@/components/admin/DescriptionField.vue';
+import IsActiveField from '@/components/admin/IsActiveField.vue';
+import NameSlugFields from '@/components/admin/NameSlugFields.vue';
+import PriceField from '@/components/admin/PriceField.vue';
+import StockField from '@/components/admin/StockField.vue';
+import { formGrid3Class } from '@/components/classNames';
 import FormField from '@/components/FormField.vue';
-import SelectField from '@/components/SelectField.vue';
-import TextareaField from '@/components/TextareaField.vue';
 import { t } from '@/i18n';
 
 interface ProductFormValues {
@@ -20,74 +25,50 @@ interface ProductFormValues {
     is_active: boolean;
 }
 
-defineProps<{
-    form: InertiaForm<ProductFormValues>;
-    categories: AdminCategoryRef[];
-    errors: Partial<
-        Record<
-            | 'name'
-            | 'slug'
-            | 'category_id'
-            | 'price'
-            | 'stock'
-            | 'short_description'
-            | 'description',
-            string
-        >
-    >;
-    // Auto-fills the slug from the name while it hasn't been hand-edited.
-    // Omit on edit forms so an existing slug never changes just because the
-    // name was edited.
-    autoSlug?: boolean;
-}>();
+defineProps<
+    {
+        form: InertiaForm<ProductFormValues>;
+        categories: AdminCategoryRef[];
+        errors: Partial<
+            Record<
+                | 'name'
+                | 'slug'
+                | 'category_id'
+                | 'price'
+                | 'stock'
+                | 'short_description'
+                | 'description',
+                string
+            >
+        >;
+    } & AutoSlugProp
+>();
 </script>
 
 <template>
-    <div :class="formGridClass">
-        <FormField
-            v-model="form.name"
-            type="text"
-            :label="t('admin.products.name')"
-            :error="errors.name"
-            required
-        />
-        <SlugField
-            v-model="form.slug"
-            :label="t('admin.products.slug')"
-            :source="autoSlug ? form.name : undefined"
-            :error="errors.slug"
-        />
-    </div>
+    <NameSlugFields
+        :form="form"
+        :name-label="t('admin.products.name')"
+        :slug-label="t('admin.products.slug')"
+        :errors="errors"
+        :auto-slug="autoSlug"
+    />
 
     <div :class="formGrid3Class">
-        <SelectField
+        <CategorySelectField
             v-model="form.category_id"
             :label="t('admin.products.category')"
-        >
-            <option value="">
-                {{ t('admin.products.noCategory') }}
-            </option>
-            <option
-                v-for="category in categories"
-                :key="category.id"
-                :value="category.id"
-            >
-                {{ category.name }}
-            </option>
-        </SelectField>
-        <FormField
+            :none-label="t('admin.products.noCategory')"
+            :categories="categories"
+        />
+        <PriceField
             v-model="form.price"
-            type="number"
-            min="0"
-            step="0.01"
             :label="t('admin.products.price')"
             :error="errors.price"
             required
         />
-        <FormField
+        <StockField
             v-model="form.stock"
-            type="number"
-            min="0"
             :label="t('admin.products.stock')"
             :error="errors.stock"
         />
@@ -100,14 +81,10 @@ defineProps<{
         :error="errors.short_description"
     />
 
-    <TextareaField
+    <DescriptionField
         v-model="form.description"
         :label="t('admin.products.description')"
-        rows="4"
     />
 
-    <CheckboxField
-        v-model:checked="form.is_active"
-        :label="t('admin.products.isActive')"
-    />
+    <IsActiveField v-model:checked="form.is_active" />
 </template>

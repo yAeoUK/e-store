@@ -1,25 +1,9 @@
 <?php
 
-use App\Models\Order;
-use App\Models\OrderItem;
 use App\Models\Product;
 use App\Models\ProductVariant;
 use App\Models\User;
 use Inertia\Testing\AssertableInertia;
-
-function createCartWithItems(User $user, int $itemCount = 2): Order
-{
-    $cart = $user->cart();
-
-    for ($i = 0; $i < $itemCount; $i++) {
-        OrderItem::factory()->create([
-            'order_id' => $cart->id,
-            'product_id' => Product::factory()->create(['price' => 20, 'stock' => 10]),
-        ]);
-    }
-
-    return $cart;
-}
 
 // index
 
@@ -54,9 +38,7 @@ test('cart index only includes the authenticated user\'s cart items', function (
 });
 
 test('guests cannot view the cart', function () {
-    $response = $this->get(route('cart.index'));
-
-    $response->assertRedirect(route('login'));
+    assertGuestCannotAccessResource('get', route('cart.index'));
 });
 
 // store
@@ -208,26 +190,17 @@ test('adding an item rejects a product_id that does not exist', function () {
 test('guests cannot add an item to the cart', function () {
     $product = Product::factory()->create();
 
-    $response = $this->post(route('cart.items.store'), [
+    assertGuestCannotAccessResource('post', route('cart.items.store'), [
         'product_id' => $product->id,
         'quantity' => 1,
-    ]);
-
-    $response->assertRedirect(route('login'));
-    $this->assertDatabaseMissing('order_items', ['product_id' => $product->id]);
+    ], fn () => $this->assertDatabaseMissing('order_items', ['product_id' => $product->id]));
 });
 
 // update
 
 test('a user can update the quantity of their own cart item', function () {
     $user = User::factory()->create();
-    $cart = $user->cart();
-    $item = OrderItem::factory()->create([
-        'order_id' => $cart->id,
-        'product_id' => Product::factory()->create(['price' => 20, 'stock' => 10]),
-        'quantity' => 1,
-        'unit_price' => 20,
-    ]);
+    $item = createCartItem($user, ['quantity' => 1, 'unit_price' => 20]);
 
     $response = $this->actingAs($user)->patch(route('cart.items.update', $item), [
         'quantity' => 4,
@@ -243,11 +216,9 @@ test('a user can update the quantity of their own cart item', function () {
 
 test('updating a cart item recalculates the unit price from its variant', function () {
     $user = User::factory()->create();
-    $cart = $user->cart();
     $product = Product::factory()->create(['price' => 20, 'stock' => 10]);
     $variant = ProductVariant::factory()->create(['product_id' => $product->id, 'price' => 30, 'stock' => 10]);
-    $item = OrderItem::factory()->create([
-        'order_id' => $cart->id,
+    $item = createCartItem($user, [
         'product_id' => $product->id,
         'product_variant_id' => $variant->id,
         'quantity' => 1,
@@ -268,12 +239,7 @@ test('updating a cart item recalculates the unit price from its variant', functi
 
 test('updating a cart item requires a quantity of at least 1', function () {
     $user = User::factory()->create();
-    $cart = $user->cart();
-    $item = OrderItem::factory()->create([
-        'order_id' => $cart->id,
-        'product_id' => Product::factory()->create(['price' => 20, 'stock' => 10]),
-        'quantity' => 1,
-    ]);
+    $item = createCartItem($user, ['quantity' => 1]);
 
     $response = $this->actingAs($user)->patch(route('cart.items.update', $item), [
         'quantity' => 0,
@@ -285,46 +251,27 @@ test('updating a cart item requires a quantity of at least 1', function () {
 
 test('a user cannot update another user\'s cart item', function () {
     $owner = User::factory()->create();
-    $intruder = User::factory()->create();
-    $item = OrderItem::factory()->create([
-        'order_id' => $owner->cart()->id,
-        'product_id' => Product::factory()->create(['price' => 20, 'stock' => 10]),
-        'quantity' => 1,
-        'unit_price' => 20,
-    ]);
+    $item = createCartItem($owner, ['quantity' => 1, 'unit_price' => 20]);
 
-    $response = $this->actingAs($intruder)->patch(route('cart.items.update', $item), [
+    assertForeignUserCannotAccessResource('patch', route('cart.items.update', $item), $item, [
         'quantity' => 9,
-    ]);
-
-    $response->assertForbidden();
-    $this->assertDatabaseHas('order_items', ['id' => $item->id, 'quantity' => 1]);
+    ], ['id' => $item->id, 'quantity' => 1]);
 });
 
 test('guests cannot update a cart item', function () {
     $owner = User::factory()->create();
-    $item = OrderItem::factory()->create([
-        'order_id' => $owner->cart()->id,
-        'product_id' => Product::factory()->create(['price' => 20, 'stock' => 10]),
-        'quantity' => 1,
-    ]);
+    $item = createCartItem($owner, ['quantity' => 1]);
 
-    $response = $this->patch(route('cart.items.update', $item), [
+    assertGuestCannotAccessResource('patch', route('cart.items.update', $item), [
         'quantity' => 9,
-    ]);
-
-    $response->assertRedirect(route('login'));
-    $this->assertDatabaseHas('order_items', ['id' => $item->id, 'quantity' => 1]);
+    ], fn () => $this->assertDatabaseHas('order_items', ['id' => $item->id, 'quantity' => 1]));
 });
 
 // destroy
 
 test('a user can delete their own cart item', function () {
     $user = User::factory()->create();
-    $item = OrderItem::factory()->create([
-        'order_id' => $user->cart()->id,
-        'product_id' => Product::factory()->create(['price' => 20, 'stock' => 10]),
-    ]);
+    $item = createCartItem($user);
 
     $response = $this->actingAs($user)->delete(route('cart.items.destroy', $item));
 
@@ -334,29 +281,16 @@ test('a user can delete their own cart item', function () {
 
 test('a user cannot delete another user\'s cart item', function () {
     $owner = User::factory()->create();
-    $intruder = User::factory()->create();
-    $item = OrderItem::factory()->create([
-        'order_id' => $owner->cart()->id,
-        'product_id' => Product::factory()->create(['price' => 20, 'stock' => 10]),
-    ]);
+    $item = createCartItem($owner);
 
-    $response = $this->actingAs($intruder)->delete(route('cart.items.destroy', $item));
-
-    $response->assertForbidden();
-    $this->assertDatabaseHas('order_items', ['id' => $item->id]);
+    assertForeignUserCannotAccessResource('delete', route('cart.items.destroy', $item), $item);
 });
 
 test('guests cannot delete a cart item', function () {
     $owner = User::factory()->create();
-    $item = OrderItem::factory()->create([
-        'order_id' => $owner->cart()->id,
-        'product_id' => Product::factory()->create(['price' => 20, 'stock' => 10]),
-    ]);
+    $item = createCartItem($owner);
 
-    $response = $this->delete(route('cart.items.destroy', $item));
-
-    $response->assertRedirect(route('login'));
-    $this->assertDatabaseHas('order_items', ['id' => $item->id]);
+    assertGuestCannotAccessResource('delete', route('cart.items.destroy', $item), [], fn () => $this->assertDatabaseHas('order_items', ['id' => $item->id]));
 });
 
 // clear
@@ -393,7 +327,5 @@ test('clearing the cart does not affect other users\' carts', function () {
 });
 
 test('guests cannot clear a cart', function () {
-    $response = $this->delete(route('cart.clear'));
-
-    $response->assertRedirect(route('login'));
+    assertGuestCannotAccessResource('delete', route('cart.clear'));
 });

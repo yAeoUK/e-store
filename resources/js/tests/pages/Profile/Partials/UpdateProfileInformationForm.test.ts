@@ -4,16 +4,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import FormField from '@/components/FormField.vue';
 import UpdateProfileInformationForm from '@/pages/Profile/Partials/UpdateProfileInformationForm.vue';
 import { getMockForm, routeMock } from '../../../setup';
-
-function pageWith(user: {
-    name: string;
-    email: string;
-    email_verified_at: string | null;
-}) {
-    return {
-        props: { auth: { user } },
-    } as unknown as ReturnType<typeof usePage>;
-}
+import {
+    expectBlocksSubmissionWithClientError,
+    pageWith,
+} from '../../../utils';
 
 const verifiedUser = {
     name: 'Jane Doe',
@@ -22,7 +16,7 @@ const verifiedUser = {
 };
 
 beforeEach(() => {
-    vi.mocked(usePage).mockReturnValue(pageWith(verifiedUser));
+    vi.mocked(usePage).mockReturnValue(pageWith({ user: verifiedUser }));
 });
 
 describe('UpdateProfileInformationForm', () => {
@@ -81,7 +75,7 @@ describe('UpdateProfileInformationForm', () => {
 
     it('shows the unverified-email notice and resend link when the email is unverified', async () => {
         vi.mocked(usePage).mockReturnValue(
-            pageWith({ ...verifiedUser, email_verified_at: null }),
+            pageWith({ user: { ...verifiedUser, email_verified_at: null } }),
         );
 
         const wrapper = mount(UpdateProfileInformationForm, {
@@ -97,7 +91,7 @@ describe('UpdateProfileInformationForm', () => {
 
     it('shows the verification-sent success message when status matches', async () => {
         vi.mocked(usePage).mockReturnValue(
-            pageWith({ ...verifiedUser, email_verified_at: null }),
+            pageWith({ user: { ...verifiedUser, email_verified_at: null } }),
         );
 
         const wrapper = mount(UpdateProfileInformationForm, {
@@ -116,19 +110,21 @@ describe('UpdateProfileInformationForm', () => {
         const wrapper = mount(UpdateProfileInformationForm);
 
         await wrapper.find('input#name').setValue('');
-        await wrapper.find('form').trigger('submit');
 
-        expect(getMockForm().lastPostUrl).toBeUndefined();
-        expect(wrapper.text()).toContain('validation.required');
+        await expectBlocksSubmissionWithClientError(
+            wrapper,
+            'validation.required',
+        );
     });
 
     it('blocks submission and shows an email format error for an invalid email', async () => {
         const wrapper = mount(UpdateProfileInformationForm);
 
         await wrapper.find('input#email').setValue('not-an-email');
-        await wrapper.find('form').trigger('submit');
 
-        expect(getMockForm().lastPostUrl).toBeUndefined();
-        expect(wrapper.text()).toContain('validation.email');
+        await expectBlocksSubmissionWithClientError(
+            wrapper,
+            'validation.email',
+        );
     });
 });

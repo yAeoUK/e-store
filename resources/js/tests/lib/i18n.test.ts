@@ -32,16 +32,18 @@ describe('t', () => {
 
 describe('tp', () => {
     it('interpolates {token} placeholders from params', () => {
-        expect(
-            tp('validation.required', { field: 'Name' }, 'en'),
-        ).toBe('Name is required.');
+        expect(tp('validation.required', { field: 'Name' }, 'en')).toBe(
+            'Name is required.',
+        );
         expect(
             tp('validation.maxLength', { field: 'Name', max: 255 }, 'en'),
         ).toBe('Name must not exceed 255 characters.');
     });
 
     it('leaves a placeholder unchanged when no matching param is given', () => {
-        expect(tp('validation.required', {}, 'en')).toBe('{field} is required.');
+        expect(tp('validation.required', {}, 'en')).toBe(
+            '{field} is required.',
+        );
     });
 
     it('returns the path unchanged when the key does not exist', () => {
@@ -51,9 +53,9 @@ describe('tp', () => {
     });
 
     it('resolves the Arabic translation with interpolation', () => {
-        expect(
-            tp('validation.required', { field: 'الاسم' }, 'ar'),
-        ).toBe('الاسم مطلوب.');
+        expect(tp('validation.required', { field: 'الاسم' }, 'ar')).toBe(
+            'الاسم مطلوب.',
+        );
     });
 
     it('defaults to the current locale when none is given', () => {

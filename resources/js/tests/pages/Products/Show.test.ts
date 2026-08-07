@@ -1,9 +1,10 @@
-import { Head, router } from '@inertiajs/vue3';
+import { router } from '@inertiajs/vue3';
 import { mount } from '@vue/test-utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import ShopLayout from '@/Layouts/ShopLayout.vue';
 import ProductsShowPage from '@/pages/Products/Show.vue';
 import { routeMock } from '../../setup';
+import { expectRendersPageTitle } from '../../utils';
 
 const defaultProduct = {
     id: 1,
@@ -35,10 +36,8 @@ beforeEach(() => {
 describe('Products show page', () => {
     it('renders the page title via Head, using the product name', () => {
         const wrapper = mountProductsShowPage();
-        const head = wrapper.findComponent(Head);
 
-        expect(head.exists()).toBe(true);
-        expect(head.attributes('title')).toBe(defaultProduct.name);
+        expectRendersPageTitle(wrapper, defaultProduct.name);
     });
 
     it('renders the product details', () => {

@@ -2,15 +2,34 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasExclusiveFlag;
 use Database\Factories\AddressFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\DB;
 
 class Address extends Model
 {
     /** @use HasFactory<AddressFactory> */
-    use HasFactory;
+    use HasExclusiveFlag, HasFactory;
+
+    /**
+     * Columns safe to expose to the frontend (id + all fillable fields).
+     *
+     * @var list<string>
+     */
+    public const DISPLAY_COLUMNS = [
+        'id',
+        'label',
+        'name',
+        'line1',
+        'line2',
+        'city',
+        'state',
+        'postal_code',
+        'country',
+        'phone',
+        'is_default',
+    ];
 
     protected $fillable = [
         'label',
@@ -34,12 +53,6 @@ class Address extends Model
      */
     public function makeDefault(): void
     {
-        DB::transaction(function (): void {
-            static::where('user_id', $this->user_id)
-                ->where('id', '!=', $this->id)
-                ->update(['is_default' => false]);
-
-            $this->update(['is_default' => true]);
-        });
+        $this->makeExclusive('is_default', 'user_id');
     }
 }

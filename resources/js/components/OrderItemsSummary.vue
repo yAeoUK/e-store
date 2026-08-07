@@ -1,19 +1,9 @@
 <script setup lang="ts">
-import {
-    headingTextClass,
-    sectionHeadingClass,
-    totalRowClass,
-} from '@/components/classNames';
 import MutedText from '@/components/MutedText.vue';
+import SectionHeading from '@/components/SectionHeading.vue';
+import TotalRow from '@/components/TotalRow.vue';
 import { formatCurrency, formatVariantOptions } from '@/lib/format';
-
-interface SummaryItem {
-    id: number;
-    name: string;
-    variantOptions?: Record<string, string | number> | null;
-    quantity: number;
-    unitPrice: number | string;
-}
+import type { SummaryItem } from '@/lib/format';
 
 defineProps<{
     heading: string;
@@ -24,7 +14,7 @@ defineProps<{
 </script>
 
 <template>
-    <h3 :class="['mb-4', sectionHeadingClass]">{{ heading }}</h3>
+    <SectionHeading :heading="heading" />
     <ul class="mb-4 space-y-2">
         <li
             v-for="item in items"
@@ -43,12 +33,5 @@ defineProps<{
             </span>
         </li>
     </ul>
-    <div :class="totalRowClass">
-        <span :class="['font-semibold', headingTextClass]">
-            {{ totalLabel }}
-        </span>
-        <span :class="['text-lg font-semibold', headingTextClass]">
-            {{ formatCurrency(total) }}
-        </span>
-    </div>
+    <TotalRow :label="totalLabel" :total="total" />
 </template>

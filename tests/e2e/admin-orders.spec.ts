@@ -1,20 +1,27 @@
 import { expect, test } from '@playwright/test';
-import { ADMIN, login } from './helpers';
+import { ADMIN, confirmDialog, filterBy, formWithField, login, rowWithText } from './helpers';
 
 test.describe('admin order management', () => {
-    test('an admin can search orders and filter to a single customer', async ({ page }) => {
+    test('an admin can search orders and filter to a single customer', async ({
+        page,
+    }) => {
         await login(page, ADMIN);
         await page.goto('/admin/orders');
 
-        await expect(page.getByRole('heading', { name: 'Orders' })).toBeVisible();
+        await expect(
+            page.getByRole('heading', { name: 'Orders' }),
+        ).toBeVisible();
 
-        await page.getByLabel('Search users...').fill('E2E Order History');
-        await page.click('button:has-text("Confirm")');
+        await filterBy(
+            page,
+            'Search orders by customer or note...',
+            'E2E Order History',
+        );
 
         // scoped to just this customer's rows and checked as plain text,
         // since other seeded/created orders elsewhere on the page can share
         // the exact same status/payment badge text.
-        const rows = page.locator('tr').filter({ hasText: 'E2E Order History Customer' });
+        const rows = rowWithText(page, 'E2E Order History Customer');
         await expect(rows).toHaveCount(3);
         const rowsText = (await rows.allTextContents()).join(' ');
         expect(rowsText).toContain('Completed');
@@ -30,15 +37,93 @@ test.describe('admin order management', () => {
         expect(rowsText).toContain('Unpaid');
 
         // filter to a single user via the Users page's "Orders" count link
-        await page.getByLabel('Search users...').fill('');
-        await page.click('button:has-text("Confirm")');
+        await filterBy(page, 'Search orders by customer or note...', '');
 
         await page.goto('/admin/users');
-        await page.getByLabel('Search users...').fill('E2E Order History');
-        await page.click('button:has-text("Confirm")');
+        await filterBy(page, 'Search users...', 'E2E Order History');
         await page.click('a:has-text("3")');
 
         await expect(page).toHaveURL(/user_id=\d+/);
-        await expect(page.getByText('E2E Order History Customer')).toHaveCount(3);
+        await expect(page.getByText('E2E Order History Customer')).toHaveCount(
+            3,
+        );
+    });
+
+    test('an admin can open an order, transition its status, and leave a searchable note', async ({
+        page,
+    }) => {
+        await login(page, ADMIN);
+        await page.goto('/admin/orders');
+
+        await filterBy(
+            page,
+            'Search orders by customer or note...',
+            'E2E Order Management',
+        );
+
+        const row = rowWithText(page, '$75.00');
+        await row.getByRole('link', { name: 'View' }).click();
+
+        await expect(
+            page.getByRole('heading', { name: /^Order #\d+$/ }),
+        ).toBeVisible();
+        await expect(
+            page.locator('[data-slot="badge"]', { hasText: 'Pending' }),
+        ).toBeVisible();
+
+        const statusForm = formWithField(page, 'Status');
+        await statusForm.getByLabel('Status').selectOption('processing');
+        await statusForm.getByRole('button', { name: 'Save' }).click();
+        await expect(
+            page.locator('[data-slot="badge"]', { hasText: 'Processing' }),
+        ).toBeVisible();
+
+        await statusForm.getByLabel('Status').selectOption('completed');
+        await statusForm.getByRole('button', { name: 'Save' }).click();
+        await expect(
+            page.locator('[data-slot="badge"]', { hasText: 'Completed' }),
+        ).toBeVisible();
+
+        const noteForm = formWithField(page, 'Admin Note');
+        await noteForm
+            .getByLabel('Admin Note')
+            .fill('Confirmed delivery window with customer');
+        await noteForm.getByRole('button', { name: 'Save' }).click();
+        await expect(page.getByLabel('Admin Note')).toHaveValue(
+            'Confirmed delivery window with customer',
+        );
+
+        await page.goto('/admin/orders');
+        await filterBy(
+            page,
+            'Search orders by customer or note...',
+            'Confirmed delivery window',
+        );
+
+        await expect(rowWithText(page, '$75.00')).toHaveCount(1);
+    });
+
+    test('an admin can refund a paid order', async ({ page }) => {
+        await login(page, ADMIN);
+        await page.goto('/admin/orders');
+
+        await filterBy(
+            page,
+            'Search orders by customer or note...',
+            'E2E Order Management',
+        );
+
+        const row = rowWithText(page, '$60.00');
+        await row.getByRole('link', { name: 'View' }).click();
+
+        const refundButton = page.getByRole('button', { name: 'Refund' });
+        await expect(refundButton).toBeVisible();
+        await refundButton.click();
+        await confirmDialog(page, 'Refund');
+
+        await expect(
+            page.locator('[data-slot="badge"]', { hasText: 'Refunded' }),
+        ).toBeVisible();
+        await expect(refundButton).toHaveCount(0);
     });
 });

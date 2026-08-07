@@ -209,6 +209,106 @@ section the same as the Boost guidelines above.
 
 # Project Conventions (this repo specifically)
 
+## Pre-change checklist (this repo specifically)
+
+Run all four of these on every file add/edit — not as an occasional audit,
+every single time, before considering the change done:
+
+1. **Before adding a new file**, inspect the code you're about to add for
+   duplication against the rest of the codebase (not just sibling files). If
+   it repeats logic that already exists elsewhere, extract the shared logic
+   into a common file instead of writing the duplicate — see "Duplication
+   checks" below for the 2+ call site bar this has to clear.
+2. **Before editing a file, look at the part of the code being removed.** If
+   it was a caller of a shared helper/trait/scope/composable/component, and
+   removing it leaves that shared code with only one remaining caller,
+   inline the shared code into that one remaining call site and delete the
+   now-unused shared definition — in the same change, not as a follow-up.
+3. **Before editing a file, look at the part of the code being added**, the
+   same way as for a new file in point 1: check it against the rest of the
+   codebase for duplication, and extract to a shared location once 2+ real
+   call sites exist.
+4. **After any file is added or edited, add or update the test(s) covering
+   that change** and run them before finalizing — see "Testing conventions"
+   below for what "covering the change" means per area (model, controller,
+   Vue component, enum, service).
+
+The sections below spell out the detailed rules (call-site thresholds,
+where shared code lives, what "covered by a test" means per file type) —
+this checklist is the procedure for applying them on every change, not a
+replacement for them.
+
+## Formatting & type-checking while editing (this repo specifically)
+
+Run these as part of making each change, not only via `composer ci:check` at
+the very end — catching a formatting/type issue on the file you just touched
+is cheaper than discovering a pile of unrelated fallout across dozens of
+files in one final sweep:
+
+- **PHP**: `vendor/bin/pint --dirty --format agent` after editing PHP files
+  (already a Boost rule above — only formats files with uncommitted changes,
+  so it's cheap to run after every edit, not just before finalizing).
+- **Frontend (Vue/TS)**: run `npx prettier --write <file>` right after
+  editing a `.vue`/`.ts` file, and `npm run types:check` (`vue-tsc --noEmit`)
+  after any type-affecting change (a new/changed prop, a generic helper like
+  `createFieldsHarness`, a shared test util) — don't wait until
+  `composer ci:check` to find out a test-helper generic broke type inference
+  across a dozen unrelated test files.
+- `composer ci:check` (`lint:check`, `format:check`, `types:check`,
+  `pint --test`, `phpstan`, Pest) is still the final gate before calling a
+  change done — the incremental runs above are a supplement to catch issues
+  early, not a replacement for it.
+
+## Duplication checks (this repo specifically)
+
+- Every time code is added or changed, check it against the rest of the
+  codebase for duplication — not just within the file being touched. If the
+  new/changed code repeats logic that already exists elsewhere (a controller
+  method, a model method/scope, a validation rule, a Vue component, a
+  Tailwind class string, etc.), say so and propose extracting the shared
+  logic to a common place rather than leaving the duplicate in place. This is
+  a check to run on every change, not a one-off audit.
+- An extraction only clears the bar once there are **2+ real call sites** —
+  see "Reuse before writing new UI" below and the `classNames.js` promotion
+  rule in it for the frontend version of this; the same threshold applies on
+  the backend (e.g. `OrderItem::resolveUnitPrice`/`buildProductSnapshot`,
+  `Order::loadCartItemsForDisplay`, and `ProductVariant::findOptional` were
+  extracted out of `CartController`/`CheckoutController` because both
+  controllers needed them, not speculatively). The admin Category/Product/
+  Address controller-and-request layer went through the same pass:
+  `FillsSlugAndForeignKey`/`GuardsRelatedDeletes`/`FiltersIndexRequests`/
+  `DefaultsNullableFieldsToZero` (each shared by 2+ admin controllers),
+  `SharedRules`/`AuthorizesUpdateVia` (shared by several Form Requests), and
+  `HasExclusiveFlag` (shared by `Address::makeDefault()` and
+  `ProductImage::makePrimary()`) — see
+  [docs/architecture.md](docs/architecture.md)'s "Shared Concerns & base
+  Request classes" section for the full list and exact call sites. Don't
+  add a third caller's worth of speculative flexibility to any of these
+  beyond what the existing 2 callers actually need.
+- **The 2+ call site check applies per extracted symbol, not per file pair.**
+  Two files can be structurally identical (same shape of component/script)
+  while each individual constant/type moved out of them is still only
+  consumed by one of the two — that's not duplication, just two single-use
+  definitions that happen to look alike. `OrderStatusBadge.vue` and
+  `PaymentStatusBadge.vue` are near-identical wrapper components, but their
+  `orderStatusVariants`/`paymentStatusVariants` maps were each only ever
+  imported by their own component — moving them into `lib/orderStatus.ts`
+  added indirection with no real dedup, and both were moved back inline.
+  Before extracting, check where *each specific symbol* would be imported
+  from post-extraction, not just whether the surrounding pattern looks
+  duplicated — only move the parts genuinely shared by 2+ import sites.
+  `ORDER_STATUS_VALUES` and the `OrderStatusValue` type were also moved back
+  inline (into `Admin/Orders/Index.vue` and `OrderStatusBadge.vue`
+  respectively) once each turned out to have only one real importer;
+  `OrdersNamespace` stayed in `lib/orderStatus.ts` because both
+  `OrderStatusBadge.vue` and `PaymentStatusBadge.vue` import it.
+- The reverse applies too: if a change removes a caller of some shared
+  helper/trait/scope/composable/component such that only **one** caller is
+  left afterward, inline that shared code into its one remaining call site
+  and delete the now-unused shared definition, in the same change that
+  removed the second-to-last caller — don't leave a one-call indirection
+  standing "in case it's needed again."
+
 ## Reuse before writing new UI
 
 - Before writing a `<button>`, `<input>`, a modal/dropdown, or repeating a
@@ -217,7 +317,15 @@ section the same as the Boost guidelines above.
   [docs/design-system/README.md](docs/design-system/README.md) for the full
   inventory (buttons, inputs, `Modal`, `Dropdown`, `ConfirmationDialog`,
   typography wrappers, etc.) and the shared Tailwind class tokens in
-  `resources/js/components/classNames.js`.
+  `resources/js/components/classNames.js`. This includes the smaller,
+  easy-to-miss primitives added alongside the admin order-editing feature:
+  `CancelButton`/`FilterSubmitButton` (buttons), `SectionHeading`/`EmptyState`/
+  `TotalRow` (typography/layout), `StatusBadge` (generic status-to-badge
+  mapping, underneath `OrderStatusBadge`/`PaymentStatusBadge`), and
+  `DeleteConfirmationDialog`/`EditFormModal` (the delete-confirm and
+  edit-in-a-modal shapes built on `ConfirmationDialog`/`Modal`) — don't
+  hand-roll any of these again because they're small enough to look
+  one-off.
 - A labeled text/number input with an error slot is `FormField` — not a
   hand-assembled `InputLabel` + `<input>` + error `<p>`. The same idea extends
   to the other control types: a labeled `<select>` is `SelectField`
@@ -264,6 +372,37 @@ section the same as the Boost guidelines above.
 - User-facing copy goes through `t('namespace.key')`
   (`resources/js/i18n/`), not inline strings. Links/redirects go through
   Ziggy's `route('name')`, never a hardcoded path.
+
+## Icons (this repo specifically)
+
+Full detail in [docs/design-system/README.md](docs/design-system/README.md)'s
+"Icons" section — the essentials:
+
+- Icons come from `@lucide/vue` (already a dependency) — don't add a second
+  icon library for a one-off need.
+- `h-4 w-4` for an inline icon next to a heading/nav label/button text
+  (inside a `flex items-center gap-2` wrapper); `h-5 w-5` inside a fixed
+  `h-10 w-10` rounded accent box for a boxed/stat-tile icon — see
+  `SidebarNav.vue`/`Admin/Orders/Show.vue` and `StatCard.vue` respectively.
+- For an icon next to button/link text specifically, use `IconLabel.vue`
+  (`:icon="Trash2"`, with a `trailing` prop for icon-after-text buttons like
+  "Proceed to checkout") instead of hand-wrapping a `span` — see
+  `ConfirmationDialog.vue`.
+  A table/list empty state uses a larger, unboxed `h-8 w-8` icon in a muted
+  `text-slate-300 dark:text-slate-700`, centered above the message.
+- Icon color always pairs a `dark:` variant matching the element's existing
+  accent (`text-indigo-600 dark:text-indigo-400` for primary/accent,
+  `text-slate-500 dark:text-slate-400` for muted) — never a bare color
+  utility with no `dark:` counterpart.
+- A component that takes a caller-supplied icon types the prop
+  `icon?: Component` (from `vue`), not a string/name resolved internally.
+- An icon-only control (no visible text label) needs its own `aria-label`;
+  an icon placed next to existing text needs no extra `aria-*` wiring.
+- Adding a purely decorative icon to a component that already has test
+  coverage doesn't by itself require a new test assertion — but if the
+  change alters what's rendered (an icon-only button replacing a text
+  button, an empty state's icon replacing plain text), update that
+  component's test in the same pass per the testing conventions below.
 
 ## Database query column selection (this repo specifically)
 
@@ -342,6 +481,13 @@ section the same as the Boost guidelines above.
   CRUD (`app/Http/Controllers/Admin/CategoryController`/`ProductController`)
   is gated by the `admin` role instead — a role check ("is this user an admin
   at all"), not a per-record ownership check, so a Policy is the wrong tool.
+  `Admin\OrderController::update`/`refund` (order status changes, admin
+  notes, refunds) follow the same precedent — no new `OrderPolicy` ability
+  was added for admin editing; it's gated purely by the existing `admin`
+  route-middleware group, same as `Category`/`Product`'s admin CRUD. Only
+  `OrderPolicy::view` (a shopper viewing *their own* order) is a genuine
+  per-owner check — don't add a Policy ability for an admin-only action just
+  because the model already has a Policy for something else.
   The role check itself is `EnsureUserIsAdmin` (registered as the `admin`
   middleware alias), backed by spatie/laravel-permission's `HasRoles` trait
   on `User` — every admin route is `Route::middleware(['auth', 'admin'])`
@@ -691,6 +837,21 @@ Full detail in [docs/testing.md](docs/testing.md) — the essentials:
     for "does not affect an unrelated sibling group" — see
     `AddressTest`'s `makeDefault` tests or `ProductImageTest`'s
     `makePrimary` tests for the three-test shape to copy.
+- **A backed enum that gains a business-logic method (not just cases) needs
+  its own `tests/Unit/Enums/<Enum>Test.php`** — e.g. `OrderStatus::
+  allowedTransitions()`/`canTransitionTo()` (added alongside admin order
+  editing) has `tests/Unit/Enums/OrderStatusTest.php` covering every
+  transition and every terminal state. An enum with no methods (just cases,
+  cast on a model) doesn't need this — there's no logic to test beyond the
+  cast itself, which the owning model's test already covers.
+- **A new class under `app/Services/*` needs a
+  `tests/Unit/Services/<...>/<Class>Test.php`**, mirroring the
+  `app/Services/` path — e.g. `app/Services/Stripe/RefundCreator.php` maps
+  to `tests/Unit/Services/Stripe/RefundCreatorTest.php`. Mock third-party
+  SDK clients the same way `RefundCreatorTest` mocks `StripeClient`: its
+  properties aren't directly mockable, so stub the specific property via a
+  small subclass overriding `__get()`, rather than trying to mock the SDK
+  client itself.
 
 ## Browser (Playwright) end-to-end testing (this repo specifically)
 

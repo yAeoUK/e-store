@@ -1,10 +1,15 @@
-import { Head } from '@inertiajs/vue3';
 import { mount } from '@vue/test-utils';
 import { describe, expect, it } from 'vitest';
 import CategoryFormFields from '@/components/admin/CategoryFormFields.vue';
-import FormActions from '@/components/FormActions.vue';
 import CategoriesEditPage from '@/pages/Admin/Categories/Edit.vue';
-import { getMockForm, routeMock } from '../../../setup';
+import { getMockForm } from '../../../setup';
+import {
+    expectRendersPageTitle,
+    testAdminResourceFormLayout,
+    testRendersLabels,
+    testSlugNotAutoSyncedOnEdit,
+    testSubmitsToUpdateRoute,
+} from '../../../utils';
 
 const category = {
     id: 1,
@@ -40,15 +45,11 @@ describe('Admin Categories edit page', () => {
         ).toBe('Appliances for the home.');
     });
 
-    it('does not auto-sync the slug when the name is edited', async () => {
-        const wrapper = mount(CategoriesEditPage, {
-            props: { category, categories: [] },
-        });
-
-        await wrapper.find('input[type="text"]').setValue('Kitchen');
-
-        expect(getMockForm().slug).toBe('home-appliances');
-    });
+    testSlugNotAutoSyncedOnEdit(
+        () =>
+            mount(CategoriesEditPage, { props: { category, categories: [] } }),
+        { newName: 'Kitchen', expectedSlug: 'home-appliances' },
+    );
 
     it('lists the given categories as parent options', () => {
         const wrapper = mount(CategoriesEditPage, {
@@ -69,64 +70,39 @@ describe('Admin Categories edit page', () => {
         ]);
     });
 
-    it('submits to the category update route', async () => {
-        const wrapper = mount(CategoriesEditPage, {
-            props: { category, categories: [] },
-        });
-
-        await wrapper.find('form').trigger('submit');
-
-        expect(routeMock).toHaveBeenCalledWith(
-            'admin.categories.update',
-            category.id,
-        );
-    });
+    testSubmitsToUpdateRoute(
+        () =>
+            mount(CategoriesEditPage, { props: { category, categories: [] } }),
+        'admin.categories.update',
+        category.id,
+    );
 
     it('renders the page title via Head', () => {
         const wrapper = mount(CategoriesEditPage, {
             props: { category, categories: [] },
         });
 
-        expect(wrapper.findComponent(Head).attributes('title')).toBe(
+        expectRendersPageTitle(wrapper, 'admin.categories.edit');
+    });
+
+    testRendersLabels(
+        () =>
+            mount(CategoriesEditPage, { props: { category, categories: [] } }),
+        [
             'admin.categories.edit',
-        );
-    });
+            'admin.categories.name',
+            'admin.categories.slug',
+            'admin.categories.parent',
+            'admin.categories.description',
+            'common.cancel',
+            'admin.categories.save',
+        ],
+        'renders the form labels and actions',
+    );
 
-    it('renders the form labels and actions', () => {
-        const wrapper = mount(CategoriesEditPage, {
-            props: { category, categories: [] },
-        });
-        const text = wrapper.text();
-
-        expect(text).toContain('admin.categories.edit');
-        expect(text).toContain('admin.categories.name');
-        expect(text).toContain('admin.categories.slug');
-        expect(text).toContain('admin.categories.parent');
-        expect(text).toContain('admin.categories.description');
-        expect(text).toContain('common.cancel');
-        expect(text).toContain('admin.categories.save');
-    });
-
-    it('renders inside the expected layout and form components', () => {
-        const wrapper = mount(CategoriesEditPage, {
-            props: { category, categories: [] },
-        });
-
-        expect(wrapper.findComponent({ name: 'AdminLayout' }).exists()).toBe(
-            true,
-        );
-        expect(wrapper.findComponent({ name: 'Card' }).exists()).toBe(true);
-        expect(wrapper.findComponent(FormActions).exists()).toBe(true);
-        expect(wrapper.findComponent({ name: 'InputLabel' }).exists()).toBe(
-            true,
-        );
-        expect(wrapper.findComponent({ name: 'ButtonLink' }).exists()).toBe(
-            true,
-        );
-        expect(wrapper.findComponent({ name: 'PrimaryButton' }).exists()).toBe(
-            true,
-        );
-    });
+    testAdminResourceFormLayout(() =>
+        mount(CategoriesEditPage, { props: { category, categories: [] } }),
+    );
 
     it('wires CategoryFormFields with auto-slug disabled and the categories/errors props', () => {
         const categories = [{ id: 2, name: 'Electronics' }];

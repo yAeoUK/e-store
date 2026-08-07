@@ -2,27 +2,19 @@ import { usePage } from '@inertiajs/vue3';
 import { mount } from '@vue/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import ApplicationLogo from '@/components/ApplicationLogo.vue';
-import LanguageSwitcher from '@/components/LanguageSwitcher.vue';
 import PageContainer from '@/components/PageContainer.vue';
-import ShopAuthBanner from '@/components/ShopAuthBanner.vue';
 import SidebarNav from '@/components/SidebarNav.vue';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import { routeMock } from '../setup';
-
-function pageWithUrl(url: string) {
-    return {
-        props: { auth: { user: null }, errors: {} },
-        url,
-    } as unknown as ReturnType<typeof usePage>;
-}
+import { pageWithUrl } from '../utils';
 
 beforeEach(() => {
     routeMock.mockClear();
-    vi.mocked(usePage).mockReturnValue(pageWithUrl('/admin/dashboard'));
+    vi.mocked(usePage).mockReturnValue(pageWithUrl('/admin/dashboard', {}));
 });
 
 afterEach(() => {
-    vi.mocked(usePage).mockReturnValue(pageWithUrl('/admin/dashboard'));
+    vi.mocked(usePage).mockReturnValue(pageWithUrl('/admin/dashboard', {}));
     routeMock.mockImplementation((name: string) => name);
 });
 
@@ -46,7 +38,7 @@ describe('AdminLayout', () => {
     });
 
     it('marks the dashboard item active when on the dashboard URL', () => {
-        vi.mocked(usePage).mockReturnValue(pageWithUrl('admin.dashboard'));
+        vi.mocked(usePage).mockReturnValue(pageWithUrl('admin.dashboard', {}));
 
         const wrapper = mount(AdminLayout);
         const items = wrapper
@@ -66,7 +58,7 @@ describe('AdminLayout', () => {
 
     it('marks the products item active for a product sub-route', () => {
         vi.mocked(usePage).mockReturnValue(
-            pageWithUrl('admin.products.index/5/edit'),
+            pageWithUrl('admin.products.index/5/edit', {}),
         );
 
         const wrapper = mount(AdminLayout);
@@ -86,7 +78,9 @@ describe('AdminLayout', () => {
         // "admin.dashboardish" starts with the dashboard href as a raw
         // string, but isn't actually the dashboard section — there's no
         // '/', '?', or end-of-string boundary right after it.
-        vi.mocked(usePage).mockReturnValue(pageWithUrl('admin.dashboardish'));
+        vi.mocked(usePage).mockReturnValue(
+            pageWithUrl('admin.dashboardish', {}),
+        );
 
         const wrapper = mount(AdminLayout);
         const items = wrapper
@@ -115,7 +109,9 @@ describe('AdminLayout', () => {
                     : `http://example.test/admin/${section}`;
             },
         );
-        vi.mocked(usePage).mockReturnValue(pageWithUrl('/admin/categories'));
+        vi.mocked(usePage).mockReturnValue(
+            pageWithUrl('/admin/categories', {}),
+        );
 
         const wrapper = mount(AdminLayout);
         const items = wrapper
@@ -159,18 +155,6 @@ describe('AdminLayout', () => {
         const wrapper = mount(AdminLayout);
 
         expect(wrapper.findComponent(ApplicationLogo).exists()).toBe(true);
-    });
-
-    it('includes the LanguageSwitcher', () => {
-        const wrapper = mount(AdminLayout);
-
-        expect(wrapper.findComponent(LanguageSwitcher).exists()).toBe(true);
-    });
-
-    it('includes the ShopAuthBanner', () => {
-        const wrapper = mount(AdminLayout);
-
-        expect(wrapper.findComponent(ShopAuthBanner).exists()).toBe(true);
     });
 
     it('renders content within the PageContainer', () => {

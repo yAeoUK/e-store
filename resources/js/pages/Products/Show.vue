@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Head, router } from '@inertiajs/vue3';
+import { ShoppingCart } from '@lucide/vue';
 import { computed, ref } from 'vue';
 import {
     cardSurfaceClass,
@@ -10,6 +11,7 @@ import {
     mutedTextClass,
     subheadingTextClass,
 } from '@/components/classNames';
+import IconLabel from '@/components/IconLabel.vue';
 import LabelText from '@/components/LabelText.vue';
 import MutedText from '@/components/MutedText.vue';
 import PageContainer from '@/components/PageContainer.vue';
@@ -17,41 +19,20 @@ import PrimaryButton from '@/components/PrimaryButton.vue';
 import SelectField from '@/components/SelectField.vue';
 import { t } from '@/i18n';
 import ShopLayout from '@/Layouts/ShopLayout.vue';
-import { formatCurrency, PRODUCT_IMAGE_PLACEHOLDER } from '@/lib/format';
-
-interface ProductImage {
-    url: string;
-    alt_text?: string | null;
-}
-
-interface ProductVariant {
-    id: number;
-    sku: string;
-    options?: Record<string, string | number> | null;
-    stock?: number | null;
-    is_active: boolean;
-}
-
-interface Product {
-    id: number;
-    name: string;
-    slug: string;
-    price: number | string;
-    description?: string | null;
-    short_description?: string | null;
-    stock?: number | null;
-    category?: {
-        name?: string | null;
-    } | null;
-    images?: ProductImage[];
-    variants?: ProductVariant[];
-}
+import {
+    formatCurrency,
+    formatVariantOptions,
+    PRODUCT_IMAGE_PLACEHOLDER,
+} from '@/lib/format';
+import type { Product } from '@/types/product';
 
 const props = defineProps<{ product: Product }>();
 
 const galleryImages = computed(() => {
     if (!props.product.images || props.product.images.length === 0) {
-        return [{ url: PRODUCT_IMAGE_PLACEHOLDER, alt_text: props.product.name }];
+        return [
+            { url: PRODUCT_IMAGE_PLACEHOLDER, alt_text: props.product.name },
+        ];
     }
 
     return props.product.images;
@@ -214,14 +195,7 @@ function addToCart() {
                                     {{ variant.sku }}
                                 </p>
                                 <MutedText v-if="variant.options" class="mt-1">
-                                    {{
-                                        Object.entries(variant.options)
-                                            .map(
-                                                ([key, value]) =>
-                                                    `${key}: ${value}`,
-                                            )
-                                            .join(', ')
-                                    }}
+                                    {{ formatVariantOptions(variant.options) }}
                                 </MutedText>
                                 <LabelText class="mt-2">
                                     {{ t('common.stock') }}:
@@ -248,7 +222,9 @@ function addToCart() {
 
                         <div class="flex items-end gap-3">
                             <div>
-                                <LabelText>{{ t('shop.cart.quantity') }}</LabelText>
+                                <LabelText>{{
+                                    t('shop.cart.quantity')
+                                }}</LabelText>
                                 <input
                                     v-model.number="quantity"
                                     type="number"
@@ -261,11 +237,16 @@ function addToCart() {
                                 :disabled="!canAddToCart"
                                 @click="addToCart"
                             >
-                                {{
-                                    canAddToCart
-                                        ? t('shop.cart.addToCart')
-                                        : t('shop.cart.outOfStock')
-                                }}
+                                <IconLabel
+                                    :icon="
+                                        canAddToCart ? ShoppingCart : undefined
+                                    "
+                                    >{{
+                                        canAddToCart
+                                            ? t('shop.cart.addToCart')
+                                            : t('shop.cart.outOfStock')
+                                    }}</IconLabel
+                                >
                             </PrimaryButton>
                         </div>
                     </div>

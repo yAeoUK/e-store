@@ -20,27 +20,33 @@ describe('InputLabel', () => {
         expect(wrapper.text()).toBe('Fallback');
     });
 
-    it('renders an asterisk when required is true', () => {
+    it('renders an asterisk marker when required is true', () => {
         const wrapper = mount(InputLabel, {
             props: { value: 'Email', required: true },
         });
 
-        expect(wrapper.text()).toBe('Email*');
+        // The marker is CSS ::after content, not a DOM text node (see the
+        // component comment - it must not leak into the label's accessible
+        // name), so it's asserted via the marker class, not wrapper.text().
+        expect(wrapper.text()).toBe('Email');
+        expect(wrapper.classes()).toContain("after:content-['*']");
     });
 
-    it('does not render an asterisk when required is false', () => {
+    it('does not render an asterisk marker when required is false', () => {
         const wrapper = mount(InputLabel, {
             props: { value: 'Email', required: false },
         });
 
         expect(wrapper.text()).toBe('Email');
+        expect(wrapper.classes()).not.toContain("after:content-['*']");
     });
 
-    it('does not render an asterisk when required is omitted', () => {
+    it('does not render an asterisk marker when required is omitted', () => {
         const wrapper = mount(InputLabel, {
             props: { value: 'Email' },
         });
 
         expect(wrapper.text()).toBe('Email');
+        expect(wrapper.classes()).not.toContain("after:content-['*']");
     });
 });

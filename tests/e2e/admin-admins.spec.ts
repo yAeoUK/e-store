@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { ADMIN, login, PROMOTABLE_USER } from './helpers';
+import { ADMIN, deleteViaDialog, login, PROMOTABLE_USER, rowWithText } from './helpers';
 
 test.describe('admin management', () => {
     test('an admin can promote an existing user, create a brand-new admin, and revoke one', async ({
@@ -37,14 +37,15 @@ test.describe('admin management', () => {
 
         // revoke the admin we just promoted (there are now 3 admins, so this
         // is safely above the "at least one admin" floor)
-        const promotedRow = page.locator('tr', { hasText: 'E2E Promotable User' });
-        await promotedRow.getByRole('button', { name: 'Revoke' }).click();
-        await expect(page.getByText('Revoke admin access?')).toBeVisible();
-        await page.locator('dialog').getByRole('button', { name: 'Revoke' }).click();
-        await expect(page.getByText('E2E Promotable User')).toHaveCount(0);
+        const promotedRow = rowWithText(page, 'E2E Promotable User');
+        await deleteViaDialog(page, promotedRow, {
+            triggerLabel: 'Revoke',
+            confirmPrompt: 'Revoke admin access?',
+            goneText: 'E2E Promotable User',
+        });
 
         // the currently logged-in admin has no Revoke button on their own row
-        const ownRow = page.locator('tr', { hasText: 'E2E Admin' });
+        const ownRow = rowWithText(page, 'E2E Admin');
         await expect(ownRow.getByRole('button', { name: 'Revoke' })).toHaveCount(0);
     });
 });

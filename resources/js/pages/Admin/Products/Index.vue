@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { Link, router } from '@inertiajs/vue3';
-import { ref } from 'vue';
+import { Link } from '@inertiajs/vue3';
+import { Plus } from '@lucide/vue';
 import type {
     AdminCategoryRef,
     AdminProduct,
@@ -8,15 +8,17 @@ import type {
     Paginated,
 } from '@/components/admin/admin.ts';
 import AdminPageHeader from '@/components/admin/AdminPageHeader.vue';
+import CategorySelectField from '@/components/admin/CategorySelectField.vue';
 import DataTable from '@/components/admin/DataTable.vue';
+import RowEditDeleteActions from '@/components/admin/RowEditDeleteActions.vue';
 import ButtonLink from '@/components/ButtonLink.vue';
 import { linkClass } from '@/components/classNames';
-import ConfirmationDialog from '@/components/ConfirmationDialog.vue';
-import DangerButton from '@/components/DangerButton.vue';
+import DeleteConfirmationDialog from '@/components/DeleteConfirmationDialog.vue';
+import FilterSubmitButton from '@/components/FilterSubmitButton.vue';
 import FormField from '@/components/FormField.vue';
-import PrimaryButton from '@/components/PrimaryButton.vue';
-import SelectField from '@/components/SelectField.vue';
+import IconLabel from '@/components/IconLabel.vue';
 import { useDeleteConfirmation } from '@/composables/useDeleteConfirmation';
+import { submitFilters, useFilterForm } from '@/composables/useFilterForm';
 import { t } from '@/i18n';
 import { formatCurrency } from '@/lib/format';
 
@@ -32,18 +34,13 @@ interface Props {
 
 const props = defineProps<Props>();
 
-const search = ref(props.filters.search ?? '');
-const categoryId = ref(props.filters.category_id ?? '');
+const { state: filterState, normalize } = useFilterForm(props.filters, {
+    search: '',
+    category_id: '' as string | number,
+});
 
 function applyFilters(): void {
-    router.get(
-        route('admin.products.index'),
-        {
-            search: search.value || null,
-            category_id: categoryId.value || null,
-        },
-        { preserveState: true, replace: true },
-    );
+    submitFilters('admin.products.index', normalize());
 }
 
 const columns: DataTableColumn<AdminProduct>[] = [
@@ -73,6 +70,7 @@ const {
     confirmingId: confirmingDeleteId,
     deleting,
     confirmDelete,
+    cancel,
     destroy,
 } = useDeleteConfirmation((id: number) => route('admin.products.destroy', id));
 </script>
@@ -83,8 +81,13 @@ const {
         :heading="t('admin.products.heading')"
     >
         <template #actions>
-            <ButtonLink variant="primary" :href="route('admin.products.create')">
-                {{ t('admin.products.create') }}
+            <ButtonLink
+                variant="primary"
+                :href="route('admin.products.create')"
+            >
+                <IconLabel :icon="Plus">{{
+                    t('admin.products.create')
+                }}</IconLabel>
             </ButtonLink>
         </template>
 
@@ -93,37 +96,24 @@ const {
             class="grid gap-4 sm:grid-cols-[1fr_auto_auto] sm:items-end"
         >
             <FormField
-                v-model="search"
+                v-model="filterState.search"
                 type="text"
                 :label="t('admin.products.searchPlaceholder')"
             />
 
-            <SelectField
-                v-model="categoryId"
+            <CategorySelectField
+                v-model="filterState.category_id"
                 :label="t('admin.products.category')"
-            >
-                <option value="">{{ t('admin.categories.none') }}</option>
-                <option
-                    v-for="category in categories"
-                    :key="category.id"
-                    :value="category.id"
-                >
-                    {{ category.name }}
-                </option>
-            </SelectField>
+                :none-label="t('admin.categories.none')"
+                :categories="categories"
+            />
 
-            <PrimaryButton type="submit">{{
-                t('common.confirm')
-            }}</PrimaryButton>
+            <FilterSubmitButton>{{ t('common.confirm') }}</FilterSubmitButton>
         </form>
 
         <DataTable
             :columns="columns"
-            :rows="products.data"
-            :from="products.from"
-            :to="products.to"
-            :total="products.total"
-            :links="products.links"
+            :paginated="products"
             :empty-message="t('admin.products.empty')"
         >
             <template #cell-category="{ row }">
@@ -138,26 +128,20 @@ const {
             </template>
 
             <template #actions="{ row }">
-                <div class="flex justify-end gap-2">
-                    <ButtonLink :href="route('admin.products.edit', row.id)">
-                        {{ t('admin.actions.edit') }}
-                    </ButtonLink>
-                    <DangerButton @click="confirmDelete(row.id)">
-                        {{ t('admin.actions.delete') }}
-                    </DangerButton>
-                </div>
+                <RowEditDeleteActions
+                    :edit-href="route('admin.products.edit', row.id)"
+                    @delete="confirmDelete(row.id)"
+                />
             </template>
         </DataTable>
 
-        <ConfirmationDialog
+        <DeleteConfirmationDialog
             :show="confirmingDeleteId !== null"
             :title="t('admin.products.deleteConfirmTitle')"
             :message="t('admin.products.deleteConfirmMessage')"
-            :confirm-label="t('common.delete')"
-            danger
             :processing="deleting"
             @confirm="destroy"
-            @cancel="confirmingDeleteId = null"
+            @cancel="cancel"
         />
     </AdminPageHeader>
 </template>

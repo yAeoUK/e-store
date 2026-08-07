@@ -6,19 +6,23 @@ import PasswordConfirmationFields from '@/components/PasswordConfirmationFields.
 import SaveButton from '@/components/SaveButton.vue';
 import { useValidatedSubmit } from '@/composables/useValidatedSubmit';
 import { t } from '@/i18n';
-import { confirmedBy, required } from '@/lib/validation';
+import { required, passwordConfirmationRules } from '@/lib/validation';
 
 const passwordFields = ref<{ focus: () => void } | null>(null);
 const currentPasswordInput = ref<{ focus: () => void } | null>(null);
 
-const { form, errors, submit: updatePassword } = useValidatedSubmit(
+const {
+    form,
+    errors,
+    submit: updatePassword,
+} = useValidatedSubmit(
     { current_password: '', password: '', password_confirmation: '' },
     {
         current_password: [required(t('profile.password.currentPassword'))],
-        password: [required(t('profile.password.newPassword'))],
-        password_confirmation: [
-            confirmedBy(t('profile.password.confirmPassword'), 'password'),
-        ],
+        ...passwordConfirmationRules({
+            password: t('profile.password.newPassword'),
+            passwordConfirmation: t('profile.password.confirmPassword'),
+        }),
     },
     (form) =>
         form.put(route('password.update'), {

@@ -16,17 +16,13 @@ export const pageWidthClass = 'mx-auto max-w-7xl px-4 sm:px-6 lg:px-8';
 export const wrapBetweenClass =
     'flex flex-wrap items-center justify-between gap-3';
 
-export const headerRowClass = `${pageWidthClass} ${wrapBetweenClass} py-3`;
-
 export const narrowPageWidthClass = 'mx-auto max-w-4xl sm:px-6 lg:px-8';
 
 const controlPaddingClass = 'px-4 py-2';
 
-const transitionClass = 'transition duration-150 ease-in-out';
-
 const disabledClass = 'disabled:opacity-25';
 
-export const legacyButtonBaseClass = `inline-flex items-center rounded-md border ${controlPaddingClass} text-xs font-semibold tracking-widest uppercase ${transitionClass} ${disabledClass}`;
+export const legacyButtonBaseClass = `inline-flex items-center rounded-md border ${controlPaddingClass} text-xs font-semibold tracking-widest uppercase transition duration-150 ease-in-out ${disabledClass}`;
 
 export const interactiveRowClass = `${bodyTextClass} hover:bg-slate-100 focus:bg-slate-100 dark:hover:bg-slate-800 dark:focus:bg-slate-800`;
 
@@ -88,7 +84,5 @@ export const cardPaddingClass = 'overflow-hidden p-6';
 export const listItemCardClass = `rounded border ${mutedBorderClass} p-4`;
 
 export const stackedRowCardClass = `flex flex-col gap-3 rounded border ${mutedBorderClass} p-4 sm:flex-row sm:items-center sm:justify-between`;
-
-export const totalRowClass = `flex items-center justify-between border-t ${mutedBorderClass} pt-4`;
 
 export const errorTextClass = 'text-red-600 dark:text-red-400';

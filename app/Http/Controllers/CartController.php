@@ -16,11 +16,7 @@ class CartController extends Controller
 {
     public function index(Request $request): Response
     {
-        $cart = $request->user()->cart()->load([
-            'orderItems.product:id,name,slug,price,stock',
-            'orderItems.product.images:product_id,url,alt_text,is_primary',
-            'orderItems.productVariant:id,product_id,sku,options,price,stock',
-        ]);
+        $cart = $request->user()->cart()->loadCartItemsForDisplay();
 
         return Inertia::render('Cart/Index', [
             'cart' => $cart,
@@ -40,16 +36,14 @@ class CartController extends Controller
         if ($item) {
             $item->increment('quantity', $data['quantity']);
         } else {
-            $variant = ! empty($data['product_variant_id'])
-                ? ProductVariant::query()->find((int) $data['product_variant_id'])
-                : null;
+            $variant = ProductVariant::findOptional($data['product_variant_id'] ?? null);
             $product = Product::query()->findOrFail((int) $data['product_id']);
 
             $cart->orderItems()->create([
                 'product_id' => $product->id,
                 'product_variant_id' => $variant?->id,
                 'quantity' => $data['quantity'],
-                'unit_price' => $variant->price ?? $product->price,
+                'unit_price' => OrderItem::resolveUnitPrice($product, $variant),
             ]);
         }
 
@@ -63,7 +57,7 @@ class CartController extends Controller
 
         $orderItem->update([
             'quantity' => $request->validated('quantity'),
-            'unit_price' => $variant->price ?? $product->price,
+            'unit_price' => OrderItem::resolveUnitPrice($product, $variant),
         ]);
 
         return redirect()->route('cart.index');

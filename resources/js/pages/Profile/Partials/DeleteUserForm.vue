@@ -1,9 +1,11 @@
 <script setup lang="ts">
+import { Trash2 } from '@lucide/vue';
 import { nextTick, ref } from 'vue';
 import ConfirmationDialog from '@/components/ConfirmationDialog.vue';
 import DangerButton from '@/components/DangerButton.vue';
 import FormField from '@/components/FormField.vue';
 import FormSectionHeader from '@/components/FormSectionHeader.vue';
+import IconLabel from '@/components/IconLabel.vue';
 import { useValidatedSubmit } from '@/composables/useValidatedSubmit';
 import { t } from '@/i18n';
 import { required } from '@/lib/validation';
@@ -52,9 +54,11 @@ const closeModal = () => {
             :description="t('profile.deleteAccount.description')"
         />
 
-        <DangerButton @click="confirmUserDeletion">{{
-            t('profile.deleteAccount.heading')
-        }}</DangerButton>
+        <DangerButton @click="confirmUserDeletion">
+            <IconLabel :icon="Trash2">{{
+                t('profile.deleteAccount.heading')
+            }}</IconLabel>
+        </DangerButton>
 
         <ConfirmationDialog
             :show="confirmingUserDeletion"

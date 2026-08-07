@@ -42,14 +42,15 @@ test('account orders index excludes the users cart', function () {
 
 test('account orders index paginates results instead of loading them all at once', function () {
     $user = User::factory()->create();
-    Order::factory()->count(15)->create(['user_id' => $user->id, 'status' => OrderStatus::Completed]);
 
-    $response = $this->actingAs($user)->withHeaders(inertiaHeaders())->get(route('account.orders'));
-
-    $response->assertOk();
-    $response->assertJsonCount(10, 'props.orders.data');
-    $response->assertJsonPath('props.orders.total', 15);
-    $response->assertJsonPath('props.orders.per_page', 10);
+    assertIndexPaginates(
+        'account.orders',
+        'orders',
+        fn () => Order::factory()->count(15)->create(['user_id' => $user->id, 'status' => OrderStatus::Completed]),
+        expectedTotal: 15,
+        actingAs: fn () => $user,
+        perPage: 10,
+    );
 });
 
 test('account orders index orders results by most recent first', function () {
@@ -65,7 +66,7 @@ test('account orders index orders results by most recent first', function () {
 });
 
 test('guests cannot list account orders', function () {
-    $this->get(route('account.orders'))->assertRedirect(route('login'));
+    assertGuestCannotAccessResource('get', route('account.orders'));
 });
 
 test('user can view their own order', function () {
@@ -81,10 +82,9 @@ test('user can view their own order', function () {
 
 test('viewing another users order is forbidden', function () {
     $owner = User::factory()->create();
-    $intruder = User::factory()->create();
     $order = Order::factory()->create(['user_id' => $owner->id, 'status' => OrderStatus::Completed]);
 
-    $this->actingAs($intruder)->get(route('account.orders.show', $order))->assertForbidden();
+    assertForeignUserCannotAccessResource('get', route('account.orders.show', $order), $order);
 });
 
 test('viewing a cart as an order is not found', function () {
@@ -97,5 +97,5 @@ test('viewing a cart as an order is not found', function () {
 test('guests cannot view an account order', function () {
     $order = Order::factory()->create(['status' => OrderStatus::Completed]);
 
-    $this->get(route('account.orders.show', $order))->assertRedirect(route('login'));
+    assertGuestCannotAccessResource('get', route('account.orders.show', $order));
 });

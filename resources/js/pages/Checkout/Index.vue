@@ -1,20 +1,20 @@
 <script setup lang="ts">
 import { Head, useForm } from '@inertiajs/vue3';
+import { ArrowRight, CreditCard, MapPin } from '@lucide/vue';
 import { computed } from 'vue';
 import AddressLines from '@/components/AddressLines.vue';
 import ButtonLink from '@/components/ButtonLink.vue';
 import Card from '@/components/Card.vue';
-import {
-    cardPaddingClass,
-    pageHeaderTextClass,
-    sectionHeadingClass,
-} from '@/components/classNames';
+import { cardPaddingClass, pageHeaderTextClass } from '@/components/classNames';
+import IconLabel from '@/components/IconLabel.vue';
 import InputError from '@/components/InputError.vue';
 import MutedText from '@/components/MutedText.vue';
 import OrderItemsSummary from '@/components/OrderItemsSummary.vue';
 import PageContainer from '@/components/PageContainer.vue';
 import PrimaryButton from '@/components/PrimaryButton.vue';
 import RadioCardOption from '@/components/RadioCardOption.vue';
+import SectionHeading from '@/components/SectionHeading.vue';
+import TextareaField from '@/components/TextareaField.vue';
 import { useCartSubtotal } from '@/composables/useCartSubtotal';
 import { useFormValidation } from '@/composables/useFormValidation';
 import { t } from '@/i18n';
@@ -22,21 +22,10 @@ import ShopLayout from '@/Layouts/ShopLayout.vue';
 import { toSummaryItems } from '@/lib/format';
 import { required } from '@/lib/validation';
 import type { Address } from '@/types/address';
-import type { Cart } from '@/types/cart';
-
-interface OrderItem {
-    id: number;
-    quantity: number;
-    unit_price: number | string;
-    product: { name: string };
-    product_variant: {
-        sku: string;
-        options?: Record<string, string | number> | null;
-    } | null;
-}
+import type { Cart, CartOrderItem } from '@/types/cart';
 
 const props = defineProps<{
-    cart: Cart<OrderItem>;
+    cart: Cart<CartOrderItem>;
     addresses: Address[];
 }>();
 
@@ -55,6 +44,7 @@ const summaryItems = computed(() =>
 const form = useForm({
     address_id: defaultAddress?.id ?? props.addresses[0]?.id ?? null,
     payment_method: 'cod',
+    customer_note: '',
 });
 
 const rules = {
@@ -95,9 +85,11 @@ function submit() {
                 </Card>
 
                 <Card :class="cardPaddingClass">
-                    <h3 :class="['mb-4', sectionHeadingClass]">
-                        {{ t('shop.checkout.shippingAddress') }}
-                    </h3>
+                    <SectionHeading
+                        :heading="t('shop.checkout.shippingAddress')"
+                        :icon="MapPin"
+                        icon-class="text-indigo-600 dark:text-indigo-400"
+                    />
 
                     <template v-if="addresses.length === 0">
                         <MutedText class="mb-4">
@@ -107,7 +99,9 @@ function submit() {
                             variant="primary"
                             :href="route('account.addresses.index')"
                         >
-                            {{ t('shop.checkout.manageAddresses') }}
+                            <IconLabel :icon="ArrowRight" trailing>{{
+                                t('shop.checkout.manageAddresses')
+                            }}</IconLabel>
                         </ButtonLink>
                     </template>
 
@@ -119,13 +113,7 @@ function submit() {
                             :value="address.id"
                             align="start"
                         >
-                            <span class="font-medium">
-                                {{ address.label || address.name }}
-                            </span>
-                            <AddressLines
-                                :address="address"
-                                :show-label="false"
-                            />
+                            <AddressLines :address="address" bold-label />
                         </RadioCardOption>
                     </ul>
                     <InputError :message="errors.address_id" />
@@ -137,9 +125,11 @@ function submit() {
                     class="space-y-6"
                 >
                     <Card :class="cardPaddingClass">
-                        <h3 :class="['mb-4', sectionHeadingClass]">
-                            {{ t('shop.checkout.paymentMethod') }}
-                        </h3>
+                        <SectionHeading
+                            :heading="t('shop.checkout.paymentMethod')"
+                            :icon="CreditCard"
+                            icon-class="text-indigo-600 dark:text-indigo-400"
+                        />
                         <ul class="space-y-3">
                             <RadioCardOption
                                 v-model="form.payment_method"
@@ -157,9 +147,20 @@ function submit() {
                         <InputError :message="errors.payment_method" />
                     </Card>
 
+                    <Card :class="cardPaddingClass">
+                        <TextareaField
+                            v-model="form.customer_note"
+                            :label="t('shop.checkout.note')"
+                            :error="form.errors.customer_note"
+                            rows="3"
+                        />
+                    </Card>
+
                     <div>
                         <PrimaryButton :disabled="form.processing">
-                            {{ t('shop.checkout.placeOrder') }}
+                            <IconLabel :icon="CreditCard">{{
+                                t('shop.checkout.placeOrder')
+                            }}</IconLabel>
                         </PrimaryButton>
                     </div>
                 </form>

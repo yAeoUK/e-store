@@ -25,15 +25,19 @@ export function useEditableForm<
     const {
         errors,
         clientErrors,
+        fieldErrors,
         attemptSubmit,
         reset: resetAttempted,
     } = useFormValidation(form, rules);
 
     const editingId = ref<number | null>(null);
-    const editForm = useForm(createInitialValues() as any) as InertiaForm<TForm>;
+    const editForm = useForm(
+        createInitialValues() as any,
+    ) as InertiaForm<TForm>;
     const {
         errors: editErrors,
         clientErrors: editClientErrors,
+        fieldErrors: editFieldErrors,
         attemptSubmit: attemptEditSubmit,
         reset: resetEditAttempted,
     } = useFormValidation(editForm, rules);
@@ -56,12 +60,14 @@ export function useEditableForm<
         form,
         errors,
         clientErrors,
+        fieldErrors,
         attemptSubmit,
         resetAttempted,
         editingId,
         editForm,
         editErrors,
         editClientErrors,
+        editFieldErrors,
         attemptEditSubmit,
         resetEditAttempted,
         edit,

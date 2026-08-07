@@ -34,4 +34,9 @@ class ProductVariant extends Model
     {
         return $this->belongsTo(Product::class);
     }
+
+    public static function findOptional(mixed $id): ?self
+    {
+        return ! empty($id) ? static::query()->find((int) $id) : null;
+    }
 }

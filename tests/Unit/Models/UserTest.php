@@ -21,25 +21,11 @@ test('email_verified_at is cast to a datetime', function () {
 });
 
 test('addresses relationship returns only the owning user addresses', function () {
-    $user = User::factory()->create();
-    $otherUser = User::factory()->create();
-
-    $address = Address::factory()->create(['user_id' => $user->id]);
-    Address::factory()->create(['user_id' => $otherUser->id]);
-
-    expect($user->addresses)->toHaveCount(1)
-        ->and($user->addresses->first()->id)->toBe($address->id);
+    assertHasManyResolvesCorrectOwner(User::class, Address::class, 'user_id', 'addresses');
 });
 
 test('orders relationship returns only the owning user orders', function () {
-    $user = User::factory()->create();
-    $otherUser = User::factory()->create();
-
-    $order = Order::factory()->create(['user_id' => $user->id]);
-    Order::factory()->create(['user_id' => $otherUser->id]);
-
-    expect($user->orders)->toHaveCount(1)
-        ->and($user->orders->first()->id)->toBe($order->id);
+    assertHasManyResolvesCorrectOwner(User::class, Order::class, 'user_id', 'orders');
 });
 
 test('cart creates a new cart order when none exists', function () {

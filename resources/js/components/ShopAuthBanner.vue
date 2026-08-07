@@ -1,10 +1,21 @@
 <script setup lang="ts">
 import { Link, router, usePage } from '@inertiajs/vue3';
-import { computed, onMounted, onUnmounted, ref } from 'vue';
+import {
+    ChevronDown,
+    LogOut,
+    MapPin,
+    Package,
+    ShoppingCart,
+    User,
+} from '@lucide/vue';
+import { computed, ref } from 'vue';
 import ButtonLink from '@/components/ButtonLink.vue';
 import { endRowClass, interactiveRowClass } from '@/components/classNames';
 import ConfirmationDialog from '@/components/ConfirmationDialog.vue';
+import IconLabel from '@/components/IconLabel.vue';
 import MutedText from '@/components/MutedText.vue';
+import { useConfirmAction } from '@/composables/useConfirmAction';
+import { useEscapeKey } from '@/composables/useEscapeKey';
 import { t } from '@/i18n';
 
 const dropdownItemBaseClass =
@@ -13,47 +24,43 @@ const dropdownItemBaseClass =
 const page = usePage();
 const user = computed(() => page.props.auth?.user ?? null);
 
-const confirmingLogout = ref(false);
-const loggingOut = ref(false);
+const {
+    confirming: confirmingLogout,
+    processing: loggingOut,
+    confirm: confirmLogout,
+    cancel: cancelLogout,
+    run: logout,
+} = useConfirmAction((_value, onFinish) => {
+    router.post(route('logout'), {}, { onFinish });
+});
 const menuOpen = ref(false);
 
-const closeMenuOnEscape = (e: KeyboardEvent) => {
-    if (menuOpen.value && e.key === 'Escape') {
-        menuOpen.value = false;
-    }
-};
-
-onMounted(() => document.addEventListener('keydown', closeMenuOnEscape));
-onUnmounted(() => document.removeEventListener('keydown', closeMenuOnEscape));
+useEscapeKey(() => {
+    menuOpen.value = false;
+});
 
 const menuLinks = [
-    { href: route('profile.edit'), label: t('common.nav.profile') },
+    {
+        href: route('profile.edit'),
+        label: t('common.nav.profile'),
+        icon: User,
+    },
     {
         href: route('account.addresses.index'),
         label: t('common.nav.addresses'),
+        icon: MapPin,
     },
-    { href: route('cart.index'), label: t('common.nav.cart') },
-    { href: route('account.orders'), label: t('common.nav.orderHistory') },
+    {
+        href: route('cart.index'),
+        label: t('common.nav.cart'),
+        icon: ShoppingCart,
+    },
+    {
+        href: route('account.orders'),
+        label: t('common.nav.orderHistory'),
+        icon: Package,
+    },
 ];
-
-const confirmLogout = () => {
-    confirmingLogout.value = true;
-};
-
-const logout = () => {
-    loggingOut.value = true;
-
-    router.post(
-        route('logout'),
-        {},
-        {
-            onFinish: () => {
-                loggingOut.value = false;
-                confirmingLogout.value = false;
-            },
-        },
-    );
-};
 </script>
 
 <template>
@@ -69,18 +76,7 @@ const logout = () => {
                     type="button"
                     class="inline-flex items-center rounded p-1 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
                 >
-                    <svg
-                        class="h-4 w-4"
-                        xmlns="http://www.w3.org/2000/svg"
-                        viewBox="0 0 20 20"
-                        fill="currentColor"
-                    >
-                        <path
-                            fill-rule="evenodd"
-                            d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
-                            clip-rule="evenodd"
-                        />
-                    </svg>
+                    <ChevronDown class="h-4 w-4" />
                 </button>
             </div>
 
@@ -100,12 +96,12 @@ const logout = () => {
             >
                 <div
                     v-show="menuOpen"
-                    class="absolute z-50 mt-2 w-48 rounded-md shadow-lg ltr:origin-top-right rtl:origin-top-left end-0"
+                    class="absolute end-0 z-50 mt-2 w-48 rounded-md shadow-lg ltr:origin-top-right rtl:origin-top-left"
                     style="display: none"
                     @click="menuOpen = false"
                 >
                     <div
-                        class="rounded-md py-1 ring-1 ring-border bg-popover text-popover-foreground"
+                        class="rounded-md bg-popover py-1 text-popover-foreground ring-1 ring-border"
                     >
                         <Link
                             v-for="link in menuLinks"
@@ -116,14 +112,21 @@ const logout = () => {
                                 'text-popover-foreground hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground',
                             ]"
                         >
-                            {{ link.label }}
+                            <IconLabel :icon="link.icon">{{
+                                link.label
+                            }}</IconLabel>
                         </Link>
                         <button
                             type="button"
-                            :class="[dropdownItemBaseClass, interactiveRowClass]"
-                            @click="confirmLogout"
+                            :class="[
+                                dropdownItemBaseClass,
+                                interactiveRowClass,
+                            ]"
+                            @click="confirmLogout()"
                         >
-                            {{ t('common.nav.logOut') }}
+                            <IconLabel :icon="LogOut">{{
+                                t('common.nav.logOut')
+                            }}</IconLabel>
                         </button>
                     </div>
                 </div>
@@ -131,14 +134,14 @@ const logout = () => {
         </div>
 
         <ConfirmationDialog
-            :show="confirmingLogout"
+            :show="confirmingLogout !== null"
             :title="t('common.nav.logoutConfirmTitle')"
             :message="t('common.nav.logoutConfirmMessage')"
             :confirm-label="t('common.nav.logOut')"
             danger
             :processing="loggingOut"
             @confirm="logout"
-            @cancel="confirmingLogout = false"
+            @cancel="cancelLogout"
         />
     </div>
 

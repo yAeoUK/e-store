@@ -1,11 +1,10 @@
 <?php
 
+use App\Enums\OrderStatus;
 use App\Enums\PaymentMethod;
 use App\Enums\PaymentStatus;
 use App\Models\Address;
 use App\Models\Category;
-use App\Models\Order;
-use App\Models\OrderItem;
 use App\Models\Product;
 use App\Models\ProductVariant;
 use App\Models\User;
@@ -13,25 +12,11 @@ use App\Services\Stripe\CheckoutSessionCreator;
 use Inertia\Testing\AssertableInertia;
 use Stripe\Checkout\Session;
 
-function createCartWithItem(User $user, int $quantity = 2): Order
-{
-    $product = Product::factory()->create(['price' => 20, 'stock' => 10]);
-    $cart = $user->cart();
-    OrderItem::factory()->create([
-        'order_id' => $cart->id,
-        'product_id' => $product->id,
-        'quantity' => $quantity,
-    ]);
-
-    return $cart;
-}
-
 // index
 
 test('checkout index renders the Checkout/Index page with the user\'s cart and addresses', function () {
-    $user = User::factory()->create();
-    $address = Address::factory()->create(['user_id' => $user->id]);
-    createCartWithItem($user);
+    [$user, $address] = userWithAddress();
+    createCartWithItems($user);
 
     $response = $this->actingAs($user)->get(route('checkout.index'));
 
@@ -47,7 +32,7 @@ test('checkout index renders the Checkout/Index page with the user\'s cart and a
 test('checkout index only includes the authenticated user\'s addresses', function () {
     $user = User::factory()->create();
     Address::factory()->create(['user_id' => $user->id]);
-    createCartWithItem($user);
+    createCartWithItems($user);
 
     $otherUser = User::factory()->create();
     Address::factory()->count(3)->create(['user_id' => $otherUser->id]);
@@ -62,17 +47,14 @@ test('checkout index only includes the authenticated user\'s addresses', functio
 });
 
 test('guests cannot view the checkout page', function () {
-    $response = $this->get(route('checkout.index'));
-
-    $response->assertRedirect(route('login'));
+    assertGuestCannotAccessResource('get', route('checkout.index'));
 });
 
 // store
 
 test('checking out with cash on delivery creates an unpaid pending order', function () {
-    $user = User::factory()->create();
-    $address = Address::factory()->create(['user_id' => $user->id]);
-    createCartWithItem($user);
+    [$user, $address] = userWithAddress();
+    createCartWithItems($user);
 
     $response = $this->actingAs($user)->post(route('checkout.store'), [
         'address_id' => $address->id,
@@ -87,10 +69,49 @@ test('checking out with cash on delivery creates an unpaid pending order', funct
     expect($order->total)->toEqual('40.00');
 });
 
+test('checking out saves an optional customer note on the order', function () {
+    [$user, $address] = userWithAddress();
+    createCartWithItems($user);
+
+    $this->actingAs($user)->post(route('checkout.store'), [
+        'address_id' => $address->id,
+        'payment_method' => 'cod',
+        'customer_note' => 'Please leave at the back door.',
+    ]);
+
+    $order = $user->orders()->where('status', '!=', 'cart')->firstOrFail();
+
+    expect($order->customer_note)->toBe('Please leave at the back door.');
+});
+
+test('checking out without a customer note leaves it null', function () {
+    [$user, $address] = userWithAddress();
+    createCartWithItems($user);
+
+    $this->actingAs($user)->post(route('checkout.store'), [
+        'address_id' => $address->id,
+        'payment_method' => 'cod',
+    ]);
+
+    $order = $user->orders()->where('status', '!=', 'cart')->firstOrFail();
+
+    expect($order->customer_note)->toBeNull();
+});
+
+test('checkout rejects a customer note over the max length', function () {
+    [$user, $address] = userWithAddress();
+    createCartWithItems($user);
+
+    $this->actingAs($user)->post(route('checkout.store'), [
+        'address_id' => $address->id,
+        'payment_method' => 'cod',
+        'customer_note' => str_repeat('a', 1001),
+    ])->assertInvalid('customer_note');
+});
+
 test('checking out captures the shipping address snapshot from the selected address', function () {
-    $user = User::factory()->create();
-    $address = Address::factory()->create(['user_id' => $user->id]);
-    createCartWithItem($user);
+    [$user, $address] = userWithAddress();
+    createCartWithItems($user);
 
     $this->actingAs($user)->post(route('checkout.store'), [
         'address_id' => $address->id,
@@ -105,14 +126,9 @@ test('checking out captures the shipping address snapshot from the selected addr
 });
 
 test('checking out decrements the product stock by the ordered quantity', function () {
-    $user = User::factory()->create();
-    $address = Address::factory()->create(['user_id' => $user->id]);
+    [$user, $address] = userWithAddress();
     $product = Product::factory()->create(['price' => 20, 'stock' => 10]);
-    OrderItem::factory()->create([
-        'order_id' => $user->cart()->id,
-        'product_id' => $product->id,
-        'quantity' => 3,
-    ]);
+    createCartItem($user, ['product_id' => $product->id, 'quantity' => 3]);
 
     $this->actingAs($user)->post(route('checkout.store'), [
         'address_id' => $address->id,
@@ -123,8 +139,7 @@ test('checking out decrements the product stock by the ordered quantity', functi
 });
 
 test('checking out with a product variant decrements the variant stock and snapshots its sku and options', function () {
-    $user = User::factory()->create();
-    $address = Address::factory()->create(['user_id' => $user->id]);
+    [$user, $address] = userWithAddress();
     $product = Product::factory()->create(['price' => 20, 'stock' => 10]);
     $variant = ProductVariant::factory()->create([
         'product_id' => $product->id,
@@ -133,8 +148,7 @@ test('checking out with a product variant decrements the variant stock and snaps
         'sku' => 'SKU-123',
         'options' => ['color' => 'red'],
     ]);
-    $item = OrderItem::factory()->create([
-        'order_id' => $user->cart()->id,
+    $item = createCartItem($user, [
         'product_id' => $product->id,
         'product_variant_id' => $variant->id,
         'quantity' => 2,
@@ -158,15 +172,10 @@ test('checking out with a product variant decrements the variant stock and snaps
 });
 
 test('checking out snapshots the product\'s category', function () {
-    $user = User::factory()->create();
-    $address = Address::factory()->create(['user_id' => $user->id]);
+    [$user, $address] = userWithAddress();
     $category = Category::factory()->create();
     $product = Product::factory()->create(['price' => 20, 'stock' => 10, 'category_id' => $category->id]);
-    $item = OrderItem::factory()->create([
-        'order_id' => $user->cart()->id,
-        'product_id' => $product->id,
-        'quantity' => 1,
-    ]);
+    $item = createCartItem($user, ['product_id' => $product->id, 'quantity' => 1]);
 
     $this->actingAs($user)->post(route('checkout.store'), [
         'address_id' => $address->id,
@@ -180,16 +189,9 @@ test('checking out snapshots the product\'s category', function () {
 });
 
 test('checking out sums the total across multiple cart items', function () {
-    $user = User::factory()->create();
-    $address = Address::factory()->create(['user_id' => $user->id]);
-    $cart = $user->cart();
-    OrderItem::factory()->create([
-        'order_id' => $cart->id,
-        'product_id' => Product::factory()->create(['price' => 20, 'stock' => 10]),
-        'quantity' => 2,
-    ]);
-    OrderItem::factory()->create([
-        'order_id' => $cart->id,
+    [$user, $address] = userWithAddress();
+    createCartItem($user, ['quantity' => 2]);
+    createCartItem($user, [
         'product_id' => Product::factory()->create(['price' => 15, 'stock' => 10]),
         'quantity' => 3,
     ]);
@@ -205,8 +207,7 @@ test('checking out sums the total across multiple cart items', function () {
 });
 
 test('checkout fails when the cart is empty', function () {
-    $user = User::factory()->create();
-    $address = Address::factory()->create(['user_id' => $user->id]);
+    [$user, $address] = userWithAddress();
     $user->cart();
 
     $response = $this->actingAs($user)->post(route('checkout.store'), [
@@ -218,14 +219,9 @@ test('checkout fails when the cart is empty', function () {
 });
 
 test('checkout fails when the requested quantity exceeds the product stock', function () {
-    $user = User::factory()->create();
-    $address = Address::factory()->create(['user_id' => $user->id]);
+    [$user, $address] = userWithAddress();
     $product = Product::factory()->create(['price' => 20, 'stock' => 2]);
-    OrderItem::factory()->create([
-        'order_id' => $user->cart()->id,
-        'product_id' => $product->id,
-        'quantity' => 5,
-    ]);
+    createCartItem($user, ['product_id' => $product->id, 'quantity' => 5]);
 
     $response = $this->actingAs($user)->post(route('checkout.store'), [
         'address_id' => $address->id,
@@ -238,12 +234,10 @@ test('checkout fails when the requested quantity exceeds the product stock', fun
 });
 
 test('checkout fails when the requested quantity exceeds the variant stock', function () {
-    $user = User::factory()->create();
-    $address = Address::factory()->create(['user_id' => $user->id]);
+    [$user, $address] = userWithAddress();
     $product = Product::factory()->create(['price' => 20, 'stock' => 10]);
     $variant = ProductVariant::factory()->create(['product_id' => $product->id, 'price' => 25, 'stock' => 1]);
-    OrderItem::factory()->create([
-        'order_id' => $user->cart()->id,
+    createCartItem($user, [
         'product_id' => $product->id,
         'product_variant_id' => $variant->id,
         'quantity' => 3,
@@ -260,9 +254,8 @@ test('checkout fails when the requested quantity exceeds the variant stock', fun
 });
 
 test('checking out with stripe creates a checkout session and redirects to it', function () {
-    $user = User::factory()->create();
-    $address = Address::factory()->create(['user_id' => $user->id]);
-    createCartWithItem($user);
+    [$user, $address] = userWithAddress();
+    createCartWithItems($user);
 
     $fakeSession = Session::constructFrom([
         'id' => 'cs_test_123',
@@ -288,9 +281,8 @@ test('checking out with stripe creates a checkout session and redirects to it', 
 });
 
 test('checkout requires a payment method', function () {
-    $user = User::factory()->create();
-    $address = Address::factory()->create(['user_id' => $user->id]);
-    createCartWithItem($user);
+    [$user, $address] = userWithAddress();
+    createCartWithItems($user);
 
     $response = $this->actingAs($user)->post(route('checkout.store'), [
         'address_id' => $address->id,
@@ -300,9 +292,8 @@ test('checkout requires a payment method', function () {
 });
 
 test('checkout rejects an invalid payment method', function () {
-    $user = User::factory()->create();
-    $address = Address::factory()->create(['user_id' => $user->id]);
-    createCartWithItem($user);
+    [$user, $address] = userWithAddress();
+    createCartWithItems($user);
 
     $response = $this->actingAs($user)->post(route('checkout.store'), [
         'address_id' => $address->id,
@@ -314,7 +305,7 @@ test('checkout rejects an invalid payment method', function () {
 
 test('checkout requires an address_id', function () {
     $user = User::factory()->create();
-    createCartWithItem($user);
+    createCartWithItems($user);
 
     $response = $this->actingAs($user)->post(route('checkout.store'), [
         'payment_method' => 'cod',
@@ -327,7 +318,7 @@ test('checkout rejects an address that belongs to another user', function () {
     $user = User::factory()->create();
     $otherUser = User::factory()->create();
     $otherAddress = Address::factory()->create(['user_id' => $otherUser->id]);
-    createCartWithItem($user);
+    createCartWithItems($user);
 
     $response = $this->actingAs($user)->post(route('checkout.store'), [
         'address_id' => $otherAddress->id,
@@ -339,17 +330,12 @@ test('checkout rejects an address that belongs to another user', function () {
 });
 
 test('checking out never touches another user\'s cart', function () {
-    $user = User::factory()->create();
-    $address = Address::factory()->create(['user_id' => $user->id]);
+    [$user, $address] = userWithAddress();
 
     $otherUser = User::factory()->create();
     $otherProduct = Product::factory()->create(['price' => 20, 'stock' => 10]);
     $otherCart = $otherUser->cart();
-    OrderItem::factory()->create([
-        'order_id' => $otherCart->id,
-        'product_id' => $otherProduct->id,
-        'quantity' => 2,
-    ]);
+    createCartItem($otherUser, ['product_id' => $otherProduct->id, 'quantity' => 2]);
 
     $response = $this->actingAs($user)->post(route('checkout.store'), [
         'address_id' => $address->id,
@@ -357,7 +343,7 @@ test('checking out never touches another user\'s cart', function () {
     ]);
 
     $response->assertStatus(422);
-    expect($otherCart->fresh()->status)->toBe(\App\Enums\OrderStatus::Cart);
+    expect($otherCart->fresh()->status)->toBe(OrderStatus::Cart);
     expect($otherProduct->fresh()->stock)->toBe(10);
     expect($otherUser->orders()->where('status', '!=', 'cart')->exists())->toBeFalse();
 });
@@ -365,27 +351,19 @@ test('checking out never touches another user\'s cart', function () {
 test('guests cannot check out', function () {
     $address = Address::factory()->create();
 
-    $response = $this->post(route('checkout.store'), [
+    assertGuestCannotAccessResource('post', route('checkout.store'), [
         'address_id' => $address->id,
         'payment_method' => 'cod',
     ]);
-
-    $response->assertRedirect(route('login'));
 });
 
 // stripeReturn
 
 test('stripe return marks the order paid when the session is paid', function () {
-    $user = User::factory()->create();
-    $address = Address::factory()->create(['user_id' => $user->id]);
-    $order = createCartWithItem($user);
-    $order->forceFill([
-        'status' => 'pending',
-        'payment_method' => PaymentMethod::Stripe,
-        'payment_status' => PaymentStatus::Unpaid,
-        'stripe_checkout_session_id' => 'cs_test_123',
+    [$user, $address] = userWithAddress();
+    $order = stripeOrderInState(createCartWithItems($user), [
         'shipping_address_snapshot' => ['name' => $address->name],
-    ])->save();
+    ]);
 
     $fakeSession = Session::constructFrom([
         'id' => 'cs_test_123',
@@ -411,13 +389,7 @@ test('stripe return marks the order paid when the session is paid', function () 
 
 test('stripe return does not mark the order paid when the session is not paid', function () {
     $user = User::factory()->create();
-    $order = createCartWithItem($user);
-    $order->forceFill([
-        'status' => 'pending',
-        'payment_method' => PaymentMethod::Stripe,
-        'payment_status' => PaymentStatus::Unpaid,
-        'stripe_checkout_session_id' => 'cs_test_123',
-    ])->save();
+    $order = stripeOrderInState(createCartWithItems($user));
 
     $fakeSession = Session::constructFrom([
         'id' => 'cs_test_123',
@@ -443,13 +415,7 @@ test('stripe return does not mark the order paid when the session is not paid', 
 
 test('stripe return does not confirm payment when the session_id does not match the order\'s stored session', function () {
     $user = User::factory()->create();
-    $order = createCartWithItem($user);
-    $order->forceFill([
-        'status' => 'pending',
-        'payment_method' => PaymentMethod::Stripe,
-        'payment_status' => PaymentStatus::Unpaid,
-        'stripe_checkout_session_id' => 'cs_test_123',
-    ])->save();
+    $order = stripeOrderInState(createCartWithItems($user));
 
     $this->mock(CheckoutSessionCreator::class, function ($mock) {
         $mock->shouldReceive('retrieve')->never();
@@ -468,15 +434,12 @@ test('stripe return does not confirm payment when the session_id does not match 
 
 test('stripe return does not re-confirm an already paid order', function () {
     $user = User::factory()->create();
-    $order = createCartWithItem($user);
     $paidAt = now()->subDay();
-    $order->forceFill([
+    $order = stripeOrderInState(createCartWithItems($user), [
         'status' => 'processing',
-        'payment_method' => PaymentMethod::Stripe,
         'payment_status' => PaymentStatus::Paid,
-        'stripe_checkout_session_id' => 'cs_test_123',
         'paid_at' => $paidAt,
-    ])->save();
+    ]);
 
     $this->mock(CheckoutSessionCreator::class, function ($mock) {
         $mock->shouldReceive('retrieve')->never();
@@ -494,32 +457,15 @@ test('stripe return does not re-confirm an already paid order', function () {
 });
 
 test('stripe return does not let a user confirm another user\'s order', function () {
-    $user = User::factory()->create();
     $owner = User::factory()->create();
-    $order = createCartWithItem($owner);
-    $order->forceFill([
-        'status' => 'pending',
-        'payment_method' => PaymentMethod::Stripe,
-        'payment_status' => PaymentStatus::Unpaid,
-        'stripe_checkout_session_id' => 'cs_test_123',
-    ])->save();
+    $order = stripeOrderInState(createCartWithItems($owner));
 
-    $this->actingAs($user)
-        ->get(route('checkout.stripe.return', ['order' => $order, 'session_id' => 'cs_test_123']))
-        ->assertForbidden();
+    assertForeignUserCannotAccessResource('get', route('checkout.stripe.return', ['order' => $order, 'session_id' => 'cs_test_123']), $order);
 });
 
 test('guests cannot access the stripe return endpoint', function () {
     $owner = User::factory()->create();
-    $order = createCartWithItem($owner);
-    $order->forceFill([
-        'status' => 'pending',
-        'payment_method' => PaymentMethod::Stripe,
-        'payment_status' => PaymentStatus::Unpaid,
-        'stripe_checkout_session_id' => 'cs_test_123',
-    ])->save();
+    $order = stripeOrderInState(createCartWithItems($owner));
 
-    $response = $this->get(route('checkout.stripe.return', ['order' => $order, 'session_id' => 'cs_test_123']));
-
-    $response->assertRedirect(route('login'));
+    assertGuestCannotAccessResource('get', route('checkout.stripe.return', ['order' => $order, 'session_id' => 'cs_test_123']));
 });
