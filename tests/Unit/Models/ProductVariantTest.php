@@ -4,16 +4,7 @@ use App\Models\Product;
 use App\Models\ProductVariant;
 
 test('product relationship returns the correct product', function () {
-    $product = Product::factory()->create(['name' => 'Smartphone']);
-    $variant = ProductVariant::factory()->create(['product_id' => $product->id]);
-
-    // Unrelated data: another product with its own variant, so the relation
-    // must resolve via product_id and not just grab any product row.
-    $otherProduct = Product::factory()->create(['name' => 'Blender']);
-    ProductVariant::factory()->create(['product_id' => $otherProduct->id]);
-
-    expect($variant->product->id)->toBe($product->id)
-        ->and($variant->product->id)->not->toBe($otherProduct->id);
+    assertBelongsToResolvesCorrectOwner(Product::class, ProductVariant::class, 'product_id', 'product');
 });
 
 test('variant attributes are cast correctly', function () {
@@ -30,4 +21,18 @@ test('variant attributes are cast correctly', function () {
         ->and($fresh->price)->toBe('12.50')
         ->and($fresh->stock)->toBeInt()->toBe(7)
         ->and($fresh->is_active)->toBeFalse();
+});
+
+test('findOptional returns the matching variant for a numeric id, string or int', function () {
+    $variant = ProductVariant::factory()->create();
+
+    expect(ProductVariant::findOptional($variant->id)?->id)->toBe($variant->id)
+        ->and(ProductVariant::findOptional((string) $variant->id)?->id)->toBe($variant->id);
+});
+
+test('findOptional returns null for empty or missing ids', function () {
+    expect(ProductVariant::findOptional(null))->toBeNull()
+        ->and(ProductVariant::findOptional(''))->toBeNull()
+        ->and(ProductVariant::findOptional(0))->toBeNull()
+        ->and(ProductVariant::findOptional('9999999'))->toBeNull();
 });

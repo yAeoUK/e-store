@@ -3,35 +3,23 @@
 use App\Http\Controllers\Admin\AdminController;
 use App\Models\User;
 use Illuminate\Http\Request;
-use Spatie\Permission\Models\Role;
 
 test('admin can list current admins', function () {
-    $admin = actingAsAdmin();
     User::factory()->create(); // a non-admin, should not appear
 
-    $response = $this->actingAs($admin)->withHeaders(inertiaHeaders())->get(route('admin.admins.index'));
-
-    $response->assertOk();
-    $response->assertJsonPath('component', 'Admin/Admins/Index');
-    $response->assertJsonCount(1, 'props.admins.data');
+    assertAdminIndexRenders('admin.admins.index', 'Admin/Admins/Index', 'admins', 1);
 });
 
 test('admin admins index paginates results instead of loading them all at once', function () {
-    $admin = actingAsAdmin();
-    User::factory()->count(19)->create()->each(fn (User $user) => $user->assignRole('admin'));
-
-    $response = $this->actingAs($admin)->withHeaders(inertiaHeaders())->get(route('admin.admins.index'));
-
-    $response->assertOk();
-    $response->assertJsonCount(15, 'props.admins.data');
-    $response->assertJsonPath('props.admins.total', 20);
-    $response->assertJsonPath('props.admins.per_page', 15);
+    assertIndexPaginates(
+        'admin.admins.index',
+        'admins',
+        fn () => User::factory()->count(19)->create()->each(fn (User $user) => $user->assignRole('admin'))
+    );
 });
 
 test('non-admin cannot list admins', function () {
-    $user = User::factory()->create();
-
-    $this->actingAs($user)->get(route('admin.admins.index'))->assertForbidden();
+    assertNonAdminCannotView('admin.admins.index');
 });
 
 test('admin can render the create admin page', function () {
@@ -44,9 +32,7 @@ test('admin can render the create admin page', function () {
 });
 
 test('non-admin cannot view the create admin page', function () {
-    $user = User::factory()->create();
-
-    $this->actingAs($user)->get(route('admin.admins.create'))->assertForbidden();
+    assertNonAdminForbidden('get', route('admin.admins.create'));
 });
 
 test('admin can promote an existing user to admin by email', function () {
@@ -90,8 +76,7 @@ test('admin can create a brand-new admin account', function () {
 
 test('admin can revoke another admins access', function () {
     $admin = actingAsAdmin();
-    $otherAdmin = User::factory()->create();
-    $otherAdmin->assignRole('admin');
+    $otherAdmin = makeAdmin();
 
     $response = $this->actingAs($admin)->delete(route('admin.admins.revoke', $otherAdmin));
 
@@ -102,8 +87,7 @@ test('admin can revoke another admins access', function () {
 
 test('admin cannot revoke their own access', function () {
     $admin = actingAsAdmin();
-    $otherAdmin = User::factory()->create();
-    $otherAdmin->assignRole('admin');
+    makeAdmin();
 
     $response = $this->actingAs($admin)->delete(route('admin.admins.revoke', $admin));
 
@@ -120,9 +104,7 @@ test('admin cannot revoke their own access', function () {
 // (e.g. protects against a future change to the self-revoke rule), so it's
 // verified directly against the controller here rather than through routing.
 test('the last remaining admin cannot be revoked, even by a caller other than themselves', function () {
-    Role::findOrCreate('admin');
-    $onlyAdmin = User::factory()->create();
-    $onlyAdmin->assignRole('admin');
+    $onlyAdmin = actingAsAdmin();
     $caller = User::factory()->create();
 
     $request = Request::create('/');
@@ -136,25 +118,23 @@ test('the last remaining admin cannot be revoked, even by a caller other than th
 });
 
 test('non-admin cannot revoke admins', function () {
-    $user = User::factory()->create();
     $admin = actingAsAdmin();
 
-    $this->actingAs($user)->delete(route('admin.admins.revoke', $admin))->assertForbidden();
+    assertNonAdminForbidden('delete', route('admin.admins.revoke', $admin));
 
     expect($admin->fresh()->hasRole('admin'))->toBeTrue();
 });
 
 test('non-admin cannot promote or create admins', function () {
-    $user = User::factory()->create();
     $target = User::factory()->create(['email' => 'target@example.com']);
 
-    $this->actingAs($user)->post(route('admin.admins.promote'), ['email' => 'target@example.com'])->assertForbidden();
-    $this->actingAs($user)->post(route('admin.admins.store'), [
+    assertNonAdminForbidden('post', route('admin.admins.promote'), ['email' => 'target@example.com']);
+    assertNonAdminForbidden('post', route('admin.admins.store'), [
         'name' => 'X',
         'email' => 'x@example.com',
         'password' => 'password123',
         'password_confirmation' => 'password123',
-    ])->assertForbidden();
+    ]);
 
     expect($target->fresh()->hasRole('admin'))->toBeFalse();
     $this->assertDatabaseMissing('users', ['email' => 'x@example.com']);

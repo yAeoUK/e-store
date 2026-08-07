@@ -38,8 +38,6 @@ class ProductImageController extends Controller
 
     public function setPrimary(Product $product, ProductImage $image): RedirectResponse
     {
-        abort_unless($image->product_id === $product->id, 404);
-
         $image->makePrimary();
 
         return redirect()->route('admin.products.edit', $product);
@@ -47,8 +45,6 @@ class ProductImageController extends Controller
 
     public function destroy(Product $product, ProductImage $image): RedirectResponse
     {
-        abort_unless($image->product_id === $product->id, 404);
-
         $wasPrimary = $image->is_primary;
         $image->delete();
 

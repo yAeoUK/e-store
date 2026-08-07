@@ -6,7 +6,9 @@ use App\Enums\OrderStatus;
 use App\Enums\PaymentMethod;
 use App\Enums\PaymentStatus;
 use App\Http\Requests\StoreCheckoutRequest;
+use App\Models\Address;
 use App\Models\Order;
+use App\Models\OrderItem;
 use App\Models\Product;
 use App\Models\ProductVariant;
 use App\Services\Stripe\CheckoutSessionCreator;
@@ -21,16 +23,9 @@ class CheckoutController extends Controller
 {
     public function index(Request $request): Response
     {
-        $cart = $request->user()->cart()->load([
-            'orderItems.product:id,name,slug,price,stock',
-            'orderItems.product.images:product_id,url,alt_text,is_primary',
-            'orderItems.productVariant:id,product_id,sku,options,price,stock',
-        ]);
+        $cart = $request->user()->cart()->loadCartItemsForDisplay();
 
-        $addresses = $request->user()->addresses()->get([
-            'id', 'label', 'name', 'line1', 'line2', 'city',
-            'state', 'postal_code', 'country', 'phone', 'is_default',
-        ]);
+        $addresses = $request->user()->addresses()->get(Address::DISPLAY_COLUMNS);
 
         return Inertia::render('Checkout/Index', [
             'cart' => $cart,
@@ -63,7 +58,7 @@ class CheckoutController extends Controller
 
                     $variant->decrement('stock', $item->quantity);
                     $product = $variant->product;
-                    $unitPrice = $variant->price ?? $product->price;
+                    $unitPrice = OrderItem::resolveUnitPrice($product, $variant);
                 } else {
                     $product = Product::query()
                         ->whereKey($item->product_id)
@@ -74,24 +69,12 @@ class CheckoutController extends Controller
 
                     $product->decrement('stock', $item->quantity);
                     $variant = null;
-                    $unitPrice = $product->price;
+                    $unitPrice = OrderItem::resolveUnitPrice($product, $variant);
                 }
 
                 $item->update([
                     'unit_price' => $unitPrice,
-                    'product_snapshot' => [
-                        'name' => $product->name,
-                        'slug' => $product->slug,
-                        'image_url' => $product->images()->where('is_primary', true)->first()?->url,
-                        'category' => $product->category ? [
-                            'name' => $product->category->name,
-                            'slug' => $product->category->slug,
-                        ] : null,
-                        'variant' => $variant ? [
-                            'sku' => $variant->sku,
-                            'options' => $variant->options,
-                        ] : null,
-                    ],
+                    'product_snapshot' => OrderItem::buildProductSnapshot($product, $variant),
                 ]);
 
                 $total = bcadd($total, bcmul((string) $item->quantity, (string) $unitPrice, 2), 2);
@@ -102,6 +85,7 @@ class CheckoutController extends Controller
                 'total' => $total,
                 'payment_method' => $paymentMethod,
                 'payment_status' => PaymentStatus::Unpaid,
+                'customer_note' => $request->validated('customer_note'),
                 'shipping_address_snapshot' => [
                     'label' => $address->label,
                     'name' => $address->name,
@@ -140,11 +124,7 @@ class CheckoutController extends Controller
             $session = $checkoutSessionCreator->retrieve($sessionId);
 
             if ($session->payment_status === 'paid') {
-                $order->update([
-                    'payment_status' => PaymentStatus::Paid,
-                    'status' => OrderStatus::Processing,
-                    'paid_at' => now(),
-                ]);
+                $order->markAsPaid($session->payment_intent);
             }
         }
 

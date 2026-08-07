@@ -2,14 +2,12 @@
 
 namespace App\Http\Requests;
 
+use App\Http\Requests\Concerns\SharedRules;
 use Illuminate\Foundation\Http\FormRequest;
 
 class StoreCartItemRequest extends FormRequest
 {
-    public function authorize(): bool
-    {
-        return true;
-    }
+    use SharedRules;
 
     /**
      * @return array<string, array<mixed>>
@@ -19,7 +17,7 @@ class StoreCartItemRequest extends FormRequest
         return [
             'product_id' => ['required', 'integer', 'exists:products,id'],
             'product_variant_id' => ['nullable', 'integer', 'exists:product_variants,id'],
-            'quantity' => ['required', 'integer', 'min:1'],
+            'quantity' => $this->quantityRule(),
         ];
     }
 }

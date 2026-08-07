@@ -2,17 +2,17 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasExclusiveFlag;
 use Database\Factories\ProductImageFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Support\Facades\DB;
 
 class ProductImage extends Model
 {
     /** @use HasFactory<ProductImageFactory> */
-    use HasFactory, SoftDeletes;
+    use HasExclusiveFlag, HasFactory, SoftDeletes;
 
     protected $fillable = [
         'url',
@@ -39,12 +39,6 @@ class ProductImage extends Model
      */
     public function makePrimary(): void
     {
-        DB::transaction(function (): void {
-            static::where('product_id', $this->product_id)
-                ->where('id', '!=', $this->id)
-                ->update(['is_primary' => false]);
-
-            $this->update(['is_primary' => true]);
-        });
+        $this->makeExclusive('is_primary', 'product_id');
     }
 }

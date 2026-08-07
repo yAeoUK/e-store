@@ -16,33 +16,13 @@ test('is_default is cast to a boolean', function () {
 });
 
 test('makeDefault marks the address as default', function () {
-    $address = Address::factory()->create(['is_default' => false]);
-
-    $address->makeDefault();
-
-    expect($address->fresh()->is_default)->toBeTrue();
+    assertExclusiveFlagMarksSelf(Address::class, 'makeDefault', 'is_default', 'user_id', User::class);
 });
 
 test('makeDefault unsets the previous default among the same user\'s addresses', function () {
-    $user = User::factory()->create();
-    $current = Address::factory()->create(['user_id' => $user->id, 'is_default' => true]);
-    $other = Address::factory()->create(['user_id' => $user->id, 'is_default' => false]);
-
-    $other->makeDefault();
-
-    expect($other->fresh()->is_default)->toBeTrue()
-        ->and($current->fresh()->is_default)->toBeFalse();
+    assertExclusiveFlagUnsetsPreviousHolder(Address::class, 'makeDefault', 'is_default', 'user_id', User::class);
 });
 
 test('makeDefault does not affect other users\' addresses', function () {
-    $user = User::factory()->create();
-    $address = Address::factory()->create(['user_id' => $user->id, 'is_default' => false]);
-
-    $otherUser = User::factory()->create();
-    $otherAddress = Address::factory()->create(['user_id' => $otherUser->id, 'is_default' => true]);
-
-    $address->makeDefault();
-
-    expect($address->fresh()->is_default)->toBeTrue()
-        ->and($otherAddress->fresh()->is_default)->toBeTrue();
+    assertExclusiveFlagScopedToOwner(Address::class, 'makeDefault', 'is_default', 'user_id', User::class);
 });

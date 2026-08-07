@@ -2,30 +2,10 @@
 
 namespace App\Http\Requests;
 
-use Illuminate\Foundation\Http\FormRequest;
-
-class UpdateProductRequest extends FormRequest
+class UpdateProductRequest extends ProductRequest
 {
-    public function authorize(): bool
+    protected function isPartialUpdate(): bool
     {
         return true;
-    }
-
-    /**
-     * @return array<string, array<mixed>>
-     */
-    public function rules(): array
-    {
-        return [
-            'category_id' => ['nullable', 'exists:categories,id'],
-            'name' => ['sometimes', 'required', 'string', 'max:255'],
-            'slug' => ['sometimes', 'nullable', 'string', 'max:255'],
-            'price' => ['sometimes', 'required', 'numeric', 'min:0'],
-            'short_description' => ['nullable', 'string', 'max:500'],
-            'description' => ['nullable', 'string'],
-            'is_active' => ['boolean'],
-            'stock' => ['nullable', 'integer', 'min:0'],
-            'metadata' => ['nullable', 'array'],
-        ];
     }
 }

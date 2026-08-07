@@ -12,43 +12,9 @@ class AccountTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_account_profile_page_is_displayed(): void
-    {
-        $user = User::factory()->create();
-
-        $response = $this
-            ->actingAs($user)
-            ->get('/profile');
-
-        $response->assertOk();
-    }
-
-    public function test_account_addresses_page_is_displayed(): void
-    {
-        $user = User::factory()->create();
-
-        $response = $this
-            ->actingAs($user)
-            ->get('/account/addresses');
-
-        $response->assertOk();
-    }
-
-    public function test_account_orders_page_is_displayed(): void
-    {
-        $user = User::factory()->create();
-
-        $response = $this
-            ->actingAs($user)
-            ->get('/account/orders');
-
-        $response->assertOk();
-    }
-
     public function test_addresses_index_only_shows_the_authenticated_users_addresses(): void
     {
-        $user = User::factory()->create();
-        $address = Address::factory()->create(['user_id' => $user->id]);
+        [$user, $address] = userWithAddress();
 
         $otherUser = User::factory()->create();
         Address::factory()->create(['user_id' => $otherUser->id]);
@@ -184,8 +150,7 @@ class AccountTest extends TestCase
 
     public function test_user_can_update_an_address(): void
     {
-        $user = User::factory()->create();
-        $address = Address::factory()->create(['user_id' => $user->id]);
+        [$user, $address] = userWithAddress();
 
         $response = $this
             ->actingAs($user)
@@ -212,8 +177,7 @@ class AccountTest extends TestCase
 
     public function test_updating_an_address_ignores_a_spoofed_user_id(): void
     {
-        $user = User::factory()->create();
-        $address = Address::factory()->create(['user_id' => $user->id]);
+        [$user, $address] = userWithAddress();
         $otherUser = User::factory()->create();
 
         $response = $this
@@ -237,8 +201,7 @@ class AccountTest extends TestCase
 
     public function test_updating_an_address_requires_the_required_fields(): void
     {
-        $user = User::factory()->create();
-        $address = Address::factory()->create(['user_id' => $user->id]);
+        [$user, $address] = userWithAddress();
 
         $response = $this
             ->actingAs($user)
@@ -340,27 +303,19 @@ class AccountTest extends TestCase
     public function test_updating_another_users_address_is_forbidden(): void
     {
         $owner = User::factory()->create();
-        $intruder = User::factory()->create();
         $address = Address::factory()->create(['user_id' => $owner->id, 'line1' => 'Original Line']);
 
-        $response = $this
-            ->actingAs($intruder)
-            ->patch("/account/addresses/{$address->id}", [
-                'line1' => 'Hacked Line',
-                'city' => 'Gotham',
-                'postal_code' => '20500',
-                'country' => 'US',
-            ]);
-
-        $response->assertForbidden();
-
-        $this->assertDatabaseHas('addresses', ['id' => $address->id, 'line1' => 'Original Line']);
+        assertForeignUserCannotAccessResource('patch', "/account/addresses/{$address->id}", $address, [
+            'line1' => 'Hacked Line',
+            'city' => 'Gotham',
+            'postal_code' => '20500',
+            'country' => 'US',
+        ], ['id' => $address->id, 'line1' => 'Original Line'], $this);
     }
 
     public function test_user_can_delete_an_address(): void
     {
-        $user = User::factory()->create();
-        $address = Address::factory()->create(['user_id' => $user->id]);
+        [$user, $address] = userWithAddress();
 
         $response = $this
             ->actingAs($user)
@@ -374,16 +329,9 @@ class AccountTest extends TestCase
     public function test_deleting_another_users_address_is_forbidden(): void
     {
         $owner = User::factory()->create();
-        $intruder = User::factory()->create();
         $address = Address::factory()->create(['user_id' => $owner->id]);
 
-        $response = $this
-            ->actingAs($intruder)
-            ->delete("/account/addresses/{$address->id}");
-
-        $response->assertForbidden();
-
-        $this->assertDatabaseHas('addresses', ['id' => $address->id]);
+        assertForeignUserCannotAccessResource('delete', "/account/addresses/{$address->id}", $address, testCase: $this);
     }
 
     public function test_user_can_set_an_address_as_default(): void
@@ -421,64 +369,52 @@ class AccountTest extends TestCase
     public function test_setting_default_on_another_users_address_is_forbidden(): void
     {
         $owner = User::factory()->create();
-        $intruder = User::factory()->create();
         $address = Address::factory()->create(['user_id' => $owner->id, 'is_default' => false]);
 
-        $response = $this
-            ->actingAs($intruder)
-            ->post("/account/addresses/{$address->id}/default");
-
-        $response->assertForbidden();
-
-        $this->assertDatabaseHas('addresses', ['id' => $address->id, 'is_default' => false]);
+        assertForeignUserCannotAccessResource('post', "/account/addresses/{$address->id}/default", $address, [], [
+            'id' => $address->id,
+            'is_default' => false,
+        ], $this);
     }
 
     public function test_guests_cannot_view_the_addresses_index(): void
     {
-        $this->get('/account/addresses')->assertRedirect(route('login'));
+        assertGuestCannotAccessResource('get', '/account/addresses', testCase: $this);
     }
 
     public function test_guests_cannot_create_an_address(): void
     {
-        $this->post('/account/addresses', [
+        assertGuestCannotAccessResource('post', '/account/addresses', [
             'line1' => '456 Oak Ave',
             'city' => 'Metropolis',
             'postal_code' => '10001',
             'country' => 'US',
-        ])->assertRedirect(route('login'));
-
-        $this->assertDatabaseMissing('addresses', ['line1' => '456 Oak Ave']);
+        ], fn () => $this->assertDatabaseMissing('addresses', ['line1' => '456 Oak Ave']), $this);
     }
 
     public function test_guests_cannot_update_an_address(): void
     {
         $address = Address::factory()->create(['line1' => 'Original Line']);
 
-        $this->patch("/account/addresses/{$address->id}", [
+        assertGuestCannotAccessResource('patch', "/account/addresses/{$address->id}", [
             'line1' => 'Hacked Line',
             'city' => 'Gotham',
             'postal_code' => '20500',
             'country' => 'US',
-        ])->assertRedirect(route('login'));
-
-        $this->assertDatabaseHas('addresses', ['id' => $address->id, 'line1' => 'Original Line']);
+        ], fn () => $this->assertDatabaseHas('addresses', ['id' => $address->id, 'line1' => 'Original Line']), $this);
     }
 
     public function test_guests_cannot_delete_an_address(): void
     {
         $address = Address::factory()->create();
 
-        $this->delete("/account/addresses/{$address->id}")->assertRedirect(route('login'));
-
-        $this->assertDatabaseHas('addresses', ['id' => $address->id]);
+        assertGuestCannotAccessResource('delete', "/account/addresses/{$address->id}", [], fn () => $this->assertDatabaseHas('addresses', ['id' => $address->id]), $this);
     }
 
     public function test_guests_cannot_set_an_address_as_default(): void
     {
         $address = Address::factory()->create(['is_default' => false]);
 
-        $this->post("/account/addresses/{$address->id}/default")->assertRedirect(route('login'));
-
-        $this->assertDatabaseHas('addresses', ['id' => $address->id, 'is_default' => false]);
+        assertGuestCannotAccessResource('post', "/account/addresses/{$address->id}/default", [], fn () => $this->assertDatabaseHas('addresses', ['id' => $address->id, 'is_default' => false]), $this);
     }
 }

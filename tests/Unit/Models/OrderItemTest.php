@@ -4,49 +4,19 @@ use App\Models\Category;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Product;
+use App\Models\ProductImage;
 use App\Models\ProductVariant;
 
 test('order relationship returns the correct order', function () {
-    $order = Order::factory()->create();
-    $item = OrderItem::factory()->create(['order_id' => $order->id]);
-
-    // Unrelated data: another order with its own item, so the relation
-    // must resolve via order_id and not just grab any order row.
-    $otherOrder = Order::factory()->create();
-    OrderItem::factory()->create(['order_id' => $otherOrder->id]);
-
-    expect($item->order->id)->toBe($order->id)
-        ->and($item->order->id)->not->toBe($otherOrder->id);
+    assertBelongsToResolvesCorrectOwner(Order::class, OrderItem::class, 'order_id', 'order');
 });
 
 test('product relationship returns the correct product', function () {
-    $product = Product::factory()->create(['name' => 'Smartphone']);
-    $item = OrderItem::factory()->create(['product_id' => $product->id]);
-
-    // Unrelated data: another product with its own order item, so the
-    // relation must resolve via product_id and not just grab any product row.
-    $otherProduct = Product::factory()->create(['name' => 'Blender']);
-    OrderItem::factory()->create(['product_id' => $otherProduct->id]);
-
-    expect($item->product->id)->toBe($product->id)
-        ->and($item->product->id)->not->toBe($otherProduct->id);
+    assertBelongsToResolvesCorrectOwner(Product::class, OrderItem::class, 'product_id', 'product');
 });
 
 test('productVariant relationship returns the correct variant', function () {
-    $product = Product::factory()->create();
-    $variant = ProductVariant::factory()->create(['product_id' => $product->id, 'sku' => 'SKU-RED-M']);
-    $item = OrderItem::factory()->create([
-        'product_id' => $product->id,
-        'product_variant_id' => $variant->id,
-    ]);
-
-    // Unrelated data: another variant with its own order item, so the
-    // relation must resolve via product_variant_id and not just grab any variant row.
-    $otherVariant = ProductVariant::factory()->create(['product_id' => $product->id, 'sku' => 'SKU-BLUE-L']);
-    OrderItem::factory()->create(['product_id' => $product->id, 'product_variant_id' => $otherVariant->id]);
-
-    expect($item->productVariant->id)->toBe($variant->id)
-        ->and($item->productVariant->id)->not->toBe($otherVariant->id);
+    assertBelongsToResolvesCorrectOwner(ProductVariant::class, OrderItem::class, 'product_variant_id', 'productVariant');
 });
 
 test('product_variant_id is nullable for order items with no variant', function () {
@@ -133,4 +103,61 @@ test('product_snapshot has a null variant when the order item has no variant', f
     $item = OrderItem::factory()->create(['product_id' => $product->id, 'product_variant_id' => null]);
 
     expect($item->product_snapshot['variant'])->toBeNull();
+});
+
+test('resolveUnitPrice uses the variant price when a variant is given', function () {
+    $product = Product::factory()->create(['price' => 100]);
+    $variant = ProductVariant::factory()->create(['product_id' => $product->id, 'price' => 120]);
+
+    expect(OrderItem::resolveUnitPrice($product, $variant))->toBe('120.00');
+});
+
+test('resolveUnitPrice falls back to the product price when the variant has no price override', function () {
+    $product = Product::factory()->create(['price' => 100]);
+    $variant = ProductVariant::factory()->create(['product_id' => $product->id, 'price' => null]);
+
+    expect(OrderItem::resolveUnitPrice($product, $variant))->toBe('100.00');
+});
+
+test('resolveUnitPrice uses the product price when there is no variant', function () {
+    $product = Product::factory()->create(['price' => 100]);
+
+    expect(OrderItem::resolveUnitPrice($product, null))->toBe('100.00');
+});
+
+test('buildProductSnapshot captures the product, category and primary image', function () {
+    $category = Category::factory()->create(['name' => 'Phones']);
+    $product = Product::factory()->create(['name' => 'Smartphone', 'category_id' => $category->id]);
+    ProductImage::factory()->create(['product_id' => $product->id, 'is_primary' => false, 'url' => 'secondary.jpg']);
+    $primaryImage = ProductImage::factory()->create(['product_id' => $product->id, 'is_primary' => true, 'url' => 'primary.jpg']);
+
+    $snapshot = OrderItem::buildProductSnapshot($product, null);
+
+    expect($snapshot['name'])->toBe('Smartphone')
+        ->and($snapshot['slug'])->toBe($product->slug)
+        ->and($snapshot['image_url'])->toBe($primaryImage->url)
+        ->and($snapshot['category'])->toBe(['name' => 'Phones', 'slug' => $category->slug])
+        ->and($snapshot['variant'])->toBeNull();
+});
+
+test('buildProductSnapshot has a null category and image when the product has neither', function () {
+    $product = Product::factory()->create(['category_id' => null]);
+
+    $snapshot = OrderItem::buildProductSnapshot($product, null);
+
+    expect($snapshot['category'])->toBeNull()
+        ->and($snapshot['image_url'])->toBeNull();
+});
+
+test('buildProductSnapshot captures the variant sku and options when given', function () {
+    $product = Product::factory()->create();
+    $variant = ProductVariant::factory()->create([
+        'product_id' => $product->id,
+        'sku' => 'SKU-RED-M',
+        'options' => ['color' => 'Red', 'size' => 'M'],
+    ]);
+
+    $snapshot = OrderItem::buildProductSnapshot($product, $variant);
+
+    expect($snapshot['variant'])->toBe(['sku' => 'SKU-RED-M', 'options' => ['color' => 'Red', 'size' => 'M']]);
 });

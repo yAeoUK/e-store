@@ -2,7 +2,6 @@
 
 use App\Models\Product;
 use App\Models\ProductImage;
-use App\Models\User;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -90,13 +89,14 @@ test('deleting the primary image promotes the next image to primary', function (
 });
 
 test('an image belonging to a different product cannot be managed via this product', function () {
-    $admin = actingAsAdmin();
     $product = Product::factory()->create();
     $otherProduct = Product::factory()->create();
     $image = ProductImage::factory()->for($otherProduct)->create();
 
-    $this->actingAs($admin)->post(route('admin.products.images.setPrimary', [$product, $image]))->assertNotFound();
-    $this->actingAs($admin)->delete(route('admin.products.images.destroy', [$product, $image]))->assertNotFound();
+    assertScopedChildNotFoundForWrongParent($product, $image, [
+        ['post', 'admin.products.images.setPrimary', []],
+        ['delete', 'admin.products.images.destroy', []],
+    ]);
 });
 
 test('oversized or non-image uploads are rejected', function () {
@@ -113,11 +113,10 @@ test('oversized or non-image uploads are rejected', function () {
 });
 
 test('non-admin cannot manage product images', function () {
-    $user = User::factory()->create();
     $product = Product::factory()->create();
     $image = ProductImage::factory()->for($product)->create();
 
-    $this->actingAs($user)->post(route('admin.products.images.store', $product), [])->assertForbidden();
-    $this->actingAs($user)->post(route('admin.products.images.setPrimary', [$product, $image]))->assertForbidden();
-    $this->actingAs($user)->delete(route('admin.products.images.destroy', [$product, $image]))->assertForbidden();
+    assertNonAdminForbidden('post', route('admin.products.images.store', $product));
+    assertNonAdminForbidden('post', route('admin.products.images.setPrimary', [$product, $image]));
+    assertNonAdminForbidden('delete', route('admin.products.images.destroy', [$product, $image]));
 });

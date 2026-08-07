@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Http\Controllers\Concerns\DefaultsNullableFieldsToZero;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreProductVariantRequest;
 use App\Http\Requests\Admin\UpdateProductVariantRequest;
@@ -11,10 +12,12 @@ use Illuminate\Http\RedirectResponse;
 
 class ProductVariantController extends Controller
 {
+    use DefaultsNullableFieldsToZero;
+
     public function store(StoreProductVariantRequest $request, Product $product): RedirectResponse
     {
         $data = $request->validated();
-        $data['stock'] = $data['stock'] ?? 0;
+        $this->defaultToZeroOnStore($data, 'stock');
 
         $product->variants()->create($data);
 
@@ -23,13 +26,8 @@ class ProductVariantController extends Controller
 
     public function update(UpdateProductVariantRequest $request, Product $product, ProductVariant $variant): RedirectResponse
     {
-        abort_unless($variant->product_id === $product->id, 404);
-
         $data = $request->validated();
-
-        if (array_key_exists('stock', $data) && $data['stock'] === null) {
-            $data['stock'] = 0;
-        }
+        $this->defaultToZeroOnUpdate($data, 'stock');
 
         $variant->update($data);
 
@@ -38,8 +36,6 @@ class ProductVariantController extends Controller
 
     public function destroy(Product $product, ProductVariant $variant): RedirectResponse
     {
-        abort_unless($variant->product_id === $product->id, 404);
-
         $variant->delete();
 
         return redirect()->route('admin.products.edit', $product);

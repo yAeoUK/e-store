@@ -25,6 +25,8 @@ class Order extends Model
         'stripe_checkout_session_id',
         'stripe_payment_intent_id',
         'paid_at',
+        'admin_note',
+        'customer_note',
     ];
 
     protected $casts = [
@@ -50,5 +52,31 @@ class Order extends Model
     public function orderItems(): HasMany
     {
         return $this->hasMany(OrderItem::class);
+    }
+
+    /**
+     * @return $this
+     */
+    public function loadCartItemsForDisplay(): static
+    {
+        return $this->load([
+            'orderItems.product:id,name,slug,price,stock',
+            'orderItems.product.images:product_id,url,alt_text,is_primary',
+            'orderItems.productVariant:id,product_id,sku,options,price,stock',
+        ]);
+    }
+
+    public function markAsPaid(?string $stripePaymentIntentId = null): void
+    {
+        if ($this->payment_status === PaymentStatus::Paid) {
+            return;
+        }
+
+        $this->update([
+            'payment_status' => PaymentStatus::Paid,
+            'status' => OrderStatus::Processing,
+            'stripe_payment_intent_id' => $stripePaymentIntentId ?? $this->stripe_payment_intent_id,
+            'paid_at' => now(),
+        ]);
     }
 }
