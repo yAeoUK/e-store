@@ -112,16 +112,25 @@ Form validation (client-side)
 - `resources/js/lib/validation.ts` is the whole utility — no external
   validation library (no vee-validate/yup/zod/vuelidate is installed).
   Validator factories (`required(label)`, `isEmail(label)`,
-  `maxLength(label, limit)`, `minLength(label, limit)`, `numeric(label)`,
-  `integer(label)`, `min(label, limit)`, `max(label, limit)`,
-  `confirmedBy(label, otherField)`, `filesRequired(label)`,
-  `fileType(label, allowedMimes, humanTypes)`, `fileMaxSize(label, maxBytes,
-  humanSize)`) each return a `(value, data) => string | null` function.
-  `validateFields(data, rules)` runs a `{ field: [validator, ...] }` map
-  against a data object and returns only the fields that failed. `required`/
-  `min`/`max` treat `0`/`false` as present — only `null`/`undefined`/`''`/
-  whitespace-only counts as missing, so a numeric field defaulting to `0`
-  (e.g. `stock`) doesn't spuriously fail a `required` check.
+  `maxLength(label, limit)`, `numeric(label)`, `integer(label)`,
+  `min(label, limit)`, `confirmedBy(label, otherField)`) each return a
+  `(value, data) => string | null` function. `validateFields(data, rules)`
+  runs a `{ field: [validator, ...] }` map against a data object and returns
+  only the fields that failed. `required`/`min` treat `0`/`false` as present
+  — only `null`/`undefined`/`''`/whitespace-only counts as missing, so a
+  numeric field defaulting to `0` (e.g. `stock`) doesn't spuriously fail a
+  `required` check. `minLength`/`max` were removed as dead code (no
+  remaining callers); `filesRequired`/`fileType`/`fileMaxSize` moved out of
+  this shared file into `ProductImageManager.vue` itself once it turned out
+  to be their only caller (see the single-caller convention in
+  [docs/design-system/README.md](../design-system/README.md)) — that
+  component's file-selection validation is otherwise unchanged.
+  Rule-*set* builders that mirror the backend's `SharedRules` shapes now
+  live alongside the individual validators: `passwordConfirmationRules(labels)`,
+  `nameEmailPasswordRules(labels)` (registration/admin-creation),
+  `categoryValidationRules(labels)`, and `productValidationRules(labels)`
+  each return a ready-made `{ field: Validator[] }` rules map instead of
+  every caller re-assembling the same field list by hand.
 - **DB-dependent backend rules stay server-only** — `unique`, `exists`, and
   similar aren't mirrored client-side; there's nothing to check without a
   round trip, so those fields still only get an error after the server
@@ -148,33 +157,62 @@ Form validation (client-side)
   boilerplate:
   - `useFormValidation(form, rules)` — the base primitive: takes an
     already-constructed `useForm()` result, returns `{ attempted,
-    clientErrors, errors (client merged over server), attemptSubmit(),
-    reset() }`. Reach for this directly only when the page needs custom
-    control over `submit()` beyond a single `form.post/put/patch/delete`
-    call — e.g. [resources/js/pages/Checkout/Index.vue](../../resources/js/pages/Checkout/Index.vue),
+    clientErrors, errors (client merged over server), fieldErrors (server
+    merged over client), attemptSubmit(), reset() }`. Reach for this
+    directly only when the page needs custom control over `submit()` beyond
+    a single `form.post/put/patch/delete` call — e.g.
+    [resources/js/pages/Checkout/Index.vue](../../resources/js/pages/Checkout/Index.vue),
     which calls `attemptSubmit()` itself before `form.post(route('checkout.store'))`.
   - `useValidatedSubmit(initialValues, rules, onSubmit)` — the common case:
-    owns the `useForm()` call too, returns `{ form, errors, submit }` where
-    `submit` already guards `onSubmit(form)` behind `attemptSubmit()`. Used
-    by every Auth page, the three Profile partial forms, and
-    `Admin/Admins/Create.vue`. See
-    [resources/js/pages/Auth/Login.vue](../../resources/js/pages/Auth/Login.vue)
+    owns the `useForm()` call too, returns `{ form, clientErrors, errors,
+    fieldErrors, submit, reset }` where `submit` already guards
+    `onSubmit(form)` behind `attemptSubmit()`. Used by every Auth page, the
+    three Profile partial forms, `Admin/Admins/Create.vue`,
+    `Admin/Orders/Show.vue` (both its status-change and admin-note forms),
+    and every admin Create/Edit page (`Admin/Products/{Create,Edit}.vue`,
+    `Admin/Categories/{Create,Edit}.vue`). Most callers bind `errors`; admin
+    Create/Edit pages instead bind `fieldErrors` since they hand a whole
+    errors object down to a shared fields component (see "Display" below).
+    See [resources/js/pages/Auth/Login.vue](../../resources/js/pages/Auth/Login.vue)
     for the reference implementation (this used to hand-roll the pattern
-    inline — now it's a three-line `useValidatedSubmit()` call).
-  - `useAdminResourceForm(initialValues, rules, onSubmit)` — same shape as
-    `useValidatedSubmit`, but returns `{ form, clientErrors, submit }`
-    (**not** a pre-merged `errors`) since every admin Create/Edit page hands
-    its errors down to a shared fields component that needs to merge them
-    with `form.errors` itself (see "Display" below). Used by
-    `Admin/Products/{Create,Edit}.vue` and `Admin/Categories/{Create,Edit}.vue`.
+    inline — now it's a three-line `useValidatedSubmit()` call). This
+    composable fully absorbed the now-deleted `useAdminResourceForm.ts` —
+    that composable's exact shape is what `useValidatedSubmit` grew into once
+    it also gained the `fieldErrors` (server-first) return, so there's no
+    longer a separate admin-specific variant.
   - `useEditableForm(createInitialValues, rules, populate)` — for a "list
     with an add form and an edit-modal" manager that needs *two* independent
     `useForm()`/validation instances plus the `editingId`/`edit()`/
     `closeEdit()` bookkeeping between them. `createInitialValues` is a
     factory function (not a plain object) called once per form instance, so
     the add-form and edit-form never share a nested object (e.g. an
-    `options` map) by reference. Used by `Account/Addresses.vue` and
+    `options` map) by reference. Returns both instances' `errors`/
+    `fieldErrors` pairs (`fieldErrors`/`editFieldErrors` for the second
+    form). Used by `Account/Addresses.vue` and
     `admin/ProductVariantManager.vue`.
+
+  Outside this validation stack, a handful of smaller composables cover
+  other repeated interaction patterns:
+  - `useConfirmAction(action)` — a generic confirm/processing/run/cancel
+    state machine for "click, confirm in a dialog, then fire an async
+    action." `useDeleteConfirmation` (above) is now a thin wrapper over it;
+    direct callers include `Admin/Users/Index.vue` (promote/revoke),
+    `Admin/Orders/Show.vue` (the refund flow), and `ShopAuthBanner.vue` (the
+    logout confirmation).
+  - `useEscapeKey(handler)` — mounts/unmounts an Escape-keydown listener;
+    used by `Modal.vue` instead of each modal-based component wiring its own
+    `document.addEventListener('keydown', ...)`.
+  - `useFilterForm(filters, defaults)` (plus a `submitFilters(routeName,
+    params)` helper) — reactive filter state seeded from the server's echoed
+    filter props (see `FiltersIndexRequests` in
+    [docs/architecture.md](../architecture.md)) and a shared `router.get`
+    submit call. Used by `Admin/Users/Index.vue`, `Admin/Categories/Index.vue`,
+    `Admin/Orders/Index.vue`, `Admin/Products/Index.vue`, and
+    `shop/ProductFilters.vue`.
+  - `useServerError(key)` — reactively reads `usePage().props.errors[key]`.
+    Used by `Admin/Categories/Index.vue`/`Admin/Admins/Index.vue` (the
+    can't-delete/revoke flash error) and `Admin/Orders/Show.vue` (a failed
+    refund's error).
 
   Whichever layer a page uses, errors only show once a submit has actually
   been attempted, not while the user is still filling the form in for the
@@ -184,15 +222,15 @@ Form validation (client-side)
   called with, not the live values, so relying on it would silently validate
   stale data under test even though real Inertia's `data()` is live.
 - **Display**: components binding `FormField`/`SelectField`/etc directly to
-  a `useValidatedSubmit`/`useFormValidation` result use its already-merged
+  a `useValidatedSubmit`/`useFormValidation` result use its client-first
   `errors` (`:error="errors.x"` — client and server are combined for you).
-  Pages using `useAdminResourceForm`/`useEditableForm` and handing a whole
-  `errors` object down to a shared fields component (`CategoryFormFields`,
-  `ProductFormFields`, `AddressFormFields`, `VariantFormFields`) merge
-  manually at the call site instead: `:errors="{ ...clientErrors,
-  ...form.errors }"` — server errors win over client ones when both exist
-  for the same field (e.g. a uniqueness failure only the server can catch).
-  No changes were needed to `FormField`/`SelectField`/`TextareaField`/
+  Pages handing a whole errors object down to a shared fields component
+  (`CategoryFormFields`, `ProductFormFields`, `AddressFormFields`) instead
+  bind `fieldErrors`/`editFieldErrors`: `:errors="fieldErrors"` — the
+  server-first merge, since a server-side failure (e.g. a uniqueness check)
+  should win over a stale client-side error for the same field. Both merges
+  live in `useFormValidation` itself, not hand-rolled per call site. No
+  changes were needed to `FormField`/`SelectField`/`TextareaField`/
   `InputError` themselves — they already just render whatever string lands
   in their `error`/`message` prop.
 - **Reset alongside the existing error-reset points.** Any form that can be
@@ -301,13 +339,23 @@ Pages
   `AdminResourceForm` (the shared form chrome: card, submit/cancel buttons,
   processing state) around a shared `<Entity>FormFields` component
   (`CategoryFormFields`/`ProductFormFields`/`VariantFormFields`) and the
-  `useAdminResourceForm` composable (see "Form validation" above);
+  `useValidatedSubmit` composable (see "Form validation" above);
   `Products/Edit.vue` additionally renders `ProductImageManager` and
   `ProductVariantManager` below the main form; `Users/Index.vue` and
   `Admins/Index.vue` (list + promote/revoke flows, each backed by a
   `ConfirmationDialog`); `Orders/Index.vue` (read-only list, status/payment
   rendered via `OrderStatusBadge`/`PaymentStatusBadge`, with a search box and
-  a per-customer `user_id` filter). All list pages compose `DataTable` for
+  a per-customer `user_id` filter, plus — added on `feature/admin.orders` —
+  `status`/`date_from`/`date_to` filters, all via the `useFilterForm`
+  composable). `Orders/Show.vue` (added on `feature/admin.orders`) is the one
+  order-editing page: a status-change form (limited to the server-supplied
+  `allowed_transitions`), an admin-note form, and a refund action gated
+  behind a `ConfirmationDialog`/`useConfirmAction` — see
+  [docs/architecture.md](../architecture.md)'s "Admin order editing,
+  cancellation & refunds" section for the backend rules it's bound to, and
+  [docs/design-system/README.md](../design-system/README.md) for the
+  `CustomerContact`/`OrderShippingAddressCard`/`OrderSummaryCard`/
+  `OrderNoteCard` components it composes. All list pages compose `DataTable` for
   the actual table markup — see
   [docs/design-system/README.md](../design-system/README.md) for that and
   the `resources/js/components/admin/admin.ts` shared TypeScript types
@@ -333,11 +381,19 @@ Shared component library
   helper every `ui/*` component uses for its `class` prop — see
   [docs/design-system/README.md](../design-system/README.md) for what each
   primitive does.
-- `resources/js/lib/slug.ts` exports `slugify()`, used by `SlugField.vue` to
-  live-preview a slug as the admin types a name (mirrors the backend's
-  `HasUniqueSlug` trait's own slugification, but doesn't call the backend —
-  it's a client-side preview only; the server always has the final say and
-  appends its own `-1`/`-2` suffix on collision).
+- `resources/js/lib/navigation.ts` exports `isCurrentPath(url, href)` (a
+  prefix match with a boundary check), used by `Layouts/AdminLayout.vue` and
+  `shop/CategoryNavigation.vue` for active-nav-item highlighting.
+- `resources/js/lib/orderStatus.ts` exports one type, `OrdersNamespace =
+  'account.orders' | 'admin.orders'` — see `OrderStatusBadge`/
+  `PaymentStatusBadge`/`OrderSummaryCard`/`OrderShippingAddressCard` in
+  [docs/design-system/README.md](../design-system/README.md).
+- `resources/js/lib/slug.ts` (exporting `slugify()`) was deleted once
+  `SlugField.vue` turned out to be its only caller — the function now lives
+  inline in that component instead. It still mirrors the backend's
+  `HasUniqueSlug` trait's own slugification without calling the backend —
+  a client-side preview only; the server always has the final say and
+  appends its own `-1`/`-2` suffix on collision.
 
 Shop-specific components
 

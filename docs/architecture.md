@@ -23,6 +23,7 @@ Below are direct links to migrations and model definitions referenced in this do
 - Permission tables (added on `feature/admin`, spatie/laravel-permission's stock publish): [database/migrations/2026_07_28_083754_create_permission_tables.php](../database/migrations/2026_07_28_083754_create_permission_tables.php)
 - Orders / order items migrations (added on `feature/admin`): [database/migrations/2026_07_28_084257_create_orders_table.php](../database/migrations/2026_07_28_084257_create_orders_table.php), [database/migrations/2026_07_28_084258_create_order_items_table.php](../database/migrations/2026_07_28_084258_create_order_items_table.php)
 - Shipping address snapshot / payment fields migrations (added on `feature/order`): [database/migrations/2026_08_01_000000_add_shipping_address_snapshot_to_orders_table.php](../database/migrations/2026_08_01_000000_add_shipping_address_snapshot_to_orders_table.php) (nullable `shipping_address_snapshot` JSON column), [database/migrations/2026_08_01_000001_add_payment_fields_to_orders_table.php](../database/migrations/2026_08_01_000001_add_payment_fields_to_orders_table.php) (`payment_method` nullable, `payment_status` defaulting to `PaymentStatus::Unpaid`, unique `stripe_checkout_session_id`, `stripe_payment_intent_id`, `paid_at`) — see "Cart, checkout & payments" below.
+- Order note migrations (added on `feature/admin.orders`): [database/migrations/2026_08_04_000000_add_admin_note_to_orders_table.php](../database/migrations/2026_08_04_000000_add_admin_note_to_orders_table.php) / [database/migrations/2026_08_04_000001_add_customer_note_to_orders_table.php](../database/migrations/2026_08_04_000001_add_customer_note_to_orders_table.php) — each adds a single nullable `text` column (`admin_note`, `customer_note` respectively) after `shipping_address_snapshot`. See "Admin order editing, cancellation & refunds" below for who can write each.
 - Restrict-delete FK migrations (added on `feature/admin`): [database/migrations/2026_07_28_112242_restrict_delete_on_category_and_product_foreign_keys.php](../database/migrations/2026_07_28_112242_restrict_delete_on_category_and_product_foreign_keys.php) (Category `parent_id`, Product `category_id`), [database/migrations/2026_07_29_110345_add_product_snapshot_and_restrict_delete_on_order_items.php](../database/migrations/2026_07_29_110345_add_product_snapshot_and_restrict_delete_on_order_items.php) (Order item `product_id`, plus adds `product_snapshot` JSON), [database/migrations/2026_07_29_120000_add_product_variant_id_to_order_items_table.php](../database/migrations/2026_07_29_120000_add_product_variant_id_to_order_items_table.php) (adds `product_variant_id`, also restrict-delete)
 - Product images soft-delete migration (added on `feature/admin`): [database/migrations/2026_07_29_101919_add_deleted_at_to_product_images_table.php](../database/migrations/2026_07_29_101919_add_deleted_at_to_product_images_table.php)
 
@@ -41,19 +42,30 @@ Models
   **out of `$fillable`** — slug generation and parent/category assignment
   must go through the trait/controller, never raw mass-assignment
   (`Category::create($request->all())` would silently skip `slug` entirely).
-- Order model (added on `feature/admin`, extended on `feature/order`):
-  [app/Models/Order.php](../app/Models/Order.php) — `$fillable = ['user_id',
-  'status', 'total', 'payment_method', 'payment_status',
-  'stripe_checkout_session_id', 'stripe_payment_intent_id', 'paid_at']`;
-  `status` cast to `OrderStatus`, `total` cast `decimal:2`,
-  `shipping_address_snapshot` cast `array`, `payment_method` cast
-  `PaymentMethod`, `payment_status` cast `PaymentStatus`, `paid_at` cast
-  `datetime`. Two relations: `user(): BelongsTo<User>` and
-  `orderItems(): HasMany<OrderItem>` — the latter used to deliberately not
-  exist ("nothing traverses `Order → OrderItem`"), but the cart/checkout flow
-  added the first real caller (`CartController`/`CheckoutController` both
-  operate on a cart's `orderItems`), so it was added for real use, not
-  speculatively.
+  `Category`/`Product` additionally `implements`
+  [`GeneratesUniqueSlug`](../app/Models/Concerns/GeneratesUniqueSlug.php) (added
+  on `feature/admin.orders`) — a one-method marker interface for the same
+  `generateUniqueSlug()` signature, not a replacement for the trait. It exists
+  purely so `Admin\Concerns\FillsSlugAndForeignKey` (see "Shared Concerns &
+  base Request classes" below) can type-hint `Model&GeneratesUniqueSlug`
+  instead of a concrete class, since `Category`/`Product` are otherwise
+  unrelated models.
+- Order model (added on `feature/admin`, extended on `feature/order` and
+  `feature/admin.orders`): [app/Models/Order.php](../app/Models/Order.php) —
+  `$fillable = ['user_id', 'status', 'total', 'payment_method',
+  'payment_status', 'stripe_checkout_session_id', 'stripe_payment_intent_id',
+  'paid_at', 'admin_note', 'customer_note']`; `status` cast to `OrderStatus`,
+  `total` cast `decimal:2`, `shipping_address_snapshot` cast `array`,
+  `payment_method` cast `PaymentMethod`, `payment_status` cast
+  `PaymentStatus`, `paid_at` cast `datetime`. Two relations: `user():
+  BelongsTo<User>` and `orderItems(): HasMany<OrderItem>` — the latter used to
+  deliberately not exist ("nothing traverses `Order → OrderItem`"), but the
+  cart/checkout flow added the first real caller
+  (`CartController`/`CheckoutController` both operate on a cart's
+  `orderItems`), so it was added for real use, not speculatively.
+  `admin_note`/`customer_note` are both plain nullable strings with no
+  business logic on the model itself — see "Admin order editing, cancellation
+  & refunds" below for who can write each.
 - OrderItem model (added on `feature/admin`): [app/Models/OrderItem.php](../app/Models/OrderItem.php) —
   `$fillable = ['order_id', 'product_id', 'product_variant_id',
   'product_snapshot', 'quantity', 'unit_price']`; `product_snapshot` cast
@@ -63,12 +75,21 @@ Models
   name/image/category *as it was at order time*, even after the live
   `Product` row is later edited or (if unreferenced) deleted.
 - `OrderStatus` enum (added on `feature/admin`, gained a case on
-  `feature/order`): [app/Enums/OrderStatus.php](../app/Enums/OrderStatus.php) —
-  backed string enum, five cases: `Cart` (added on `feature/order` — an
-  in-progress order that hasn't been through checkout yet; see "Cart,
-  checkout & payments" below), `Pending`, `Processing`, `Completed`,
-  `Cancelled`. No methods. Any status → label/color mapping (e.g.
-  `OrderStatusBadge`'s variant) lives on the frontend, not the enum.
+  `feature/order`, gained methods on `feature/admin.orders`):
+  [app/Enums/OrderStatus.php](../app/Enums/OrderStatus.php) — backed string
+  enum, five cases: `Cart` (added on `feature/order` — an in-progress order
+  that hasn't been through checkout yet; see "Cart, checkout & payments"
+  below), `Pending`, `Processing`, `Completed`, `Cancelled`. Two methods now
+  encode the order status state machine: `allowedTransitions(): array`
+  (`Pending → [Processing, Cancelled]`, `Processing → [Completed,
+  Cancelled]`, `Completed`/`Cancelled`/`Cart` → `[]`, i.e. terminal) and
+  `canTransitionTo(self $status): bool`, derived from it. Both are exercised
+  from `Admin\OrderController::update` (see below) — the transition graph is
+  enforced server-side on every update, not just suggested by the frontend's
+  `<select>` options. Label/color mapping (e.g. `OrderStatusBadge`'s variant)
+  still lives on the frontend, not the enum. `PaymentMethod`/`PaymentStatus`
+  gained no equivalent transition methods — refunding is a one-way flag flip
+  handled directly in the controller (see below), not a graph.
 - `PaymentMethod` / `PaymentStatus` enums (added on `feature/order`):
   [app/Enums/PaymentMethod.php](../app/Enums/PaymentMethod.php) (`Cod`,
   `Stripe`), [app/Enums/PaymentStatus.php](../app/Enums/PaymentStatus.php)
@@ -99,10 +120,21 @@ Models
   deliberately **not** in `$fillable` (never actually settable via request
   data, but closes the door on a future `Address::create($request->all())`
   regression). The "only one default address per user" invariant — still not
-  a DB constraint — lives in `Address::makeDefault()` (unset every other
-  address of the same user, then set this one, in a single transaction),
-  called from `AddressController::store`/`update`/`setDefault` instead of
-  each duplicating the unset-then-set logic. `update()` also never writes
+  a DB constraint — lives in `Address::makeDefault()`, called from
+  `AddressController::store`/`update`/`setDefault` instead of each
+  duplicating the unset-then-set logic. As of `feature/admin.orders`,
+  `makeDefault()` is a one-line wrapper (`$this->makeExclusive('is_default',
+  'user_id')`) around
+  [`HasExclusiveFlag`](../app/Models/Concerns/HasExclusiveFlag.php)'s
+  `makeExclusive(string $column, string $scopeColumn): void` — unset `$column`
+  on every sibling sharing `$scopeColumn`, then set it on `$this`, all inside
+  one `DB::transaction()`. `ProductImage::makePrimary()` (see "Images" below)
+  is the trait's other caller (`$this->makeExclusive('is_primary',
+  'product_id')`) — the two methods used to duplicate this transactional
+  unset-then-set logic independently; `HasExclusiveFlag` centralizes the
+  "exactly one flagged row per scope" pattern generically, while `makeDefault()`/
+  `makePrimary()` themselves are unchanged as public method names/call sites.
+  `update()` also never writes
   `is_default: false` through directly — an address can only stop being
   default as a side effect of a *different* address becoming default via
   `makeDefault()`, otherwise an unchecked checkbox (or an omitted field) on
@@ -138,10 +170,12 @@ Images
   gained `SoftDeletes` on `feature/admin`, so deleting an image via the admin
   UI retains the row (with `deleted_at` set) instead of physically removing
   it. "Primary" image selection is a plain `is_primary` boolean column, not a
-  separate relation/accessor — `ProductImage::makePrimary()` transactionally
-  unsets `is_primary` on every other image for the same product, then sets it
-  on `$this`. `Admin\ProductImageController::destroy` re-promotes the next
-  image (by `sort_order`) to primary if the deleted one held the flag.
+  separate relation/accessor — `ProductImage::makePrimary()` unsets
+  `is_primary` on every other image for the same product, then sets it on
+  `$this`, via the shared `HasExclusiveFlag` trait (see "Models" above for
+  the trait itself and its other caller, `Address::makeDefault()`).
+  `Admin\ProductImageController::destroy` re-promotes the next image (by
+  `sort_order`) to primary if the deleted one held the flag.
 
 Accounts & authentication (added on `feature/authentication`)
 
@@ -211,16 +245,25 @@ Admin panel & authorization (added on `feature/admin`)
     doesn't skew the numbers, since a cart's `total` stays unset until
     checkout writes it, but it's worth knowing if a cart-abandonment stat is
     ever added here: the existing counts already include abandoned carts.
-  - `OrderController` — read-only, `index` only: no create/edit/store/destroy,
-    since orders aren't admin-editable. Excludes `OrderStatus::Cart` rows (an
-    in-progress cart isn't a "placed" order yet), selects
-    `payment_method`/`payment_status` alongside the original columns, and
-    (added on `feature/order`) supports a `search` filter (matches against
-    the order's `user`'s name/email) and a `user_id` filter.
+  - `OrderController` — `index` (excludes `OrderStatus::Cart` rows, selects
+    `payment_method`/`payment_status` alongside the original columns; as of
+    `feature/admin.orders` also filters by `status`/`date_from`/`date_to` and
+    searches `admin_note`/`customer_note` in addition to the existing
+    `search`/`user_id` filters, all via `FiltersIndexRequests`, see below),
+    plus (added on `feature/admin.orders`) `show`/`update`/`refund` — see
+    "Admin order editing, cancellation & refunds" below. There is still no
+    `create`/`store`/`destroy`: an order is never admin-*created*, only
+    edited once it exists.
   - `ProductImageController` / `ProductVariantController` — nested under a
     product (`admin.products.images.*` / no dedicated variant route prefix),
     not their own top-level resource. See "Image uploads & processing" below
-    for the image side.
+    for the image side. Their nested routes call `->scopeBindings()` (added
+    on `feature/admin.orders`, in [routes/admin.php](../routes/admin.php)) so
+    Laravel's route-model binding itself 404s when `{image}`/`{variant}`
+    doesn't belong to the `{product}` in the same URL — this replaced
+    per-action `abort_unless($image->product_id === $product->id, 404)` /
+    `abort_unless($variant->product_id === $product->id, 404)` checks that
+    used to be duplicated across each affected controller method.
   - `UserController` — read-only `index`: lists users with an `orders_count`
     and `is_admin` flag, built as an explicit array response per user rather
     than spreading `$user->toArray()` (see "Don't spread a full model into an
@@ -272,6 +315,53 @@ Orders (added on `feature/admin`)
   referencing it is blocked at the DB layer (`restrictOnDelete()`) — this is
   why `ProductController::destroy` checks `$product->orderItems()->exists()`
   before attempting the delete, rather than letting the FK constraint throw.
+
+Admin order editing, cancellation & refunds (added on `feature/admin.orders`)
+
+- An admin can now change a placed order's status, leave an internal note,
+  and refund a paid order — none of this existed when `Admin\OrderController`
+  was read-only (see "Admin panel & authorization" above). Gated purely by
+  the existing `['auth', 'admin']` route-middleware group in
+  [routes/admin.php](../routes/admin.php), the same as every other admin
+  route — there is **no** `OrderPolicy` ability added for this (an admin
+  editing any order is a role check, not an ownership check, matching the
+  `Category`/`Product` precedent already described above).
+- `Admin\OrderController::show(Order $order)` 404s if `$order->status ===
+  OrderStatus::Cart` (a cart isn't a placed order), eager-loads
+  `user:id,name,email` and `orderItems`, and renders `Admin/Orders/Show` with
+  `order` plus `allowed_transitions` — `$order->status->allowedTransitions()`
+  mapped to plain enum values, so the frontend's status `<select>` can be
+  populated without duplicating the transition graph client-side.
+- `Admin\OrderController::update(UpdateOrderRequest $request, Order $order)`
+  — [UpdateOrderRequest](../app/Http/Requests/UpdateOrderRequest.php) allows
+  `status` (`sometimes|required|Rule::enum(OrderStatus::class)->except(OrderStatus::Cart)`)
+  and `admin_note` (`sometimes|nullable|string|max:2000`) — **not**
+  `customer_note`, which has no rule at all and is therefore never
+  mass-assignable through this endpoint (confirmed by a dedicated test: "admin
+  cannot modify the customer note through the update endpoint"). The
+  controller only touches fields actually present in the validated data
+  (`array_key_exists`), and — on top of the FormRequest's enum rule — calls
+  `abort_unless($order->status->canTransitionTo($newStatus), 422, 'Invalid
+  status transition.')` before saving, so the transition graph is enforced
+  server-side even if a request bypasses the frontend's `<select>` options.
+  There is no stock-restoration or inventory side effect anywhere in this
+  flow — cancelling an order (`status: Cancelled`) only changes the status
+  column; product/variant stock decremented at checkout is not restored.
+- `Admin\OrderController::refund(Order $order)` —
+  `abort_unless($order->payment_status === PaymentStatus::Paid, 422, 'Only
+  paid orders can be refunded.')`. For a `PaymentMethod::Stripe` order, it
+  calls [`RefundCreator::createForOrder()`](../app/Services/Stripe/RefundCreator.php)
+  inside a try/catch for `Stripe\Exception\ApiErrorException`
+  (`back()->withErrors(['refund' => ...])` on failure, `payment_status`
+  untouched); a `Cod` order skips Stripe entirely. Either way, success sets
+  `payment_status` to `PaymentStatus::Refunded` — a one-way flag flip, not a
+  graph like `OrderStatus`'s transitions.
+  `RefundCreator::createForOrder(Order $order): \Stripe\Refund` is a single
+  method, constructor-injecting the app's `StripeClient` singleton (see
+  "Stripe integration" below) and calling `$this->client->refunds->create(['payment_intent'
+  => $order->stripe_payment_intent_id])` — a full refund only (no partial
+  amount, no idempotency key); any Stripe error bubbles straight up to the
+  controller's catch block above.
 
 Cart, checkout & payments (added on `feature/order`)
 
@@ -365,6 +455,90 @@ Cart, checkout & payments (added on `feature/order`)
   `index` (paginated, excludes `OrderStatus::Cart`) and `show` (404s on a
   `Cart`-status order, since it isn't a "placed" order the URL should be
   able to reach), both authorized via `OrderPolicy::view`.
+
+Shared Concerns & base Request classes (added on `feature/admin.orders`)
+
+A refactor pass extracted logic that had been separately duplicated across
+the admin Category/Product/Address/Auth controllers and their Form Requests
+into shared traits/base classes. Each of these has **2+ real call sites**
+today (the same bar `AGENTS.md`'s "Duplication checks" section applies to the
+frontend) — treat that as the threshold before adding a third abstraction
+here, not evidence more sharing is automatically good.
+
+- [`Http\Controllers\Concerns\DefaultsNullableFieldsToZero`](../app/Http/Controllers/Concerns/DefaultsNullableFieldsToZero.php) —
+  `defaultToZeroOnStore(array &$data, string $key)` (blank → `0` on create)
+  and `defaultToZeroOnUpdate(array &$data, string $key)` (zeroes only if the
+  key is present *and* explicitly `null`, not merely omitted). Used by
+  `Admin\ProductController` and `Admin\ProductVariantController` for `stock`.
+- [`Http\Controllers\Concerns\FillsSlugAndForeignKey`](../app/Http/Controllers/Concerns/FillsSlugAndForeignKey.php) —
+  `extractSlugAndForeignKey()` (create path) /
+  `applySlugAndForeignKey(Model&GeneratesUniqueSlug $model, ...)` (update
+  path, conditional on the foreign key being present in the request). Used by
+  `Admin\CategoryController` (`parent_id`/`Category`) and
+  `Admin\ProductController` (`category_id`/`Product`) — see the
+  `GeneratesUniqueSlug` interface above for why it can type-hint across both
+  otherwise-unrelated models.
+- [`Http\Controllers\Concerns\FiltersIndexRequests`](../app/Http/Controllers/Concerns/FiltersIndexRequests.php) —
+  `applySearchFilter(Builder $query, Request $request, Closure $callback)`
+  (only applies the callback if `search` is filled/trimmed) and
+  `requestFilters(Request $request, array $keys)` (echoes the applied filters
+  back into the Inertia response so the frontend's filter form can stay in
+  sync with the URL). Used by `Admin\CategoryController`,
+  `Admin\ProductController`, `Admin\UserController`, and
+  `Admin\OrderController`'s `index` actions.
+- [`Http\Controllers\Concerns\GuardsRelatedDeletes`](../app/Http/Controllers/Concerns/GuardsRelatedDeletes.php) —
+  `preventDeleteIfRelated(Model $model, array $relations, string $indexRoute,
+  string $errorField, string $errorMessageKey)`: loops the given relation
+  names, and on the first one that `->exists()`, flashes an error and
+  redirects back instead of deleting. Used by `Admin\CategoryController::destroy`
+  (`['children', 'products']`) and `Admin\ProductController::destroy`
+  (`['orderItems']`) — this is the app-level half of the "block delete both
+  at the app layer and via a DB `restrictOnDelete()` FK" pattern described
+  under "Authorization" in `AGENTS.md`; the FK backstop is unchanged.
+- [`Http\Requests\Concerns\AuthorizesUpdateVia`](../app/Http/Requests/Concerns/AuthorizesUpdateVia.php) —
+  `authorizeUpdate(string $routeParam): bool` →
+  `$this->user()->can('update', $this->route($routeParam))`. Used by
+  `UpdateAddressRequest`/`UpdateCartItemRequest`'s `authorize()` methods —
+  the same Policy-backed ownership check each used to spell out inline.
+- [`Http\Requests\Concerns\SharedRules`](../app/Http/Requests/Concerns/SharedRules.php) —
+  a grab-bag of rule-array builders reused across otherwise-unrelated Form
+  Requests: `nameEmailPasswordRules()`, `withSometimes(array $rules, bool
+  $sometimes)`, `activeAndStockRules()`, `quantityRule()`,
+  `descriptionRule()`, `isPartialUpdate(): bool` (default `false`, overridden
+  `true` by update-flavored subclasses), `uniqueIgnoring($table, $ignore,
+  $column = 'NULL')`. Used by `NameSlugRequest`, `Admin\ProductVariantRequest`,
+  `Auth\RegisterRequest`, `ProfileUpdateRequest`, `Admin\StoreAdminRequest`,
+  `StoreCartItemRequest`, and both product/category/variant update requests
+  (via `isPartialUpdate()`).
+- [`Http\Requests\NameSlugRequest`](../app/Http/Requests/NameSlugRequest.php)
+  (abstract) — `rules() = commonRules() + nameAndSlugRules($this->isPartialUpdate())`,
+  subclasses implement `commonRules()`. `ProductRequest`/`CategoryRequest`
+  each extend it (holding the product/category-specific field rules), and
+  are themselves subclassed by the now near-empty
+  `Store*`/`Update*ProductRequest`/`Update*CategoryRequest` classes (an
+  `Update*` subclass typically only overrides `isPartialUpdate(): bool {
+  return true; }`).
+- [`Http\Requests\AddressRequest`](../app/Http/Requests/AddressRequest.php)
+  (abstract) — holds the full address rule set directly (address fields don't
+  overlap with the name/email/password/stock shapes `SharedRules` covers).
+  `StoreAddressRequest`/`UpdateAddressRequest` are now near-empty subclasses.
+- [`Http\Requests\Admin\ProductVariantRequest`](../app/Http/Requests/Admin/ProductVariantRequest.php)
+  (abstract, uses `SharedRules`) — `rules() = skuRules() + commonRules()`;
+  subclasses implement the abstract `skuRules()` (a plain `unique` rule on
+  create, a `uniqueIgnoring()` rule scoped to the current variant on update).
+- [`Http\Requests\Auth\RegisterRequest`](../app/Http/Requests/Auth/RegisterRequest.php) —
+  a normal FormRequest (`rules() = nameEmailPasswordRules()`) that
+  `Auth\RegisteredUserController::store` now type-hints instead of validating
+  inline — not a "single-use abstraction" concern per se (a controller action
+  needing validation is the expected FormRequest pairing, per the
+  `AGENTS.md` note on `authorize()` placement), just newly extracted from
+  what used to be an inline `$request->validate([...])` call.
+- [`Support\Validation\PasswordRules`](../app/Support/Validation/PasswordRules.php) —
+  a plain class, one static method `defaults(): array` (`['required',
+  'confirmed', Password::defaults()]`), replacing that same array literal
+  that used to be duplicated across `RegisterRequest`/`SharedRules`,
+  `Admin\StoreAdminRequest`, `Auth\PasswordController::update`, and
+  `Auth\NewPasswordController::store`.
 
 Routing bridge (Ziggy)
 
