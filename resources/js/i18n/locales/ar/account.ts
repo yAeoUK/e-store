@@ -61,6 +61,7 @@ export default {
             shippingAddress: 'عنوان الشحن',
             placedOn: 'تاريخ الطلب',
             total: 'الإجمالي',
+            note: 'ملاحظتك',
         },
     },
 } satisfies AccountTranslations;

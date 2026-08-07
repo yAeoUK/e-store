@@ -60,6 +60,7 @@ const account = {
             shippingAddress: 'Shipping Address',
             placedOn: 'Placed on',
             total: 'Total',
+            note: 'Your Note',
         },
     },
 };

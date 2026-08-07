@@ -56,5 +56,6 @@ export default {
             cod: 'الدفع عند الاستلام',
             stripe: 'الدفع بالبطاقة',
         },
+        note: 'ملاحظة (اختياري)',
     },
 } satisfies ShopTranslations;

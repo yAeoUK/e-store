@@ -1,56 +1,44 @@
-import { Head } from '@inertiajs/vue3';
 import { mount } from '@vue/test-utils';
 import { describe, expect, it } from 'vitest';
 import Show from '@/pages/Account/Orders/Show.vue';
+import type { AddressSnapshot } from '@/types/address';
+import {
+    defaultAddressSnapshot,
+    defaultOrder,
+    defaultOrderItem,
+    expectRendersPageTitle,
+    testRendersLabels,
+} from '../../../utils';
 
-const order = {
+const order = defaultOrder({
     id: 7,
     status: 'processing',
     total: '59.98',
     payment_method: 'stripe',
     payment_status: 'paid',
-    created_at: '2026-01-01T00:00:00.000Z',
-    shipping_address_snapshot: {
-        label: 'Home',
-        name: 'Jane Doe',
-        line1: '123 Main St',
-        line2: null,
-        city: 'Springfield',
+    shipping_address_snapshot: defaultAddressSnapshot({
         state: 'IL',
-        postal_code: '62704',
-        country: 'US',
-        phone: null,
-    },
+    }) as AddressSnapshot | null,
     order_items: [
-        {
-            id: 1,
+        defaultOrderItem({
             quantity: 2,
-            unit_price: '19.99',
             product_snapshot: {
                 name: 'Widget',
                 slug: 'widget',
-                image_url: null,
-                category: null,
-                variant: {
-                    sku: 'WID-1',
-                    options: { color: 'red' },
-                },
+                variant: { sku: 'WID-1', options: { color: 'red' } },
             },
-        },
-        {
+        }),
+        defaultOrderItem({
             id: 2,
-            quantity: 1,
             unit_price: '20.00',
             product_snapshot: {
                 name: 'Gadget',
                 slug: 'gadget',
-                image_url: null,
-                category: null,
                 variant: null,
             },
-        },
+        }),
     ],
-};
+});
 
 function mountPage(overrides: { order?: typeof order } = {}) {
     return mount(Show, {
@@ -91,10 +79,8 @@ describe('Account order detail page', () => {
 
     it('renders the page title via Head with the order id', () => {
         const wrapper = mountPage();
-        const head = wrapper.findComponent(Head);
 
-        expect(head.exists()).toBe(true);
-        expect(head.attributes('title')).toBe('account.orders.detail.pageTitle');
+        expectRendersPageTitle(wrapper, 'account.orders.detail.pageTitle');
         expect(wrapper.text()).toContain('#7');
     });
 
@@ -102,9 +88,7 @@ describe('Account order detail page', () => {
         const wrapper = mountPage();
 
         expect(wrapper.text()).toContain('account.orders.statuses.processing');
-        expect(wrapper.text()).toContain(
-            'account.orders.paymentStatuses.paid',
-        );
+        expect(wrapper.text()).toContain('account.orders.paymentStatuses.paid');
     });
 
     it('renders each order item with quantity, variant options and line total', () => {
@@ -125,19 +109,20 @@ describe('Account order detail page', () => {
         expect(wrapper.text()).toContain('$59.98');
     });
 
-    it('renders all static text labels on the page', () => {
-        const wrapper = mountPage();
-        const text = wrapper.text();
-
-        expect(text).toContain('account.orders.detail.pageTitle');
-        expect(text).toContain('account.orders.detail.backToOrders');
-        expect(text).toContain('account.orders.detail.placedOn');
-        expect(text).toContain('account.orders.detail.items');
-        expect(text).toContain('account.orders.detail.total');
-        expect(text).toContain('account.orders.detail.shippingAddress');
-        expect(text).toContain('account.orders.statuses.processing');
-        expect(text).toContain('account.orders.paymentStatuses.paid');
-    });
+    testRendersLabels(
+        mountPage,
+        [
+            'account.orders.detail.pageTitle',
+            'account.orders.detail.backToOrders',
+            'account.orders.detail.placedOn',
+            'account.orders.detail.items',
+            'account.orders.detail.total',
+            'account.orders.detail.shippingAddress',
+            'account.orders.statuses.processing',
+            'account.orders.paymentStatuses.paid',
+        ],
+        'renders all static text labels on the page',
+    );
 
     it('renders the shipping address when present', () => {
         const wrapper = mountPage();
@@ -154,6 +139,26 @@ describe('Account order detail page', () => {
             order: { ...order, shipping_address_snapshot: null },
         });
 
-        expect(wrapper.text()).not.toContain('account.orders.detail.shippingAddress');
+        expect(wrapper.text()).not.toContain(
+            'account.orders.detail.shippingAddress',
+        );
+    });
+
+    it('does not render a note section when the customer left no note', () => {
+        const wrapper = mountPage();
+
+        expect(wrapper.text()).not.toContain('account.orders.detail.note');
+    });
+
+    it('renders the customer note when present', () => {
+        const wrapper = mountPage({
+            order: {
+                ...order,
+                customer_note: 'Please leave at the back door.',
+            },
+        });
+
+        expect(wrapper.text()).toContain('account.orders.detail.note');
+        expect(wrapper.text()).toContain('Please leave at the back door.');
     });
 });
